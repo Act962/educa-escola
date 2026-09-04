@@ -1,0 +1,41 @@
+{
+  "name": "educa-escola",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "check-types": "turbo run check-types",
+    "dev:web": "turbo run dev -F web --",
+    "db:push": "turbo run db:push -F @educa-escola/db --",
+    "db:studio": "turbo run db:studio -F @educa-escola/db --",
+    "db:generate": "turbo run db:generate -F @educa-escola/db --",
+    "db:migrate": "turbo run db:migrate -F @educa-escola/db --",
+    "db:start": "docker compose up -d postgres",
+    "db:watch": "docker compose up postgres",
+    "db:stop": "docker compose stop postgres",
+    "db:down": "docker compose down postgres",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "check": "biome check --write ."
+  },
+  "dependencies": {
+    "@educa-escola/env": "workspace:*",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.11",
+    "@educa-escola/config": "workspace:*",
+    "@types/node": "catalog:",
+    "turbo": "^2.10.12",
+    "typescript": "catalog:"
+  },
+  "packageManager": "pnpm@11.25.0"
+}

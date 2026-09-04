@@ -1,0 +1,24 @@
+{
+  "name": "@educa-escola/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@educa-escola/db": "workspace:*",
+    "@educa-escola/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@educa-escola/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

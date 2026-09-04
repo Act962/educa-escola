@@ -1,0 +1,3 @@
+{
+  "extends": "@educa-escola/config/tsconfig.base.json"
+}
