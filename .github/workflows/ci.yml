@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: educa-escola
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:password@localhost:5432/educa-escola
+      # Valor descartável só para o CI: assina sessões de teste, nunca sai daqui.
+      BETTER_AUTH_SECRET: ci-placeholder-secret-nao-use-em-producao
+      BETTER_AUTH_URL: http://localhost:3001
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint e formatação
+        run: pnpm exec biome ci .
+
+      - name: Tipos
+        run: pnpm run check-types
+
+      - name: Testes
+        run: pnpm run test
+
+      - name: Migrations acompanham o schema
+        run: |
+          pnpm --filter @educa-escola/db exec drizzle-kit generate
+          if [ -n "$(git status --porcelain packages/db/src/migrations)" ]; then
+            echo "::error::O schema mudou sem migration correspondente. Rode 'pnpm run db:generate' e commite o resultado."
+            git status --porcelain packages/db/src/migrations
+            exit 1
+          fi

@@ -27,13 +27,26 @@ pnpm install
 
 This project uses PostgreSQL with Drizzle ORM.
 
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/web/.env` file with your PostgreSQL connection details.
-
-3. Apply the schema to your database:
+1. Copie `apps/web/.env.example` para `apps/web/.env` e ajuste os valores.
+2. Suba o Postgres local:
 
 ```bash
-pnpm run db:push
+pnpm run db:start
+```
+
+3. Aplique as migrations versionadas:
+
+```bash
+pnpm run db:migrate
+```
+
+> Migrations sao versionadas: gere com `pnpm run db:generate` e commite o
+> resultado. `db:push` fica reservado a experimento local.
+
+4. Provisione a primeira escola e sua diretoria:
+
+```bash
+pnpm --filter @educa-escola/auth run provision --   --name "Escola Municipal X" --slug escola-x   --owner-name "Maria Diretora"   --owner-email diretoria@escola-x.br --owner-password "uma-senha-forte"
 ```
 
 Then, run the development server:
@@ -85,9 +98,22 @@ Environment variables are read from each app's `.env` file (baked into web build
 
 For more details, see the guide on [Deploying with Docker Compose](https://www.better-t-stack.dev/docs/guides/docker).
 
-## Git Hooks and Formatting
+## Testes
 
-- Run checks: `pnpm run check`
+```bash
+pnpm run test          # suite completa (precisa do Postgres no ar)
+pnpm run test:watch
+```
+
+Testes de banco usam um banco separado (`<database>_test`), criado e migrado
+automaticamente. Nunca tocam no banco de desenvolvimento.
+
+## Qualidade
+
+- Formatacao e lint: `pnpm run check`
+- Tipos: `pnpm run check-types`
+
+O CI roda lint, tipos, testes e verifica se o schema mudou sem migration.
 
 ## Project Structure
 
@@ -108,7 +134,8 @@ educa-escola/
 - `pnpm run build`: Build all applications
 - `pnpm run dev:web`: Start only the web application
 - `pnpm run check-types`: Check TypeScript types across all apps
-- `pnpm run db:push`: Push schema changes to database
+- `pnpm run test`: Run the test suite
+- `pnpm run db:migrate`: Apply versioned migrations
 - `pnpm run db:generate`: Generate database client/types
 - `pnpm run db:migrate`: Run database migrations
 - `pnpm run db:studio`: Open database studio UI

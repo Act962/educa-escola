@@ -23,7 +23,9 @@
     "docker:up": "docker compose up -d --build",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
-    "check": "biome check --write ."
+    "check": "biome check --write .",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch"
   },
   "dependencies": {
     "@educa-escola/env": "workspace:*",
@@ -35,7 +37,8 @@
     "@educa-escola/config": "workspace:*",
     "@types/node": "catalog:",
     "turbo": "^2.10.12",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "packageManager": "pnpm@11.25.0"
 }

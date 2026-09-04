@@ -1,0 +1,13 @@
+# Normaliza fim de linha: LF no repositorio, nativo no working copy.
+# Sem isso, cada dev num SO diferente gera diff de arquivo inteiro.
+* text=auto eol=lf
+
+# Binarios: nunca normalizar.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary

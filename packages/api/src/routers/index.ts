@@ -1,4 +1,5 @@
 import { protectedProcedure, publicProcedure, router } from "../index";
+import { classroomRouter } from "../modules/classroom/router";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
@@ -10,5 +11,7 @@ export const appRouter = router({
       user: ctx.session.user,
     };
   }),
+  classroom: classroomRouter,
 });
+
 export type AppRouter = typeof appRouter;

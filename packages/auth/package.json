@@ -9,16 +9,24 @@
       "default": "./src/*.ts"
     }
   },
-  "scripts": {},
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "provision": "jiti src/provision-cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "dependencies": {
     "@educa-escola/db": "workspace:*",
     "@educa-escola/env": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
+    "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@educa-escola/config": "workspace:*",
-    "typescript": "catalog:"
+    "jiti": "^2.7.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./server": "./src/server.ts",
-    "./web": "./src/web.ts"
+    "./web": "./src/web.ts",
+    "./load": "./src/load.ts"
   },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.11",
@@ -16,5 +17,8 @@
     "@educa-escola/config": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
   }
 }
