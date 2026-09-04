@@ -14,11 +14,25 @@
       "dependsOn": ["^check-types"]
     },
     "test": {
-      "outputs": []
+      "outputs": [],
+      "env": [
+        "DATABASE_URL",
+        "TEST_DATABASE_URL",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "NODE_ENV"
+      ]
     },
     "test:watch": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "DATABASE_URL",
+        "TEST_DATABASE_URL",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "NODE_ENV"
+      ]
     },
     "dev": {
       "cache": false,
@@ -56,5 +70,6 @@
     "web#check-types": {
       "dependsOn": ["build"]
     }
-  }
+  },
+  "globalEnv": ["CI"]
 }

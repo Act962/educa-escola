@@ -27,7 +27,12 @@ export function testDatabaseUrl(): string {
   const base = process.env.DATABASE_URL;
   if (!base) {
     throw new Error(
-      "Testes de banco exigem DATABASE_URL (ou TEST_DATABASE_URL). Rode `pnpm run db:start` e confira apps/web/.env.",
+      [
+        "Testes de banco exigem DATABASE_URL (ou TEST_DATABASE_URL).",
+        "Local: rode `pnpm run db:start` e confira apps/web/.env.",
+        "CI: a variável precisa estar declarada em `tasks.test.env` no turbo.json —",
+        "o Turbo roda em envMode strict e apaga o que não for declarado.",
+      ].join(" "),
     );
   }
 
