@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { loadEnvFile } from "@educa-escola/env/load";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
-import { Pool } from "pg";
+import { Client, Pool } from "pg";
 
 import * as schema from "./schema";
 
@@ -50,8 +50,21 @@ function databaseNameOf(url: URL): string {
 }
 
 /**
+ * Chave do lock advisory que serializa a preparação do banco de teste.
+ * Valor arbitrário, só precisa ser estável entre processos.
+ */
+const SETUP_LOCK_KEY = 20260904;
+
+/**
  * Cria o banco de teste caso não exista e aplica todas as migrations.
- * Roda uma vez por execução da suíte (globalSetup do Vitest).
+ *
+ * Roda uma vez por suíte (globalSetup do Vitest) — mas o Turbo dispara várias
+ * suítes em paralelo, e todas passam por aqui. Sem serialização, duas tentam
+ * criar o banco ao mesmo tempo (uma recebe 23505) ou migram concorrentemente.
+ * O lock advisory faz a segunda esperar e encontrar tudo pronto.
+ *
+ * O lock vive na sessão, então precisa de um Client dedicado: num Pool, lock e
+ * unlock poderiam cair em conexões diferentes.
  */
 export async function ensureTestDatabase(): Promise<void> {
   const url = new URL(testDatabaseUrl());
@@ -60,21 +73,29 @@ export async function ensureTestDatabase(): Promise<void> {
   const adminUrl = new URL(url);
   adminUrl.pathname = "/postgres";
 
-  const admin = new Pool({ connectionString: adminUrl.toString() });
+  const admin = new Client({ connectionString: adminUrl.toString() });
+  await admin.connect();
+
   try {
-    const existing = await admin.query("select 1 from pg_database where datname = $1", [name]);
-    if (existing.rowCount === 0) {
-      await admin.query(`create database "${name}"`);
+    await admin.query("select pg_advisory_lock($1)", [SETUP_LOCK_KEY]);
+
+    try {
+      const existing = await admin.query("select 1 from pg_database where datname = $1", [name]);
+      if (existing.rowCount === 0) {
+        await admin.query(`create database "${name}"`);
+      }
+
+      const pool = new Pool({ connectionString: url.toString() });
+      try {
+        await migrate(drizzle(pool, { schema }), { migrationsFolder: MIGRATIONS_FOLDER });
+      } finally {
+        await pool.end();
+      }
+    } finally {
+      await admin.query("select pg_advisory_unlock($1)", [SETUP_LOCK_KEY]);
     }
   } finally {
     await admin.end();
-  }
-
-  const pool = new Pool({ connectionString: url.toString() });
-  try {
-    await migrate(drizzle(pool, { schema }), { migrationsFolder: MIGRATIONS_FOLDER });
-  } finally {
-    await pool.end();
   }
 }
 
