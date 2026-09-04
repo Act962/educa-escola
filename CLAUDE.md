@@ -236,6 +236,16 @@ versão por pacote.
   regenerados pelo `shadcn add` e supressões inline se perderiam. Código nosso
   continua sujeito a todas as regras; a11y ali é dívida consciente, não isenção
   permanente.
+- **Turbo roda em `envMode` strict.** Variável de ambiente que não esteja
+  declarada em `tasks.<tarefa>.env` (ou em `globalEnv`) no `turbo.json` **não
+  chega** ao processo da tarefa. Isso passa despercebido no local, porque
+  `@educa-escola/env` lê o arquivo `apps/web/.env` do disco; no CI não há
+  arquivo e a tarefa fica sem env. Ao introduzir uma variável nova, declare-a
+  também no `turbo.json`.
+- **O preparo do banco de teste é concorrente.** O Turbo dispara as suítes em
+  paralelo e todas chamam `ensureTestDatabase`, que por isso usa
+  `pg_advisory_lock`. Se for mexer nesse setup, teste apagando o banco de teste
+  antes — com ele já criado, a corrida não aparece.
 - **`nitro@3.x` é beta** e é o runtime do servidor. Dívida a monitorar.
 - **Skills versionadas.** `.claude/skills/` (espelhado em `.agents/skills/`) traz
   skills fixadas de Better Auth, shadcn, Turborepo e boas práticas de React,
