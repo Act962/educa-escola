@@ -1,7 +1,14 @@
 import { longDate, shortDate } from "@educa-escola/api/dates";
-import { Eyebrow, Panel, PanelHeader } from "@educa-escola/ui/integra/panel";
+import { Badge } from "@educa-escola/ui/components/badge";
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardEyebrow,
+  CardHeader,
+  CardTitle,
+} from "@educa-escola/ui/components/card";
 import { EmptyState, ListSkeleton } from "@educa-escola/ui/integra/states";
-import { StatusBadge } from "@educa-escola/ui/integra/status-badge";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -22,7 +29,7 @@ function Chamada() {
   return (
     <>
       <div className="flex flex-col gap-1">
-        <Eyebrow>Chamada</Eyebrow>
+        <CardEyebrow>Chamada</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Registro de presença</h1>
         <p className="text-[13px] text-muted-foreground">
           {agenda.data ? longDate(agenda.data.date) : "Carregando…"}
@@ -30,12 +37,16 @@ function Chamada() {
       </div>
 
       {atrasadas.length > 0 ? (
-        <Panel>
-          <PanelHeader
-            title="Em atraso"
-            hint="Aulas que já aconteceram e continuam sem registro"
-            action={<StatusBadge tone="danger">{atrasadas.length}</StatusBadge>}
-          />
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <CardTitle>Em atraso</CardTitle>
+              <CardDescription>Aulas que já aconteceram e continuam sem registro</CardDescription>
+            </div>
+            <CardAction>
+              <Badge variant="danger">{atrasadas.length}</Badge>
+            </CardAction>
+          </CardHeader>
           <ul className="flex flex-col gap-2">
             {atrasadas.map((aula) => (
               <li key={aula.id}>
@@ -56,16 +67,18 @@ function Chamada() {
                       {aula.room ? ` · ${aula.room}` : ""}
                     </span>
                   </span>
-                  <StatusBadge tone="danger">Exige justificativa</StatusBadge>
+                  <Badge variant="danger">Exige justificativa</Badge>
                 </Link>
               </li>
             ))}
           </ul>
-        </Panel>
+        </Card>
       ) : null}
 
-      <Panel>
-        <PanelHeader title="Aulas de hoje" />
+      <Card>
+        <CardHeader>
+          <CardTitle>Aulas de hoje</CardTitle>
+        </CardHeader>
 
         {agenda.isLoading ? (
           <ListSkeleton rows={3} />
@@ -94,16 +107,16 @@ function Chamada() {
                     <span className="text-[11px] text-muted-foreground">{aula.room ?? ""}</span>
                   </span>
                   {aula.attendanceRecordedAt ? (
-                    <StatusBadge tone="success">Registrada</StatusBadge>
+                    <Badge variant="success">Registrada</Badge>
                   ) : (
-                    <StatusBadge tone="warning">Pendente</StatusBadge>
+                    <Badge variant="warning">Pendente</Badge>
                   )}
                 </Link>
               </li>
             ))}
           </ul>
         )}
-      </Panel>
+      </Card>
     </>
   );
 }

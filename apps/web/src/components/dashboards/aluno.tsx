@@ -1,13 +1,22 @@
-import { longDate } from "@educa-escola/api/dates";
+import { longDate, shortDate } from "@educa-escola/api/dates";
+import { Avatar, AvatarFallback } from "@educa-escola/ui/components/avatar";
+import { Badge } from "@educa-escola/ui/components/badge";
+import { Button } from "@educa-escola/ui/components/button";
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@educa-escola/ui/components/card";
 import { BarComparison, ChartLegend } from "@educa-escola/ui/integra/bar-compare";
-import { InitialsAvatar } from "@educa-escola/ui/integra/initials-avatar";
-import { Panel, PanelHeader } from "@educa-escola/ui/integra/panel";
 import { StatCard } from "@educa-escola/ui/integra/stat-card";
-import { EmptyState, PanelSkeleton } from "@educa-escola/ui/integra/states";
-import { StatusBadge } from "@educa-escola/ui/integra/status-badge";
+import { EmptyState, ListSkeleton } from "@educa-escola/ui/integra/states";
+import { initialsOf } from "@educa-escola/ui/lib/initials";
+import { cn } from "@educa-escola/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { BookOpen, CalendarCheck, ClipboardCheck } from "lucide-react";
+import { BookOpen, CalendarCheck, ClipboardCheck, Layers } from "lucide-react";
 
 import type { CurrentUser } from "@/components/app-shell";
 import { nota, percentualCurto, primeiroNome, saudacao } from "@/lib/format";
@@ -35,27 +44,27 @@ export function DashboardAluno({ me }: { me: CurrentUser }) {
   return (
     <>
       <div className="grid gap-5 xl:grid-cols-[1fr_auto]">
-        <Panel className="bg-accent">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <InitialsAvatar name={me.name} size="lg" className="bg-card" />
-            <div className="flex flex-col gap-2">
-              <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
-                {saudacao()}, {primeiroNome(me.name)}
-              </h1>
-              <p className="max-w-xl text-[13px] text-muted-foreground">
-                {ficha.data
-                  ? `Você está no ${ficha.data.classroomName ?? "aguardando turma"}, matrícula ${ficha.data.registration}.`
-                  : "Carregando sua matrícula…"}{" "}
-                Aqui aparecem apenas as notas já publicadas pelos professores.
-              </p>
-              {ficha.data?.classroomName ? (
-                <span className="w-fit rounded-full bg-card px-3 py-1 font-bold text-[13px] text-info">
-                  {ficha.data.classroomName}
-                </span>
-              ) : null}
-            </div>
+        <Card className="flex-row items-center gap-5 bg-accent">
+          <Avatar size="lg" className="hidden sm:flex">
+            <AvatarFallback className="bg-card">{initialsOf(me.name)}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col gap-2">
+            <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
+              {saudacao()}, {primeiroNome(me.name)}
+            </h1>
+            <p className="max-w-xl text-[13px] text-muted-foreground">
+              {ficha.data
+                ? `Você está no ${ficha.data.classroomName ?? "aguardando turma"}, matrícula ${ficha.data.registration}.`
+                : "Carregando sua matrícula…"}{" "}
+              Aqui aparecem apenas as notas já publicadas pelos professores.
+            </p>
+            {ficha.data?.classroomName ? (
+              <Badge variant="info" className="w-fit bg-card">
+                {ficha.data.classroomName}
+              </Badge>
+            ) : null}
           </div>
-        </Panel>
+        </Card>
 
         <div className="grid grid-cols-2 gap-4 xl:w-[26rem]">
           <StatCard
@@ -71,22 +80,26 @@ export function DashboardAluno({ me }: { me: CurrentUser }) {
           <StatCard icon={CalendarCheck} label="Faltas registradas" tone="neutral">
             {painel.data?.attendance?.absences ?? 0}
           </StatCard>
-          <StatCard icon={BookOpen} label="Disciplinas com nota" tone="neutral">
+          <StatCard icon={Layers} label="Disciplinas com nota" tone="neutral">
             {boletim.data?.subjects.length ?? 0}
           </StatCard>
         </div>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[1fr_22rem]">
-        <Panel>
-          <PanelHeader
-            title="Desempenho por disciplina"
-            hint={`${term}º bimestre`}
-            action={<ChartLegend series={["Sua média", "Média da turma"]} />}
-          />
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <CardTitle>Desempenho por disciplina</CardTitle>
+              <CardDescription>{term}º bimestre</CardDescription>
+            </div>
+            <CardAction>
+              <ChartLegend series={["Sua média", "Média da turma"]} />
+            </CardAction>
+          </CardHeader>
 
           {boletim.isLoading ? (
-            <PanelSkeleton title="" rows={4} />
+            <ListSkeleton rows={4} />
           ) : (boletim.data?.subjects.length ?? 0) === 0 ? (
             <EmptyState
               title="Nenhuma nota publicada ainda"
@@ -103,21 +116,21 @@ export function DashboardAluno({ me }: { me: CurrentUser }) {
               }))}
             />
           )}
-        </Panel>
+        </Card>
 
         <div className="flex flex-col gap-5">
-          <Panel>
-            <PanelHeader
-              title="Últimas notas"
-              action={
-                <Link to="/boletim" className="font-bold text-[13px] text-info hover:underline">
+          <Card>
+            <CardHeader>
+              <CardTitle>Últimas notas</CardTitle>
+              <CardAction>
+                <Button variant="link" size="sm" render={<Link to="/boletim" />}>
                   Ver boletim
-                </Link>
-              }
-            />
+                </Button>
+              </CardAction>
+            </CardHeader>
 
             {boletim.isLoading ? (
-              <PanelSkeleton title="" rows={3} />
+              <ListSkeleton rows={3} />
             ) : (boletim.data?.latest.length ?? 0) === 0 ? (
               <EmptyState
                 title="Sem lançamentos"
@@ -127,26 +140,31 @@ export function DashboardAluno({ me }: { me: CurrentUser }) {
               <ul className="flex flex-col gap-3">
                 {(boletim.data?.latest ?? []).map((linha) => (
                   <li key={linha.assessmentId} className="flex items-center gap-3">
-                    <InitialsAvatar
-                      name={linha.subjectName}
-                      size="sm"
-                      tone={linha.score < 6 ? "danger" : "neutral"}
-                    />
+                    <Avatar size="sm">
+                      <AvatarFallback
+                        className={cn(
+                          linha.score < 6
+                            ? "bg-danger-soft text-danger"
+                            : "bg-secondary text-secondary-foreground",
+                        )}
+                      >
+                        {initialsOf(linha.subjectName)}
+                      </AvatarFallback>
+                    </Avatar>
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate font-extrabold text-[13px]">
                         {linha.subjectName}
                       </span>
                       <span className="text-[11px] text-muted-foreground">
                         {linha.assessmentName} · peso {linha.weight}
-                        {linha.appliedOn
-                          ? ` · ${linha.appliedOn.split("-").reverse().slice(0, 2).join("/")}`
-                          : ""}
+                        {linha.appliedOn ? ` · ${shortDate(linha.appliedOn)}` : ""}
                       </span>
                     </span>
                     <span
-                      className={`font-extrabold text-sm tabular-nums ${
-                        linha.score < 6 ? "text-danger" : "text-foreground"
-                      }`}
+                      className={cn(
+                        "font-extrabold text-sm tabular-nums",
+                        linha.score < 6 ? "text-danger" : "text-foreground",
+                      )}
                     >
                       {nota(linha.score)}
                     </span>
@@ -154,12 +172,14 @@ export function DashboardAluno({ me }: { me: CurrentUser }) {
                 ))}
               </ul>
             )}
-          </Panel>
+          </Card>
 
-          <Panel>
-            <PanelHeader title="Aulas de hoje" />
+          <Card>
+            <CardHeader>
+              <CardTitle>Aulas de hoje</CardTitle>
+            </CardHeader>
             <AulasDoDia />
-          </Panel>
+          </Card>
         </div>
       </div>
     </>
@@ -170,7 +190,7 @@ function AulasDoDia() {
   const trpc = useTRPC();
   const agenda = useQuery(trpc.lesson.myClassAgenda.queryOptions());
 
-  if (agenda.isLoading) return <PanelSkeleton title="" rows={3} />;
+  if (agenda.isLoading) return <ListSkeleton rows={3} />;
 
   const aulas = agenda.data?.lessons ?? [];
   if (aulas.length === 0) {
@@ -184,16 +204,17 @@ function AulasDoDia() {
 
   return (
     <>
-      <p className="mb-3 text-[11px] text-muted-foreground">
+      <p className="-mt-2 text-[11px] text-muted-foreground">
         {agenda.data?.date ? longDate(agenda.data.date) : null}
       </p>
       <ul className="flex flex-col gap-2">
         {aulas.map((aula) => (
           <li
             key={aula.id}
-            className={`flex items-center gap-3 rounded-field p-3 ${
-              aula.state === "em_andamento" ? "bg-accent" : "bg-muted"
-            }`}
+            className={cn(
+              "flex items-center gap-3 rounded-field p-3",
+              aula.state === "em_andamento" ? "bg-accent" : "bg-muted",
+            )}
           >
             <span className="flex w-12 flex-col text-center">
               <span className="font-extrabold text-[13px]">{aula.startsAt}</span>
@@ -206,7 +227,7 @@ function AulasDoDia() {
                 {aula.room ? ` · ${aula.room}` : ""}
               </span>
             </span>
-            {aula.state === "em_andamento" ? <StatusBadge tone="info">Agora</StatusBadge> : null}
+            {aula.state === "em_andamento" ? <Badge variant="info">Agora</Badge> : null}
           </li>
         ))}
       </ul>

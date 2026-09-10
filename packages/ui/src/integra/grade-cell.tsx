@@ -1,3 +1,4 @@
+import { Input } from "@educa-escola/ui/components/input";
 import { cn } from "@educa-escola/ui/lib/utils";
 
 interface GradeCellProps {
@@ -23,18 +24,18 @@ function formatScore(value: number | null): string {
 }
 
 /**
- * Célula da grade de notas.
+ * Célula da grade de notas, sobre o `Input` do shadcn.
  *
  * Quatro estados visuais, e o que os distingue nunca é só a cor: a célula
- * vazia obrigatória tem borda tracejada, a travada perde a borda de campo e
- * ganha `readOnly` (o leitor de tela anuncia). Aceita vírgula, que é como
- * professor digita nota no Brasil.
+ * vazia obrigatória tem borda tracejada, a travada perde o fundo de campo e
+ * ganha `readOnly` (que o leitor de tela anuncia). Aceita vírgula, que é como
+ * se digita nota no Brasil.
  */
 export function GradeCell({ label, value, onChange, locked, required }: GradeCellProps) {
   const empty = value === null;
 
   return (
-    <input
+    <Input
       type="text"
       inputMode="decimal"
       aria-label={label}
@@ -47,12 +48,11 @@ export function GradeCell({ label, value, onChange, locked, required }: GradeCel
         onChange(parsed);
       }}
       className={cn(
-        "h-9 w-20 rounded-field text-center font-bold text-[13px] tabular-nums",
-        "focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-1",
-        locked && "bg-muted text-muted-foreground",
-        !locked && !empty && "border border-input bg-card",
-        !locked && empty && required && "border border-warning border-dashed bg-warning-soft",
-        !locked && empty && !required && "border border-input border-dashed bg-card",
+        "min-h-10 w-20 rounded-field px-0 text-center font-bold tabular-nums",
+        locked && "bg-transparent text-muted-foreground",
+        !locked && !empty && "border-input bg-card",
+        !locked && empty && required && "border-warning border-dashed bg-warning-soft",
+        !locked && empty && !required && "border-input border-dashed bg-card",
       )}
       placeholder={empty ? "—" : undefined}
     />

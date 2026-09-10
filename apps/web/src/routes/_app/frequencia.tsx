@@ -1,7 +1,14 @@
-import { Eyebrow, Panel, PanelHeader } from "@educa-escola/ui/integra/panel";
+import { Badge } from "@educa-escola/ui/components/badge";
+import {
+  Card,
+  CardAction,
+  CardEyebrow,
+  CardHeader,
+  CardTitle,
+} from "@educa-escola/ui/components/card";
+import { Progress, ProgressLabel, ProgressValue } from "@educa-escola/ui/components/progress";
 import { StatCard } from "@educa-escola/ui/integra/stat-card";
 import { EmptyState, ListSkeleton } from "@educa-escola/ui/integra/states";
-import { StatusBadge } from "@educa-escola/ui/integra/status-badge";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarX, ClipboardCheck } from "lucide-react";
@@ -26,7 +33,7 @@ function Frequencia() {
   return (
     <>
       <div className="flex flex-col gap-1">
-        <Eyebrow>Frequência</Eyebrow>
+        <CardEyebrow>Frequência</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Minha frequência</h1>
         <p className="text-[13px] text-muted-foreground">
           {ficha.data?.classroomName ?? "Sem turma"} · matrícula {ficha.data?.registration ?? "—"}
@@ -34,16 +41,16 @@ function Frequencia() {
       </div>
 
       {painel.isLoading ? (
-        <Panel>
+        <Card>
           <ListSkeleton rows={3} />
-        </Panel>
+        </Card>
       ) : !frequencia ? (
-        <Panel>
+        <Card>
           <EmptyState
             title="Sem aulas registradas"
             description="Nenhuma chamada foi registrada para a sua turma até agora."
           />
-        </Panel>
+        </Card>
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -60,22 +67,30 @@ function Frequencia() {
             </StatCard>
           </div>
 
-          <Panel>
-            <PanelHeader
-              title="Situação"
-              action={
-                <StatusBadge tone={frequencia.belowMinimum ? "danger" : "success"}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Situação</CardTitle>
+              <CardAction>
+                <Badge variant={frequencia.belowMinimum ? "danger" : "success"}>
                   {frequencia.belowMinimum ? "Abaixo do mínimo" : "Dentro do mínimo"}
-                </StatusBadge>
-              }
-            />
+                </Badge>
+              </CardAction>
+            </CardHeader>
+
+            <Progress value={(frequencia.rate ?? 0) * 100} max={100}>
+              <ProgressLabel>Aulas assistidas no ano</ProgressLabel>
+              <ProgressValue className={frequencia.belowMinimum ? "text-danger" : "text-success"}>
+                {() => percentual(frequencia.rate)}
+              </ProgressValue>
+            </Progress>
+
             <p className="text-[13px] text-muted-foreground">
               {frequencia.belowMinimum
                 ? "Sua frequência está abaixo dos 75% exigidos pela LDB (art. 24, VI). Procure a coordenação para entender as opções de reposição."
                 : "Sua frequência está acima do mínimo exigido pela LDB (art. 24, VI): 75% das aulas dadas."}{" "}
               Atrasos contam como presença.
             </p>
-          </Panel>
+          </Card>
         </>
       )}
     </>

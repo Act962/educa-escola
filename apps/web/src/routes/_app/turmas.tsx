@@ -1,6 +1,12 @@
-import { Eyebrow, Panel, PanelHeader } from "@educa-escola/ui/integra/panel";
+import { Badge } from "@educa-escola/ui/components/badge";
+import {
+  Card,
+  CardAction,
+  CardEyebrow,
+  CardHeader,
+  CardTitle,
+} from "@educa-escola/ui/components/card";
 import { EmptyState, ListSkeleton, PermissionState } from "@educa-escola/ui/integra/states";
-import { StatusBadge } from "@educa-escola/ui/integra/status-badge";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -13,9 +19,9 @@ export const Route = createFileRoute("/_app/turmas")({
 /**
  * Turmas.
  *
- * A mesma rota atende a direção (todas as turmas da escola) e o professor
- * (só as do vínculo) — quem decide é o servidor, não um `if` de tela: o
- * professor consulta as turmas em que tem aula, e nada além disso chega.
+ * A mesma rota atende a direção (todas as turmas da escola) e o professor (só
+ * as do vínculo) — quem decide é o servidor, não um `if` de tela: o professor
+ * consulta as turmas em que tem aula, e nada além disso chega.
  */
 function Turmas() {
   const trpc = useTRPC();
@@ -42,19 +48,19 @@ function Turmas() {
 
   if (erro) {
     return (
-      <Panel>
+      <Card>
         <PermissionState
           title="Seu perfil não abre esta tela"
           description="A lista de turmas é da direção, da secretaria e dos professores vinculados."
         />
-      </Panel>
+      </Card>
     );
   }
 
   return (
     <>
       <div className="flex flex-col gap-1">
-        <Eyebrow>{professor ? "Minhas turmas" : "Turmas"}</Eyebrow>
+        <CardEyebrow>{professor ? "Minhas turmas" : "Turmas"}</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
           {professor ? "Minhas turmas" : "Turmas da escola"}
         </h1>
@@ -65,11 +71,15 @@ function Turmas() {
         </p>
       </div>
 
-      <Panel>
-        <PanelHeader
-          title={professor ? "Vínculos" : "Cadastradas"}
-          action={itens.length ? <StatusBadge tone="info">{itens.length}</StatusBadge> : null}
-        />
+      <Card>
+        <CardHeader>
+          <CardTitle>{professor ? "Vínculos" : "Cadastradas"}</CardTitle>
+          {itens.length ? (
+            <CardAction>
+              <Badge variant="info">{itens.length}</Badge>
+            </CardAction>
+          ) : null}
+        </CardHeader>
 
         {carregando ? (
           <ListSkeleton rows={3} />
@@ -105,7 +115,7 @@ function Turmas() {
             ))}
           </ul>
         )}
-      </Panel>
+      </Card>
     </>
   );
 }

@@ -66,8 +66,9 @@ Clique em **Fazer chamada** numa aula de hoje.
 - **Abra a aula em atraso** (a de ontem, no topo). Ela exige justificativa —
   registrar fora do prazo é corrigir histórico, e correção precisa de motivo.
 
-**Mostre no celular.** Reduza a janela: a barra vira inferior, a linha do aluno
-empilha e os alvos ficam com 44px. É onde a chamada acontece de verdade.
+**Mostre em tela estreita.** Reduza a janela: a lateral recolhe no botão do
+topo e vira painel deslizante, a linha do aluno empilha e os alvos ficam com
+44px. Continua sendo um app web — não há barra inferior de aplicativo nativo.
 
 ### 3. Professor — notas (2 min)
 

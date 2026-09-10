@@ -1,8 +1,15 @@
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@educa-escola/ui/components/empty";
+import { Skeleton } from "@educa-escola/ui/components/skeleton";
 import { cn } from "@educa-escola/ui/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import { AlertTriangle, Inbox, Lock } from "lucide-react";
-
-import { Panel } from "./panel";
 
 interface StateProps {
   title: string;
@@ -11,6 +18,14 @@ interface StateProps {
   className?: string;
 }
 
+/**
+ * Os quatro estados obrigatórios de toda tela (design brief §5), montados
+ * sobre o `Empty` do shadcn.
+ *
+ * Existem como componentes nomeados, e não como `<Empty>` solto em cada tela,
+ * porque o texto de cada um segue uma regra: erro explica a causa, sem
+ * permissão explica o motivo **sem revelar que o dado existe**.
+ */
 function BaseState({
   icon: Icon,
   tone,
@@ -20,16 +35,16 @@ function BaseState({
   className,
 }: StateProps & { icon: LucideIcon; tone: string }) {
   return (
-    <div className={cn("flex flex-col items-center gap-3 px-6 py-12 text-center", className)}>
-      <span className={cn("flex size-11 items-center justify-center rounded-control", tone)}>
-        <Icon size={20} strokeWidth={1.7} aria-hidden />
-      </span>
-      <div className="flex max-w-sm flex-col gap-1">
-        <p className="font-extrabold text-base tracking-[-0.2px]">{title}</p>
-        <p className="text-[13px] text-muted-foreground">{description}</p>
-      </div>
-      {action}
-    </div>
+    <Empty className={cn("border-none", className)}>
+      <EmptyHeader>
+        <EmptyMedia variant="icon" className={tone}>
+          <Icon strokeWidth={1.7} aria-hidden />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyDescription>{description}</EmptyDescription>
+      </EmptyHeader>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
+    </Empty>
   );
 }
 
@@ -55,29 +70,20 @@ export function PermissionState(props: StateProps) {
 
 /**
  * Esqueleto com a forma do conteúdo, nunca spinner de tela cheia: a página não
- * pode "piscar" de vazia para cheia a cada navegação.
+ * pode piscar de vazia para cheia a cada navegação.
  */
 export function ListSkeleton({ rows = 4, className }: { rows?: number; className?: string }) {
   return (
     <div className={cn("flex flex-col gap-2", className)} aria-hidden>
       {Array.from({ length: rows }, (_, index) => index).map((index) => (
         <div key={index} className="flex items-center gap-3 rounded-field bg-muted p-3">
-          <div className="size-10 animate-pulse rounded-control bg-secondary" />
+          <Skeleton className="size-10 rounded-control" />
           <div className="flex flex-1 flex-col gap-1.5">
-            <div className="h-3 w-1/3 animate-pulse rounded-full bg-secondary" />
-            <div className="h-2.5 w-1/5 animate-pulse rounded-full bg-secondary" />
+            <Skeleton className="h-3 w-1/3 rounded-full" />
+            <Skeleton className="h-2.5 w-1/5 rounded-full" />
           </div>
         </div>
       ))}
     </div>
-  );
-}
-
-export function PanelSkeleton({ title, rows }: { title: string; rows?: number }) {
-  return (
-    <Panel>
-      <p className="mb-4 font-extrabold text-base tracking-[-0.2px]">{title}</p>
-      <ListSkeleton rows={rows} />
-    </Panel>
   );
 }

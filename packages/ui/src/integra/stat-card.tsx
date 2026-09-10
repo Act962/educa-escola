@@ -1,8 +1,7 @@
+import { Card } from "@educa-escola/ui/components/card";
 import { cn } from "@educa-escola/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import type { LucideIcon } from "lucide-react";
-
-import { Panel } from "./panel";
 
 const iconBox = cva("flex size-[34px] items-center justify-center rounded-control", {
   variants: {
@@ -40,15 +39,17 @@ interface StatCardProps extends VariantProps<typeof iconBox> {
 }
 
 /**
- * Número em destaque do dashboard: caixa de ícone, valor e rótulo.
+ * Número em destaque do painel: caixa de ícone, valor e rótulo.
+ *
+ * Composição sobre o `Card` do shadcn — não é um primitivo novo, é o mesmo
+ * card com um arranjo que se repete em todas as três visões.
  *
  * O `tone` colore o valor quando ele é uma pendência (chamada em atraso,
- * inadimplência) — mas o rótulo continua dizendo o que é, então a cor só
- * reforça.
+ * inadimplência), mas o rótulo continua dizendo o que é: a cor só reforça.
  */
 export function StatCard({ icon: Icon, children, label, hint, tone, className }: StatCardProps) {
   return (
-    <Panel className={cn("flex flex-col gap-3", className)}>
+    <Card className={cn("gap-3", className)}>
       <span className={cn(iconBox({ tone }))}>
         <Icon size={18} strokeWidth={1.7} aria-hidden />
       </span>
@@ -57,6 +58,6 @@ export function StatCard({ icon: Icon, children, label, hint, tone, className }:
         <span className="text-[13px] text-muted-foreground">{label}</span>
         {hint ? <span className="text-[11px] text-muted-foreground">{hint}</span> : null}
       </div>
-    </Panel>
+    </Card>
   );
 }

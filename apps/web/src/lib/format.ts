@@ -1,4 +1,4 @@
-import type { StatusTone } from "@educa-escola/ui/integra/status-badge";
+import type { BadgeTone } from "@educa-escola/ui/components/badge";
 
 /**
  * Formatação para leitura em pt-BR.
@@ -40,7 +40,7 @@ export function turno(value: string): string {
   return TURNOS[value] ?? value;
 }
 
-const SITUACOES_MATRICULA: Record<string, { label: string; tone: StatusTone }> = {
+const SITUACOES_MATRICULA: Record<string, { label: string; tone: BadgeTone }> = {
   ativo: { label: "Ativo", tone: "success" },
   documentacao_pendente: { label: "Doc. pendente", tone: "warning" },
   transferido: { label: "Transferido", tone: "neutral" },
@@ -48,10 +48,10 @@ const SITUACOES_MATRICULA: Record<string, { label: string; tone: StatusTone }> =
 };
 
 export function situacaoMatricula(value: string) {
-  return SITUACOES_MATRICULA[value] ?? { label: value, tone: "neutral" as StatusTone };
+  return SITUACOES_MATRICULA[value] ?? { label: value, tone: "neutral" as BadgeTone };
 }
 
-const SITUACOES_NOTA: Record<string, { label: string; tone: StatusTone }> = {
+const SITUACOES_NOTA: Record<string, { label: string; tone: BadgeTone }> = {
   aprovado: { label: "Aprovado", tone: "success" },
   recuperacao: { label: "Recuperação", tone: "danger" },
   reprovado: { label: "Reprovado", tone: "danger" },
@@ -59,7 +59,7 @@ const SITUACOES_NOTA: Record<string, { label: string; tone: StatusTone }> = {
 };
 
 export function situacaoNota(value: string) {
-  return SITUACOES_NOTA[value] ?? { label: value, tone: "neutral" as StatusTone };
+  return SITUACOES_NOTA[value] ?? { label: value, tone: "neutral" as BadgeTone };
 }
 
 /** Saudação pelo horário local de quem está lendo. */

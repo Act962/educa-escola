@@ -1,3 +1,5 @@
+import { Card } from "@educa-escola/ui/components/card";
+import { PermissionState } from "@educa-escola/ui/integra/states";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
@@ -36,13 +38,12 @@ function AppLayout() {
   if (!me.data) {
     return (
       <div className="grid min-h-svh place-items-center bg-background p-6">
-        <div className="max-w-md rounded-card bg-card p-6 text-center">
-          <p className="font-extrabold text-base tracking-[-0.2px]">Sem vínculo ativo</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">
-            Sua conta não está vinculada a nenhuma escola. Fale com a secretaria para liberar o
-            acesso.
-          </p>
-        </div>
+        <Card className="max-w-md">
+          <PermissionState
+            title="Sem vínculo ativo"
+            description="Sua conta não está vinculada a nenhuma escola. Fale com a secretaria para liberar o acesso."
+          />
+        </Card>
       </div>
     );
   }

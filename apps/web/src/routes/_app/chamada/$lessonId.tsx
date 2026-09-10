@@ -1,9 +1,29 @@
-import { longDate } from "@educa-escola/api/dates";
-import { InitialsAvatar } from "@educa-escola/ui/integra/initials-avatar";
-import { Eyebrow, Panel, PanelHeader } from "@educa-escola/ui/integra/panel";
+import { longDate, shortDate } from "@educa-escola/api/dates";
+import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components/alert";
+import { Avatar, AvatarFallback } from "@educa-escola/ui/components/avatar";
+import { Badge } from "@educa-escola/ui/components/badge";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@educa-escola/ui/components/breadcrumb";
+import { Button } from "@educa-escola/ui/components/button";
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@educa-escola/ui/components/card";
+import { Label } from "@educa-escola/ui/components/label";
+import { Textarea } from "@educa-escola/ui/components/textarea";
 import { SegmentedControl, type SegmentedOption } from "@educa-escola/ui/integra/segmented";
 import { ErrorState, ListSkeleton, PermissionState } from "@educa-escola/ui/integra/states";
-import { StatusBadge } from "@educa-escola/ui/integra/status-badge";
+import { initialsOf } from "@educa-escola/ui/lib/initials";
+import { cn } from "@educa-escola/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Clock, Info } from "lucide-react";
@@ -69,17 +89,16 @@ function FolhaDeChamada() {
 
   if (folha.isLoading) {
     return (
-      <Panel>
+      <Card>
         <ListSkeleton rows={6} />
-      </Panel>
+      </Card>
     );
   }
 
   if (folha.error) {
-    const negado = folha.error.data?.code === "FORBIDDEN";
     return (
-      <Panel>
-        {negado ? (
+      <Card>
+        {folha.error.data?.code === "FORBIDDEN" ? (
           <PermissionState
             title="Seu perfil não registra chamada"
             description="O registro de presença é do professor da turma. Fale com a coordenação se precisa deste acesso."
@@ -87,7 +106,7 @@ function FolhaDeChamada() {
         ) : (
           <ErrorState title="Não foi possível abrir a chamada" description={folha.error.message} />
         )}
-      </Panel>
+      </Card>
     );
   }
 
@@ -128,13 +147,17 @@ function FolhaDeChamada() {
     <>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <nav className="flex items-center gap-2 text-[13px] text-muted-foreground">
-            <Link to="/chamada" className="font-bold text-info hover:underline">
-              Chamada
-            </Link>
-            <span aria-hidden>›</span>
-            <span className="font-bold">{lesson.classroomName}</span>
-          </nav>
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink render={<Link to="/chamada">Chamada</Link>} />
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{lesson.classroomName}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
             Chamada — {lesson.classroomName} · {lesson.subjectName}
           </h1>
@@ -144,37 +167,34 @@ function FolhaDeChamada() {
           </p>
         </div>
 
-        <span className="flex items-center gap-2 rounded-control bg-warning-soft px-4 py-2.5 font-bold text-[13px] text-warning">
-          <Clock size={18} strokeWidth={1.7} aria-hidden />
-          Prazo para registrar: {deadline.slice(-5)} de{" "}
-          {lesson.date.split("-").reverse().slice(0, 2).join("/")}
-        </span>
+        <Badge variant="warning" className="gap-2 px-4 py-2.5 text-[13px]">
+          <Clock strokeWidth={1.7} aria-hidden />
+          Prazo para registrar: {deadline.slice(-5)} de {shortDate(lesson.date)}
+        </Badge>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[1fr_22rem]">
-        <Panel>
-          <PanelHeader
-            title="Alunos"
-            hint={`${totalAlunos} na turma`}
-            action={
-              <button
-                type="button"
-                onClick={todosPresentes}
-                className="flex min-h-11 items-center gap-2 rounded-control bg-success-soft px-4 font-bold text-[13px] text-success"
-              >
-                <Check size={18} strokeWidth={1.7} aria-hidden />
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <CardTitle>Alunos</CardTitle>
+              <CardDescription>{totalAlunos} na turma</CardDescription>
+            </div>
+            <CardAction>
+              <Button variant="success" onClick={todosPresentes}>
+                <Check strokeWidth={1.7} aria-hidden />
                 Redefinir todos como presentes
-              </button>
-            }
-          />
+              </Button>
+            </CardAction>
+          </CardHeader>
 
-          <p className="mb-4 flex items-start gap-2 rounded-field bg-muted p-3 text-[13px] text-muted-foreground">
-            <Info size={18} strokeWidth={1.7} className="mt-px shrink-0" aria-hidden />
-            <span>
+          <Alert>
+            <Info strokeWidth={1.7} aria-hidden />
+            <AlertDescription className="text-muted-foreground">
               Todos entram como <strong className="text-foreground">presentes</strong> — marque
               apenas as exceções. O contador atualiza sozinho.
-            </span>
-          </p>
+            </AlertDescription>
+          </Alert>
 
           <ul className="flex flex-col gap-2">
             {entries.map((linha) => {
@@ -184,23 +204,27 @@ function FolhaDeChamada() {
               return (
                 <li
                   key={linha.studentId}
-                  className={`flex flex-col gap-3 rounded-field p-3 sm:flex-row sm:items-center ${
-                    status === "falta"
-                      ? "bg-danger-soft"
-                      : status === "atraso"
-                        ? "bg-warning-soft"
-                        : "bg-muted"
-                  }`}
+                  className={cn(
+                    "flex flex-col gap-3 rounded-field p-3 sm:flex-row sm:items-center",
+                    status === "falta" && "bg-danger-soft",
+                    status === "atraso" && "bg-warning-soft",
+                    !excecao && "bg-muted",
+                  )}
                 >
                   {/* No celular a linha empilha: nome em cima, trilho de
                       presença embaixo, ocupando a largura toda. Lado a lado,
                       o trilho não cabe e o nome fica ilegível. */}
                   <span className="flex min-w-0 flex-1 items-center gap-3">
-                    <InitialsAvatar
-                      name={linha.name}
-                      size="sm"
-                      tone={excecao ? (status === "falta" ? "danger" : "warning") : "info"}
-                    />
+                    <Avatar size="sm">
+                      <AvatarFallback
+                        className={cn(
+                          status === "falta" && "bg-danger-soft text-danger",
+                          status === "atraso" && "bg-warning-soft text-warning",
+                        )}
+                      >
+                        {initialsOf(linha.name)}
+                      </AvatarFallback>
+                    </Avatar>
                     <span className="flex min-w-0 flex-col">
                       <span className="truncate font-extrabold text-sm">{linha.name}</span>
                       <span className="text-[11px] text-muted-foreground">
@@ -222,11 +246,13 @@ function FolhaDeChamada() {
               );
             })}
           </ul>
-        </Panel>
+        </Card>
 
         <div className="flex flex-col gap-5">
-          <Panel>
-            <PanelHeader title="Resumo da chamada" />
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumo da chamada</CardTitle>
+            </CardHeader>
 
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-field bg-success-soft p-3 text-center">
@@ -247,83 +273,78 @@ function FolhaDeChamada() {
               </div>
             </div>
 
-            <p className="mt-4 text-[13px] text-muted-foreground">
+            <p className="text-[13px] text-muted-foreground">
               Frequência da aula:{" "}
               <strong className="text-foreground">{percentual(frequencia)}</strong> —{" "}
               {contagem.presente + contagem.atraso} de {totalAlunos}. Atrasos contam como presença.
             </p>
-          </Panel>
+          </Card>
 
-          <Panel>
-            <PanelHeader title="Conteúdo da aula" />
-            <label className="sr-only" htmlFor="conteudo">
+          <Card>
+            <CardHeader>
+              <CardTitle>Conteúdo da aula</CardTitle>
+            </CardHeader>
+            <Label htmlFor="conteudo" className="sr-only">
               Conteúdo da aula
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               id="conteudo"
               value={conteudo}
               onChange={(event) => setConteudo(event.target.value)}
               rows={4}
               placeholder="O que foi trabalhado nesta aula"
-              className="w-full rounded-field bg-muted p-3 text-[13px] outline-none focus-visible:outline-2 focus-visible:outline-ring"
             />
 
-            <label className="mt-4 mb-2 block font-bold text-[13px]" htmlFor="tarefa">
-              Tarefa de casa
-            </label>
-            <textarea
+            <Label htmlFor="tarefa">Tarefa de casa</Label>
+            <Textarea
               id="tarefa"
               value={tarefa}
               onChange={(event) => setTarefa(event.target.value)}
               rows={2}
+              className="min-h-14"
               placeholder="Opcional — descreva a tarefa"
-              className="w-full rounded-field bg-muted p-3 text-[13px] outline-none focus-visible:outline-2 focus-visible:outline-ring"
             />
-          </Panel>
+          </Card>
 
           {requiresJustification ? (
-            <Panel className="bg-warning-soft">
-              <Eyebrow className="text-warning">Fora do prazo</Eyebrow>
-              <p className="mt-1 mb-3 text-[13px]">
+            <Alert variant="warning">
+              <Clock strokeWidth={1.7} aria-hidden />
+              <AlertTitle>Fora do prazo</AlertTitle>
+              <AlertDescription className="flex flex-col gap-3">
                 Esta aula já passou do prazo de registro. A alteração vira correção de histórico e
                 exige justificativa.
-              </p>
-              <label className="sr-only" htmlFor="justificativa">
-                Justificativa
-              </label>
-              <textarea
-                id="justificativa"
-                value={justificativa}
-                onChange={(event) => setJustificativa(event.target.value)}
-                rows={3}
-                placeholder="Descreva o motivo do registro fora do prazo"
-                className="w-full rounded-field bg-card p-3 text-[13px] outline-none focus-visible:outline-2 focus-visible:outline-ring"
-              />
-            </Panel>
+                <Label htmlFor="justificativa" className="sr-only">
+                  Justificativa
+                </Label>
+                <Textarea
+                  id="justificativa"
+                  value={justificativa}
+                  onChange={(event) => setJustificativa(event.target.value)}
+                  rows={3}
+                  className="bg-card"
+                  placeholder="Descreva o motivo do registro fora do prazo"
+                />
+              </AlertDescription>
+            </Alert>
           ) : null}
 
-          <Panel>
-            <button
-              type="button"
-              onClick={enviar}
-              disabled={salvar.isPending}
-              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-control bg-primary px-4 font-bold text-primary-foreground text-sm disabled:opacity-60"
-            >
-              <Check size={20} strokeWidth={1.7} aria-hidden />
+          <Card>
+            <Button size="lg" onClick={enviar} disabled={salvar.isPending} className="w-full">
+              <Check strokeWidth={1.7} aria-hidden />
               {salvar.isPending ? "Salvando…" : "Salvar chamada"}
-            </button>
+            </Button>
 
             {lesson.attendanceRecordedAt ? (
-              <p className="mt-3 text-center">
-                <StatusBadge tone="success">Chamada já registrada</StatusBadge>
+              <p className="text-center">
+                <Badge variant="success">Chamada já registrada</Badge>
               </p>
             ) : null}
 
-            <p className="mt-3 text-center text-[11px] text-muted-foreground">
+            <p className="text-center text-[11px] text-muted-foreground">
               Você pode editar até o fim do dia da aula. Depois disso, a alteração exige
               justificativa.
             </p>
-          </Panel>
+          </Card>
         </div>
       </div>
     </>

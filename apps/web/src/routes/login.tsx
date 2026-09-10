@@ -1,4 +1,7 @@
-import { Panel } from "@educa-escola/ui/integra/panel";
+import { Button } from "@educa-escola/ui/components/button";
+import { Card } from "@educa-escola/ui/components/card";
+import { Input } from "@educa-escola/ui/components/input";
+import { Label } from "@educa-escola/ui/components/label";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { GraduationCap } from "lucide-react";
@@ -14,9 +17,9 @@ export const Route = createFileRoute("/login")({
 /**
  * Entrada única para os três perfis.
  *
- * Não existe auto-cadastro: escola e vínculo são provisionados pela
- * plataforma (`allowUserToCreateOrganization` está desligado), então uma tela
- * de "criar conta" prometeria algo que o servidor recusa.
+ * Não existe auto-cadastro: escola e vínculo são provisionados pela plataforma
+ * (`allowUserToCreateOrganization` está desligado), então uma tela de "criar
+ * conta" prometeria algo que o servidor recusa.
  */
 function Login() {
   const navigate = useNavigate();
@@ -48,8 +51,8 @@ function Login() {
 
   return (
     <div className="grid min-h-svh place-items-center bg-background p-6">
-      <Panel className="w-full max-w-md">
-        <div className="mb-6 flex flex-col items-center gap-2 text-center">
+      <Card className="w-full max-w-md">
+        <div className="flex flex-col items-center gap-2 text-center">
           <GraduationCap size={34} strokeWidth={1.7} className="text-primary" aria-hidden />
           <span className="font-extrabold text-xl tracking-[-0.4px]">
             Integra<span className="text-primary">Edu</span>
@@ -70,10 +73,8 @@ function Login() {
           <form.Field name="email">
             {(field) => (
               <div className="flex flex-col gap-1.5">
-                <label htmlFor={field.name} className="font-bold text-[13px]">
-                  E-mail
-                </label>
-                <input
+                <Label htmlFor={field.name}>E-mail</Label>
+                <Input
                   id={field.name}
                   name={field.name}
                   type="email"
@@ -81,7 +82,6 @@ function Login() {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
-                  className="min-h-11 rounded-control bg-muted px-3 text-[13px] outline-none focus-visible:outline-2 focus-visible:outline-ring"
                 />
                 {field.state.meta.errors.map((error) => (
                   <p key={error?.message} className="text-[11px] text-danger">
@@ -95,10 +95,8 @@ function Login() {
           <form.Field name="password">
             {(field) => (
               <div className="flex flex-col gap-1.5">
-                <label htmlFor={field.name} className="font-bold text-[13px]">
-                  Senha
-                </label>
-                <input
+                <Label htmlFor={field.name}>Senha</Label>
+                <Input
                   id={field.name}
                   name={field.name}
                   type="password"
@@ -106,7 +104,6 @@ function Login() {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
-                  className="min-h-11 rounded-control bg-muted px-3 text-[13px] outline-none focus-visible:outline-2 focus-visible:outline-ring"
                 />
                 {field.state.meta.errors.map((error) => (
                   <p key={error?.message} className="text-[11px] text-danger">
@@ -121,21 +118,17 @@ function Login() {
             selector={(state) => ({ canSubmit: state.canSubmit, isSubmitting: state.isSubmitting })}
           >
             {({ canSubmit, isSubmitting }) => (
-              <button
-                type="submit"
-                disabled={!canSubmit || isSubmitting}
-                className="min-h-12 rounded-control bg-primary font-bold text-primary-foreground text-sm disabled:opacity-60"
-              >
+              <Button type="submit" size="lg" disabled={!canSubmit || isSubmitting}>
                 {isSubmitting ? "Entrando…" : "Entrar"}
-              </button>
+              </Button>
             )}
           </form.Subscribe>
         </form>
 
-        <p className="mt-4 text-center text-[11px] text-muted-foreground">
+        <p className="text-center text-[11px] text-muted-foreground">
           Não há auto-cadastro: o acesso é criado pela secretaria da instituição.
         </p>
-      </Panel>
+      </Card>
     </div>
   );
 }

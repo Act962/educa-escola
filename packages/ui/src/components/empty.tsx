@@ -6,7 +6,7 @@ function Empty({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="empty"
       className={cn(
-        "flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 text-balance rounded-none border-dashed p-6 text-center md:p-12",
+        "flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 text-balance border-dashed p-6 text-center md:p-10",
         className,
       )}
       {...props}
@@ -30,7 +30,7 @@ const emptyMediaVariants = cva(
     variants: {
       variant: {
         default: "bg-transparent",
-        icon: "flex size-10 shrink-0 items-center justify-center rounded-none bg-muted text-foreground [&_svg:not([class*='size-'])]:size-5",
+        icon: "flex size-11 shrink-0 items-center justify-center rounded-control bg-secondary text-secondary-foreground [&_svg:not([class*='size-'])]:size-5",
       },
     },
     defaultVariants: {
@@ -58,7 +58,7 @@ function EmptyTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="empty-title"
-      className={cn("cn-font-heading font-medium text-sm tracking-tight", className)}
+      className={cn("font-extrabold text-base tracking-[-0.2px]", className)}
       {...props}
     />
   );
@@ -69,7 +69,7 @@ function EmptyDescription({ className, ...props }: React.ComponentProps<"p">) {
     <div
       data-slot="empty-description"
       className={cn(
-        "text-muted-foreground text-sm/relaxed [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
+        "text-[13px] text-muted-foreground [&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
         className,
       )}
       {...props}
@@ -82,7 +82,7 @@ function EmptyContent({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="empty-content"
       className={cn(
-        "flex w-full min-w-0 max-w-sm flex-col items-center gap-4 text-balance text-sm",
+        "flex w-full min-w-0 max-w-sm flex-col items-center gap-4 text-balance text-[13px]",
         className,
       )}
       {...props}

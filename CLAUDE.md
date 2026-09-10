@@ -353,28 +353,54 @@ Três coisas que não são óbvias:
 regra reconhece: `oklch(from var(--primary) …)` e
 `color-mix(in oklch, var(--muted), …)` passam.
 
-**Primitivos do Integra ficam em `packages/ui/src/integra/`**, não em
-`components/`: aquela pasta é regenerada pelo `shadcn add` e tem regras de a11y
-desligadas no `biome.json`. O que é nosso continua sujeito a todas as regras.
+**Os primitivos do shadcn foram ajustados à identidade, não envolvidos.**
+`packages/ui/src/components/` continua sendo a pasta do `shadcn add`, mas os
+arquivos foram editados: o estilo `base-lyra` vem com `rounded-none`, badge de
+20px e corpo de 12px — o oposto do mockup. Em vez de criar um componente novo
+por cima de cada um, mudamos a classe base no próprio arquivo e mantivemos a
+API do shadcn.
 
-| Primitivo | Papel |
+> **Armadilha:** rodar `npx shadcn@latest add <componente> --overwrite` devolve
+> o arquivo ao estilo original e **apaga o ajuste**. Ao regenerar, compare o
+> diff antes de commitar.
+
+O que foi ajustado, e por quê:
+
+| Componente | Ajuste |
 | --- | --- |
-| `Panel` / `PanelHeader` / `Eyebrow` | O card de 22px, sem sombra, e seus rótulos |
-| `StatCard` | Número em destaque do painel |
-| `StatusBadge` | Situação, sempre com texto — cor nunca é a única informação |
-| `InitialsAvatar` | Iniciais; o tom vem do **estado** da linha, nunca do nome |
-| `SegmentedControl` | Presente/falta/atraso. `input[type=radio]` de verdade |
-| `GradeCell` | Célula de nota: preenchida, vazia obrigatória, travada |
-| `BarComparison` | Duas séries por linha, com o número ao lado |
-| `EmptyState` / `ErrorState` / `PermissionState` / `ListSkeleton` | Os estados obrigatórios |
+| `Card` | Raio de 22px, padding 24, **sem anel nem sombra** — a separação vem do azul do fundo |
+| `Button` | Raio de 14px, altura mínima de 44px, corpo 13px; variantes `success` e `warning` |
+| `Badge` | Pílula, com as variantes semânticas `success · warning · danger · info` |
+| `Select` | Substitui o `<select>` nativo em todo o app (o nativo herda a caixa do SO) |
+| `Table` | Linha sem borda: separa por fundo e espaçamento; cabeçalho no caixa-alta de 10px |
+| `Input` / `Textarea` | 44px, fundo `muted`, sem borda visível |
+| `Alert` | Variantes de estado; é o aviso de prazo, de pendência e de recusa |
+| `Sidebar` | Variante `floating`: casca de 24px sobre o azul, e `Sheet` em tela estreita |
+| `Tabs` / `Toggle` | Trilho segmentado do mockup |
+| `Empty` | Base dos quatro estados obrigatórios |
 
-Duas decisões que não são óbvias nesses componentes:
+**Não existe barra de navegação inferior.** O produto é web: em tela estreita a
+sidebar vira o `Sheet` do próprio shadcn, acionado pelo `SidebarTrigger`. Uma
+`TabNav` no rodapé faria o app se passar por aplicativo nativo, que não é o que
+estamos entregando.
 
-- **`SegmentedControl` usa rádio nativo escondido** (`sr-only` + `peer-checked`)
-  em vez de `role="radio"` em botão: navegação por seta, agrupamento e o
-  anúncio "1 de 3" saem de graça do navegador.
-- **`InitialsAvatar` não deriva cor do nome.** Cor derivada de hash vira
-  informação falsa — o leitor tenta atribuir sentido a ela.
+### O que sobrou em `packages/ui/src/integra/`
+
+Só o que o shadcn não cobre. Ficam fora de `components/` de propósito: aquela
+pasta tem regras de a11y desligadas no `biome.json` por ser regenerável, e o
+que é nosso continua sujeito a todas as regras.
+
+| Primitivo | Por que não é shadcn |
+| --- | --- |
+| `StatCard` | Composição sobre o `Card`, não um primitivo novo |
+| `SegmentedControl` | Escolha exclusiva e obrigatória. `ToggleGroup` é liga/desliga; aqui são `input[type=radio]` de verdade, então seta, agrupamento e "1 de 3" vêm do navegador |
+| `GradeCell` | Célula de nota sobre o `Input`: quatro estados, e aceita vírgula |
+| `BarComparison` | Gráfico de duas séries com o número ao lado |
+| `EmptyState` / `ErrorState` / `PermissionState` / `ListSkeleton` | Os quatro estados do design brief, sobre `Empty` e `Skeleton` |
+
+`initialsOf` vive em `packages/ui/src/lib/initials.ts` e alimenta o
+`AvatarFallback`. **O tom vem do estado da linha, nunca do nome:** cor derivada
+de hash vira informação falsa, porque o leitor tenta atribuir sentido a ela.
 
 ### CI
 
@@ -442,8 +468,11 @@ versão por pacote.
 - **Primitivos do shadcn têm regras de a11y desligadas** para
   `packages/ui/src/components/`, via `overrides` no `biome.json` — eles são
   regenerados pelo `shadcn add` e supressões inline se perderiam. Código nosso
-  continua sujeito a todas as regras; a11y ali é dívida consciente, não isenção
-  permanente.
+  (`packages/ui/src/integra/` e `apps/web/`) continua sujeito a todas as
+  regras; a11y ali é dívida consciente, não isenção permanente.
+- **Os arquivos de `components/` estão customizados.** Regenerar com
+  `shadcn add --overwrite` devolve o estilo `base-lyra` e desfaz o ajuste de
+  identidade. Ver "Design system".
 - **Turbo roda em `envMode` strict.** Variável de ambiente que não esteja
   declarada em `tasks.<tarefa>.env` (ou em `globalEnv`) no `turbo.json` **não
   chega** ao processo da tarefa. Isso passa despercebido no local, porque

@@ -1,7 +1,27 @@
-import { InitialsAvatar } from "@educa-escola/ui/integra/initials-avatar";
-import { Eyebrow, Panel } from "@educa-escola/ui/integra/panel";
+import { Avatar, AvatarFallback } from "@educa-escola/ui/components/avatar";
+import { Badge } from "@educa-escola/ui/components/badge";
+import { Button } from "@educa-escola/ui/components/button";
+import { Card, CardEyebrow } from "@educa-escola/ui/components/card";
+import { Input } from "@educa-escola/ui/components/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@educa-escola/ui/components/select";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@educa-escola/ui/components/table";
 import { EmptyState, ListSkeleton, PermissionState } from "@educa-escola/ui/integra/states";
-import { StatusBadge } from "@educa-escola/ui/integra/status-badge";
+import { initialsOf } from "@educa-escola/ui/lib/initials";
+import { cn } from "@educa-escola/ui/lib/utils";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
@@ -19,15 +39,18 @@ export const Route = createFileRoute("/_app/alunos")({
   }),
 });
 
+/** `TODAS` em vez de "" porque o Select do shadcn não aceita valor vazio. */
+const TODAS = "TODAS";
+
 const SITUACOES = [
-  { value: "", label: "Todas as situações" },
+  { value: TODAS, label: "Todas as situações" },
   { value: "ativo", label: "Ativos" },
   { value: "documentacao_pendente", label: "Documentação pendente" },
   { value: "transferido", label: "Transferidos" },
 ] as const;
 
 const TURNOS = [
-  { value: "", label: "Todos os turnos" },
+  { value: TODAS, label: "Todos os turnos" },
   { value: "manha", label: "Manhã" },
   { value: "tarde", label: "Tarde" },
   { value: "noite", label: "Noite" },
@@ -40,22 +63,22 @@ type Turno = (typeof TURNOS)[number]["value"];
  * Lista de alunos da Gestão.
  *
  * Densidade é deliberada: aqui a secretaria trabalha em desktop, com filtro
- * combinável. Em telas estreitas a tabela vira lista de cartões — o conteúdo
- * rola dentro do próprio contêiner, a página nunca rola na horizontal.
+ * combinável. A `Table` do shadcn rola dentro do próprio contêiner, então a
+ * página nunca rola na horizontal — regra do design brief.
  */
 function Alunos() {
   const trpc = useTRPC();
   const { busca } = Route.useSearch();
   const [search, setSearch] = useState(busca ?? "");
-  const [status, setStatus] = useState<Situacao>("");
-  const [shift, setShift] = useState<Turno>("");
+  const [status, setStatus] = useState<Situacao>(TODAS);
+  const [shift, setShift] = useState<Turno>(TODAS);
   const [atRisk, setAtRisk] = useState(false);
 
   const alunos = useQuery({
     ...trpc.student.list.queryOptions({
       search: search.trim() || undefined,
-      status: status || undefined,
-      shift: shift || undefined,
+      status: status === TODAS ? undefined : status,
+      shift: shift === TODAS ? undefined : shift,
       atRisk: atRisk || undefined,
       limit: 50,
       offset: 0,
@@ -65,10 +88,9 @@ function Alunos() {
   });
 
   if (alunos.error) {
-    const negado = alunos.error.data?.code === "FORBIDDEN";
     return (
-      <Panel>
-        {negado ? (
+      <Card>
+        {alunos.error.data?.code === "FORBIDDEN" ? (
           <PermissionState
             title="Seu perfil não abre esta tela"
             description="A lista de alunos é da secretaria e da direção. Se você precisa dela, peça a alteração do seu papel."
@@ -76,7 +98,7 @@ function Alunos() {
         ) : (
           <EmptyState title="Não foi possível carregar" description={alunos.error.message} />
         )}
-      </Panel>
+      </Card>
     );
   }
 
@@ -84,72 +106,74 @@ function Alunos() {
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <Eyebrow>Alunos</Eyebrow>
-          <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Alunos</h1>
-          <p className="text-[13px] text-muted-foreground">
-            {alunos.data ? `${inteiro(alunos.data.total)} matriculados` : "Carregando…"}
-          </p>
-        </div>
+      <div className="flex flex-col gap-1">
+        <CardEyebrow>Alunos</CardEyebrow>
+        <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Alunos</h1>
+        <p className="text-[13px] text-muted-foreground">
+          {alunos.data ? `${inteiro(alunos.data.total)} matriculados` : "Carregando…"}
+        </p>
       </div>
 
-      <Panel>
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <label className="flex min-w-64 flex-1 items-center gap-2.5 rounded-control bg-muted px-4 py-2.5">
-            <Search size={18} strokeWidth={1.7} className="text-muted-foreground" aria-hidden />
-            <span className="sr-only">Buscar por nome, matrícula ou responsável</span>
-            <input
+      <Card>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-64 flex-1">
+            <Search
+              size={18}
+              strokeWidth={1.7}
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por nome, matrícula ou responsável"
-              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
+              aria-label="Buscar por nome, matrícula ou responsável"
+              className="pl-11"
             />
-          </label>
+          </div>
 
-          <label className="sr-only" htmlFor="filtro-situacao">
-            Situação
-          </label>
-          <select
-            id="filtro-situacao"
+          <Select
+            items={SITUACOES.map((opcao) => ({ value: opcao.value, label: opcao.label }))}
             value={status}
-            onChange={(event) => setStatus(event.target.value as Situacao)}
-            className="min-h-11 rounded-control bg-muted px-3 font-bold text-[13px]"
+            onValueChange={(value) => setStatus(value as Situacao)}
           >
-            {SITUACOES.map((opcao) => (
-              <option key={opcao.value} value={opcao.value}>
-                {opcao.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger aria-label="Situação">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SITUACOES.map((opcao) => (
+                <SelectItem key={opcao.value} value={opcao.value}>
+                  {opcao.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <label className="sr-only" htmlFor="filtro-turno">
-            Turno
-          </label>
-          <select
-            id="filtro-turno"
+          <Select
+            items={TURNOS.map((opcao) => ({ value: opcao.value, label: opcao.label }))}
             value={shift}
-            onChange={(event) => setShift(event.target.value as Turno)}
-            className="min-h-11 rounded-control bg-muted px-3 font-bold text-[13px]"
+            onValueChange={(value) => setShift(value as Turno)}
           >
-            {TURNOS.map((opcao) => (
-              <option key={opcao.value} value={opcao.value}>
-                {opcao.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger aria-label="Turno">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TURNOS.map((opcao) => (
+                <SelectItem key={opcao.value} value={opcao.value}>
+                  {opcao.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <button
-            type="button"
-            onClick={() => setAtRisk((current) => !current)}
+          <Button
+            variant={atRisk ? "destructive" : "secondary"}
             aria-pressed={atRisk}
-            className={`min-h-11 rounded-control px-4 font-bold text-[13px] ${
-              atRisk ? "bg-danger text-card" : "bg-muted text-secondary-foreground"
-            }`}
+            onClick={() => setAtRisk((current) => !current)}
           >
             Alerta de frequência
-          </button>
+          </Button>
         </div>
 
         {alunos.isLoading ? (
@@ -164,86 +188,72 @@ function Alunos() {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[52rem] border-collapse">
-              <thead>
-                <tr className="text-left">
-                  <th scope="col" className="pb-2 pl-3">
-                    <Eyebrow>Aluno</Eyebrow>
-                  </th>
-                  <th scope="col" className="pb-2">
-                    <Eyebrow>Turma</Eyebrow>
-                  </th>
-                  <th scope="col" className="pb-2">
-                    <Eyebrow>Turno</Eyebrow>
-                  </th>
-                  <th scope="col" className="pb-2">
-                    <Eyebrow>Responsável</Eyebrow>
-                  </th>
-                  <th scope="col" className="pb-2 text-right">
-                    <Eyebrow>Frequência</Eyebrow>
-                  </th>
-                  <th scope="col" className="pr-3 pb-2 text-right">
-                    <Eyebrow>Situação</Eyebrow>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {itens.map((aluno) => {
-                  const situacao = situacaoMatricula(aluno.status);
-                  const alerta = aluno.belowMinimumAttendance;
+          <Table className="min-w-[52rem]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Aluno</TableHead>
+                <TableHead>Turma</TableHead>
+                <TableHead>Turno</TableHead>
+                <TableHead>Responsável</TableHead>
+                <TableHead className="text-right">Frequência</TableHead>
+                <TableHead className="text-right">Situação</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {itens.map((aluno) => {
+                const situacao = situacaoMatricula(aluno.status);
+                const alerta = aluno.belowMinimumAttendance;
 
-                  return (
-                    <tr key={aluno.id} className={alerta ? "bg-danger-soft" : undefined}>
-                      <td className="rounded-l-field py-3 pl-3">
-                        <span className="flex items-center gap-3">
-                          <InitialsAvatar
-                            name={aluno.name}
-                            size="sm"
-                            tone={alerta ? "danger" : "info"}
-                          />
-                          <span className="flex flex-col">
-                            <span className="font-extrabold text-[13px]">{aluno.name}</span>
-                            <span className="text-[11px] text-muted-foreground">
-                              {aluno.registration}
-                            </span>
+                return (
+                  <TableRow key={aluno.id} className={alerta ? "bg-danger-soft" : undefined}>
+                    <TableCell>
+                      <span className="flex items-center gap-3">
+                        <Avatar size="sm">
+                          <AvatarFallback className={cn(alerta && "bg-danger-soft text-danger")}>
+                            {initialsOf(aluno.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="flex flex-col">
+                          <span className="font-extrabold">{aluno.name}</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {aluno.registration}
                           </span>
                         </span>
-                      </td>
-                      <td className="font-bold text-[13px]">{aluno.classroomName ?? "—"}</td>
-                      <td className="text-[13px] text-muted-foreground">{turno(aluno.shift)}</td>
-                      <td className="text-[13px] text-muted-foreground">
-                        {aluno.guardianName ?? "—"}
-                      </td>
-                      <td
-                        className={`text-right font-extrabold text-[13px] tabular-nums ${
-                          alerta ? "text-danger" : "text-foreground"
-                        }`}
-                      >
-                        {percentualCurto(aluno.attendanceRate)}
-                      </td>
-                      <td className="rounded-r-field py-3 pr-3 text-right">
-                        {alerta ? (
-                          <StatusBadge tone="danger">Alerta de frequência</StatusBadge>
-                        ) : (
-                          <StatusBadge tone={situacao.tone}>{situacao.label}</StatusBadge>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-bold">{aluno.classroomName ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{turno(aluno.shift)}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {aluno.guardianName ?? "—"}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        "text-right font-extrabold tabular-nums",
+                        alerta && "text-danger",
+                      )}
+                    >
+                      {percentualCurto(aluno.attendanceRate)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {alerta ? (
+                        <Badge variant="danger">Alerta de frequência</Badge>
+                      ) : (
+                        <Badge variant={situacao.tone}>{situacao.label}</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+            {alunos.data ? (
+              <TableCaption>
+                Mostrando {itens.length} de {inteiro(alunos.data.total)} alunos. Dado sensível
+                (saúde, laudo, financeiro) não aparece em listagem, nem para a direção.
+              </TableCaption>
+            ) : null}
+          </Table>
         )}
-
-        {alunos.data ? (
-          <p className="mt-4 text-[11px] text-muted-foreground">
-            Mostrando {itens.length} de {inteiro(alunos.data.total)} alunos. Dado sensível (saúde,
-            laudo, financeiro) não aparece em listagem, nem para a direção.
-          </p>
-        ) : null}
-      </Panel>
+      </Card>
     </>
   );
 }

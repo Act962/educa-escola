@@ -1,6 +1,15 @@
-import { Eyebrow, Panel, PanelHeader } from "@educa-escola/ui/integra/panel";
+import { shortDate } from "@educa-escola/api/dates";
+import { Badge } from "@educa-escola/ui/components/badge";
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardEyebrow,
+  CardHeader,
+  CardTitle,
+} from "@educa-escola/ui/components/card";
 import { EmptyState, ListSkeleton, PermissionState } from "@educa-escola/ui/integra/states";
-import { StatusBadge } from "@educa-escola/ui/integra/status-badge";
+import { cn } from "@educa-escola/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -26,12 +35,12 @@ function Boletim() {
 
   if (boletim.error) {
     return (
-      <Panel>
+      <Card>
         <PermissionState
           title="Boletim indisponível"
           description="Esta tela é do aluno. Se você é responsável ou professor, o acesso ao boletim vem por outro caminho."
         />
-      </Panel>
+      </Card>
     );
   }
 
@@ -41,44 +50,48 @@ function Boletim() {
     <>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <Eyebrow>Minhas notas</Eyebrow>
+          <CardEyebrow>Minhas notas</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Boletim</h1>
           <p className="text-[13px] text-muted-foreground">
             {term}º bimestre · apenas notas publicadas pelos professores
           </p>
         </div>
 
-        <Panel className="flex flex-row items-center gap-4 py-4">
-          <Eyebrow>Média geral</Eyebrow>
+        <Card size="sm" className="flex-row items-center gap-4">
+          <CardEyebrow>Média geral</CardEyebrow>
           <span className="font-extrabold text-2xl tracking-[-0.6px]">
             {nota(boletim.data?.overall)}
           </span>
-        </Panel>
+        </Card>
       </div>
 
       {boletim.isLoading ? (
-        <Panel>
+        <Card>
           <ListSkeleton rows={4} />
-        </Panel>
+        </Card>
       ) : disciplinas.length === 0 ? (
-        <Panel>
+        <Card>
           <EmptyState
             title="Nenhuma nota publicada"
             description="Assim que um professor publicar uma avaliação deste bimestre, ela aparece aqui com a conta aberta."
           />
-        </Panel>
+        </Card>
       ) : (
         disciplinas.map((disciplina) => {
           const situacao = situacaoNota(disciplina.situation);
           const pesoTotal = disciplina.entries.reduce((soma, item) => soma + item.weight, 0);
 
           return (
-            <Panel key={disciplina.subjectId}>
-              <PanelHeader
-                title={disciplina.subjectName}
-                hint={`média ${nota(disciplina.average)}`}
-                action={<StatusBadge tone={situacao.tone}>{situacao.label}</StatusBadge>}
-              />
+            <Card key={disciplina.subjectId}>
+              <CardHeader>
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <CardTitle>{disciplina.subjectName}</CardTitle>
+                  <CardDescription>média {nota(disciplina.average)}</CardDescription>
+                </div>
+                <CardAction>
+                  <Badge variant={situacao.tone}>{situacao.label}</Badge>
+                </CardAction>
+              </CardHeader>
 
               <ul className="flex flex-col gap-2">
                 {disciplina.entries.map((avaliacao) => (
@@ -90,9 +103,7 @@ function Boletim() {
                       <span className="truncate font-extrabold text-[13px]">{avaliacao.name}</span>
                       <span className="text-[11px] text-muted-foreground">
                         peso {avaliacao.weight}
-                        {avaliacao.appliedOn
-                          ? ` · ${avaliacao.appliedOn.split("-").reverse().slice(0, 2).join("/")}`
-                          : ""}
+                        {avaliacao.appliedOn ? ` · ${shortDate(avaliacao.appliedOn)}` : ""}
                       </span>
                     </span>
                     <span className="text-[11px] text-muted-foreground tabular-nums">
@@ -100,9 +111,10 @@ function Boletim() {
                       {nota(avaliacao.score * avaliacao.weight)}
                     </span>
                     <span
-                      className={`w-14 text-right font-extrabold text-sm tabular-nums ${
-                        avaliacao.score < 6 ? "text-danger" : "text-foreground"
-                      }`}
+                      className={cn(
+                        "w-14 text-right font-extrabold text-sm tabular-nums",
+                        avaliacao.score < 6 ? "text-danger" : "text-foreground",
+                      )}
                     >
                       {nota(avaliacao.score)}
                     </span>
@@ -110,11 +122,11 @@ function Boletim() {
                 ))}
               </ul>
 
-              <p className="mt-3 text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 Como sua média foi calculada: soma de (nota × peso) dividida pelo peso total (
                 {pesoTotal}). Avaliação ainda não lançada não entra na conta — não vale zero.
               </p>
-            </Panel>
+            </Card>
           );
         })
       )}

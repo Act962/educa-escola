@@ -1,9 +1,8 @@
+import type { BadgeTone } from "@educa-escola/ui/components/badge";
 import { cn } from "@educa-escola/ui/lib/utils";
 import { useId } from "react";
 
-import type { StatusTone } from "./status-badge";
-
-const ACTIVE_TONE: Record<StatusTone, string> = {
+const ACTIVE_TONE: Partial<Record<BadgeTone, string>> = {
   success: "peer-checked:bg-success peer-checked:text-card",
   warning: "peer-checked:bg-warning-soft peer-checked:text-warning",
   danger: "peer-checked:bg-danger peer-checked:text-card",
@@ -14,7 +13,7 @@ const ACTIVE_TONE: Record<StatusTone, string> = {
 export interface SegmentedOption<T extends string> {
   value: T;
   label: string;
-  tone: StatusTone;
+  tone: BadgeTone;
 }
 
 interface SegmentedControlProps<T extends string> {
@@ -30,10 +29,13 @@ interface SegmentedControlProps<T extends string> {
 /**
  * Trilho de opções mutuamente exclusivas — presente/falta/atraso na chamada.
  *
- * Por baixo são `input[type=radio]` de verdade, escondidos visualmente: assim
- * a navegação por seta, o agrupamento e o anúncio "1 de 3" vêm do navegador,
- * em vez de serem reimplementados com `role="radio"` e listeners de tecla.
- * Os alvos têm 44px de altura no mobile, que é onde a chamada acontece.
+ * Não usa o `ToggleGroup` do shadcn de propósito: toggle é estado ligado ou
+ * desligado, e aqui a escolha é exclusiva e obrigatória. Por baixo são
+ * `input[type=radio]` de verdade, escondidos visualmente, então a navegação
+ * por seta, o agrupamento e o anúncio "1 de 3" vêm do navegador em vez de
+ * serem reimplementados.
+ *
+ * Visualmente segue o trilho das `Tabs`: mesmo raio, mesma altura.
  */
 export function SegmentedControl<T extends string>({
   label,
