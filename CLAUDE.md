@@ -7,9 +7,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## O produto
 
-Software de gestão escolar com três perfis: **Administrativo**, **Professor** e
-**Estudante**. Está em fase de fundação — a base arquitetural já foi decidida
-(ver "Decisões estruturais"), o domínio ainda está sendo construído.
+**Integra Edu** — software de gestão escolar multi-instituição, com três vias de
+acesso: **Gestão**, **Professor** e **Aluno**. O repositório e os pacotes ainda
+se chamam `educa-escola`, nome do scaffold; o produto é Integra Edu.
+
+Está em fase de fundação: a base arquitetural existe e está testada (ver
+"Decisões estruturais"), o domínio praticamente todo ainda não foi construído.
+
+### Onde está a especificação
+
+| Documento | O que traz |
+| --- | --- |
+| `INTEGRA-EDU-REQUISITOS.md` | 34 seções: perfis, modelo acadêmico, MVP (§31), backlog (§32), lacunas em aberto (§33) |
+| `INTEGRA-EDU-DESIGN-BRIEF.md` | Como pedir e revisar tela; estados obrigatórios; prioridades por dispositivo |
+| `INTEGRA-EDU-UI-KIT.md` | Como levar o mockup ao código sem perder fidelidade; inventário de componentes |
+| `docs/design/{gestao,professor,aluno}/` | PNGs exportados do canvas — **a referência que o código persegue** |
+
+Canvas de origem do fluxo do Professor:
+<https://claude.ai/code/artifact/06b60c49-cbb7-4c62-8389-f9a3f2611436>
+(privado até ser compartilhado; o README de cada pasta aponta o seu).
+
+O requisito marca as próprias pendências: **29 pontos `[A VALIDAR]`** e 15
+`[RECOMENDAÇÃO]`. São decisões do usuário — não resolva por conta própria.
+
+### Regra de processo
+
+**Leiaute aprovado antes de escrever código.** Tela nova passa pelo checklist do
+`INTEGRA-EDU-DESIGN-BRIEF.md` §9 e por aprovação explícita; só então implementa.
+
+### Distância entre o especificado e o construído
+
+O MVP (§31) tem 24 módulos; existe **um** (`classroom`, e ainda só nome + ano
+letivo — o requisito amarra turma a série, disciplinas, grade e professores).
+Dois desalinhamentos a resolver antes de construir tela de gestão:
+
+- **Papéis.** O requisito §2.2 prevê administrador, diretor, coordenador,
+  secretário, responsável financeiro, professor e funcionário. O RBAC tem
+  `owner/admin/teacher/student`. Precisa reconciliar.
+- **Multi-instituição.** O requisito trata professor com vínculo em várias
+  escolas; `schoolProcedure` já assume uma escola ativa por requisição, o que
+  serve, mas a troca de contexto (`ContextBar`) ainda não existe.
 
 ## Comandos
 
@@ -21,6 +58,22 @@ pnpm run db:start      # Postgres 18 em Docker
 pnpm run db:migrate    # aplica as migrations versionadas
 pnpm run dev           # web em http://localhost:3001
 ```
+
+**Sem provisionar uma escola não dá para entrar no app.** Escolas não são
+criadas por auto-cadastro (`allowUserToCreateOrganization: false`): quem
+provisiona é a plataforma, por script. É o passo que falta entre `db:migrate` e
+conseguir logar:
+
+```bash
+pnpm --filter @educa-escola/auth run provision -- \
+  --name "Escola Municipal X" --slug escola-x \
+  --owner-name "Maria Diretora" \
+  --owner-email diretoria@escola-x.br --owner-password "uma-senha-forte"
+```
+
+Cria a `organization`, a `school` e o primeiro `member` como `owner`. É
+idempotente pelo `slug`. Roda via `jiti` porque o CLI importa TypeScript com
+resolução de bundler, que o Node puro não resolve.
 
 | Comando | O que faz |
 | --- | --- |
@@ -128,6 +181,26 @@ O mesmo teste exige que todo módulo tenha `repository.ts`, `service.ts` e
 O service recebe o repositório por parâmetro justamente para ser testável sem
 banco e reutilizável fora do tRPC (importação de planilha, job, seed).
 
+### Erros de domínio
+
+Service **não lança `TRPCError`** — lançaria HTTP dentro da regra de negócio.
+Lança as classes de `packages/api/src/errors.ts`:
+
+| Classe | Vira | HTTP |
+| --- | --- | --- |
+| `ConflictError` | `CONFLICT` | 409 |
+| `NotFoundError` | `NOT_FOUND` | 404 |
+| `ValidationError` | `BAD_REQUEST` | 400 |
+
+Um middleware em `packages/api/src/index.ts` faz a tradução para todas as
+procedures, então nenhum resolver precisa tratar isso. Erro que não for
+`DomainError` continua saindo como `INTERNAL_SERVER_ERROR` — o que é o certo:
+falha inesperada não deve virar 4xx.
+
+Ao criar um código novo de erro, acrescente-o ao union em `DomainError` **e** ao
+mapa `DOMAIN_TO_TRPC`; o `satisfies` quebra a compilação se esquecer um dos
+dois. `errors.test.ts` cobre a tradução.
+
 ### Papéis e permissões
 
 `packages/auth/src/permissions.ts` define os statements e quatro papéis:
@@ -172,6 +245,7 @@ migration correspondente.
 | Repositório | Postgres real, em transação revertida | `modules/classroom/repository.test.ts` |
 | Permissões | Matriz de papéis, sem I/O | `packages/auth/src/permissions.test.ts` |
 | Arquitetura | Varre o código-fonte | `packages/api/src/architecture.test.ts` |
+| Design system | Varre o código-fonte | `packages/ui/src/design-system.test.ts` |
 | Componente | jsdom + Testing Library | `apps/web/src/components/loader.test.tsx` |
 
 Os testes de banco usam um banco **separado** (`<database>_test`), criado e
@@ -195,6 +269,55 @@ mesmo banco e nomes fixos colidiriam nos índices únicos.
 Dublês de repositório devem ser tipados como a interface real (sem
 `as unknown as`): assim quebram na compilação quando o repositório muda, em vez
 de mentir.
+
+### Design system
+
+A identidade visual vive em **`packages/ui/src/styles/integra-tokens.css`**:
+paleta bruta (`--ie-*`) convertida dos mockups para oklch, os tokens shadcn
+(`--primary`, `--card`, `--muted-foreground`…) redefinidos em cima dela, e raios
+e semânticos de estado. `globals.css` o importa logo após os `@import` do
+Tailwind/shadcn — o bloco `:root` neutro do scaffold foi removido de propósito:
+era ele que sobrescrevia a identidade.
+
+Três coisas que não são óbvias:
+
+- **O app roda no tema claro**, sem `className="dark"`, porque os mockups
+  aprovados são claros e a paleta do Integra vive no `:root`. O bloco `.dark`
+  continua sendo o neutro do scaffold: funciona, mas não está na identidade —
+  falta o tema escuro do design.
+- **`--radius` fica em `0.625rem`.** A escala do shadcn então produz `xl = 14px`
+  e `3xl = 22px`, que são exatamente os raios do mockup. Mexer nele sem refazer
+  as contas desalinha tudo.
+- **Plus Jakarta Sans está declarada mas não vendorizada.** Hoje cai no fallback
+  do sistema. O UI kit pede fonte local em `packages/ui/src/assets/fonts/`, não
+  CDN — o app precisa funcionar sem rede externa e a métrica do fallback muda o
+  layout.
+
+**Componente não escreve cor.** Se precisou de um hex, falta um token.
+`packages/ui/src/design-system.test.ts` reprova literal de cor em
+`packages/ui/src/components/` e `apps/web/src/` — `packages/ui/src/styles/` é a
+única exceção. Derivar de token é válido e a regra reconhece:
+`oklch(from var(--primary) …)` e `color-mix(in oklch, var(--muted), …)` passam.
+
+### CI
+
+`.github/workflows/ci.yml` roda em push para `main` e em pull request, com um
+serviço Postgres 18. Quatro portões, nesta ordem:
+
+1. `pnpm exec biome ci .` — lint e formatação (`ci`, não `check --write`)
+2. `pnpm run check-types`
+3. `pnpm run test`
+4. **Deriva de migration** — roda `drizzle-kit generate` e falha se aparecer
+   arquivo novo, ou seja, se o schema mudou sem migration commitada
+
+Reproduzir o ambiente do CI localmente (sem arquivo `.env`, variáveis só no
+ambiente) é a forma de pegar dependência acidental do `apps/web/.env`:
+
+```bash
+mv apps/web/.env apps/web/.env.bak
+DATABASE_URL=... BETTER_AUTH_SECRET=... BETTER_AUTH_URL=... pnpm run test
+mv apps/web/.env.bak apps/web/.env
+```
 
 ### Configuração compartilhada
 

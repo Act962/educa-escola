@@ -1,0 +1,122 @@
+/* Integra Edu — tokens de marca extraídos dos mockups do canvas do Professor.
+ *
+ * Como usar: importe este arquivo em packages/ui/src/styles/globals.css,
+ * logo depois dos @import do Tailwind/shadcn, e apague o bloco :root neutro
+ * que veio do scaffold. Os tokens shadcn abaixo são redefinidos em cima da
+ * paleta, então Button, Card, Input e companhia já saem na identidade certa.
+ *
+ * Regra de fidelidade: componente não escreve cor. Se precisou de um hex,
+ * falta um token.
+ */
+
+:root {
+  /* ---- Paleta bruta (referência; não usar direto em componente) ---- */
+  --ie-canvas: oklch(0.955 0.017 236.7); /* #E6F2FA fundo do app     */
+  --ie-surface: oklch(1 0 89.9); /* #FFFFFF cards            */
+  --ie-surface-2: oklch(0.986 0.005 228.8); /* #F7FBFD linhas/inputs    */
+  --ie-surface-3: oklch(0.979 0.007 233.6); /* #F4F9FC botão secundário */
+  --ie-surface-4: oklch(0.971 0.006 239.8); /* #F2F6F9 trilho segmented */
+
+  --ie-ink: oklch(0.25 0.029 247.1); /* #16232F texto principal  */
+  --ie-ink-2: oklch(0.452 0.037 248.7); /* #46586A texto corrido    */
+  --ie-ink-3: oklch(0.521 0.033 250); /* #5B6B7C nav / secundário */
+  --ie-ink-4: oklch(0.588 0.032 246.7); /* #6E7F8F metadados (AA)   */
+  --ie-ink-5: oklch(0.62 0.033 251.4); /* #78889A placeholder      */
+
+  --ie-line: oklch(0.949 0.009 242.8); /* #E9EFF4 divisores        */
+  --ie-line-2: oklch(0.944 0.014 238); /* #E4EEF5 borda de campo   */
+  --ie-line-3: oklch(0.961 0.008 236.6); /* #EDF3F7 borda de linha   */
+
+  --ie-primary: oklch(0.631 0.121 237.1); /* #2E93C9 ação principal   */
+  --ie-primary-ink: oklch(0.553 0.112 236.8); /* #1B7BAB texto sobre soft */
+  --ie-primary-soft: oklch(0.944 0.025 233); /* #DDF0FB pílula ativa     */
+
+  --ie-lavender: oklch(0.77 0.098 291.9); /* #B5A9EE série 1 gráfico  */
+  --ie-lavender-ink: oklch(0.54 0.158 286.9); /* #6B5BC4                  */
+  --ie-lavender-soft: oklch(0.945 0.024 293.6); /* #EDEAFC                  */
+
+  --ie-amber: oklch(0.883 0.144 93.2); /* #F9D65C série 2 gráfico  */
+  --ie-amber-ink: oklch(0.601 0.116 79.3); /* #A5771A                  */
+  --ie-amber-soft: oklch(0.973 0.035 92.8); /* #FEF6DC                  */
+
+  --ie-green: oklch(0.601 0.125 162.7); /* #17976A presente/ok      */
+  --ie-green-soft: oklch(0.956 0.02 169.3); /* #E4F5EE                  */
+
+  --ie-red: oklch(0.6 0.196 15.9); /* #DC3B57 falta/erro       */
+  --ie-red-ink: oklch(0.542 0.188 16.6); /* #C42B47                  */
+  --ie-red-soft: oklch(0.952 0.02 2.3); /* #FCEAEE                  */
+
+  --ie-sky: oklch(0.865 0.063 224.9); /* #A6DCF2 série 3 gráfico  */
+
+  /* ---- Semânticos de estado (é o que o componente consome) ---- */
+  --ie-success: var(--ie-green);
+  --ie-success-soft: var(--ie-green-soft);
+  --ie-warning: var(--ie-amber-ink);
+  --ie-warning-soft: var(--ie-amber-soft);
+  --ie-danger: var(--ie-red-ink);
+  --ie-danger-soft: var(--ie-red-soft);
+  --ie-info: var(--ie-primary-ink);
+  --ie-info-soft: var(--ie-primary-soft);
+
+  /* ---- Tokens shadcn redefinidos sobre a paleta ---- */
+  --background: var(--ie-canvas);
+  --foreground: var(--ie-ink);
+  --card: var(--ie-surface);
+  --card-foreground: var(--ie-ink);
+  --popover: var(--ie-surface);
+  --popover-foreground: var(--ie-ink);
+  --primary: var(--ie-primary);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: var(--ie-surface-3);
+  --secondary-foreground: var(--ie-ink-3);
+  --muted: var(--ie-surface-2);
+  --muted-foreground: var(--ie-ink-4);
+  --accent: var(--ie-primary-soft);
+  --accent-foreground: var(--ie-primary-ink);
+  --destructive: var(--ie-red);
+  --border: var(--ie-line-2);
+  --input: var(--ie-line-2);
+  --ring: var(--ie-primary);
+
+  --chart-1: var(--ie-lavender);
+  --chart-2: var(--ie-amber);
+  --chart-3: var(--ie-sky);
+  --chart-4: var(--ie-primary);
+  --chart-5: var(--ie-lavender-ink);
+
+  --sidebar: var(--ie-surface);
+  --sidebar-foreground: var(--ie-ink-3);
+  --sidebar-primary: var(--ie-primary-soft);
+  --sidebar-primary-foreground: var(--ie-primary-ink);
+  --sidebar-accent: var(--ie-surface-3);
+  --sidebar-accent-foreground: var(--ie-ink);
+  --sidebar-border: var(--ie-line);
+  --sidebar-ring: var(--ie-primary);
+
+  /* ---- Raios: mantém --radius em 10px, o resto cai certo na escala ---- */
+  --radius: 0.625rem; /* lg 10px · xl 14px · 2xl 18px · 3xl 22px */
+  --ie-radius-card: 1.375rem; /* 22px — todo card                        */
+  --ie-radius-shell: 1.5rem; /* 24px — sidebar e barras do app          */
+  --ie-radius-control: 0.875rem; /* 14px — botão, input, caixa de ícone   */
+  --ie-radius-field: 0.6875rem; /* 11px — célula de nota, chip de filtro  */
+
+  /* ---- Elevação: o mockup é plano. Separação vem do fundo azul. ---- */
+  --ie-shadow-none: none;
+  --ie-shadow-overlay: 0 12px 32px -12px oklch(0.25 0.03 247 / 0.18);
+}
+
+@theme inline {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --radius-card: var(--ie-radius-card);
+  --radius-shell: var(--ie-radius-shell);
+  --radius-control: var(--ie-radius-control);
+  --radius-field: var(--ie-radius-field);
+  --color-success: var(--ie-success);
+  --color-success-soft: var(--ie-success-soft);
+  --color-warning: var(--ie-warning);
+  --color-warning-soft: var(--ie-warning-soft);
+  --color-danger: var(--ie-danger);
+  --color-danger-soft: var(--ie-danger-soft);
+  --color-info: var(--ie-info);
+  --color-info-soft: var(--ie-info-soft);
+}

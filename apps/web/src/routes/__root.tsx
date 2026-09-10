@@ -25,7 +25,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "My App",
+        title: "Integra Edu",
       },
     ],
     links: [
@@ -41,7 +41,9 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
 function RootDocument() {
   return (
-    <html lang="en" className="dark">
+    // pt-BR: leitor de tela e hifenização dependem disso. Sem `dark`: os
+    // mockups aprovados são o tema claro, e a paleta do Integra vive no :root.
+    <html lang="pt-BR">
       <head>
         <HeadContent />
       </head>

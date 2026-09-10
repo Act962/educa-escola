@@ -16,7 +16,7 @@ catalogs:
       specifier: ^11.18.0
       version: 11.18.0
     '@types/node':
-      specifier: ^26.2.0
+      specifier: ^26.4.1
       version: 26.4.1
     '@types/react':
       specifier: ^19.2.17
@@ -380,6 +380,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.18
@@ -392,6 +395,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.0(@types/node@26.4.1)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13))
 
 packages:
 
