@@ -13,7 +13,8 @@
     "check-types": "tsc --noEmit",
     "provision": "jiti src/provision-cli.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "seed:demo": "jiti src/seed-demo-cli.ts"
   },
   "dependencies": {
     "@educa-escola/db": "workspace:*",

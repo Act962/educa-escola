@@ -29,7 +29,16 @@ async function resolveMembership(headers: Headers): Promise<Membership | null> {
     const role = parseRole(member.role);
     if (!role) return null;
 
-    return { schoolId: member.organizationId, userId: member.userId, role };
+    // O nome vem junto porque a barra de contexto aparece em toda tela: sem
+    // ele, cada rota faria a própria consulta para escrever o mesmo texto.
+    const organization = await auth.api.getFullOrganization({ headers });
+
+    return {
+      schoolId: member.organizationId,
+      userId: member.userId,
+      role,
+      schoolName: organization?.name ?? "Escola",
+    };
   } catch {
     // Sem escola ativa na sessão o endpoint lança; para nós é só "sem vínculo".
     return null;

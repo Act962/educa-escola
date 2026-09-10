@@ -22,6 +22,7 @@ Está em fase de fundação: a base arquitetural existe e está testada (ver
 | `INTEGRA-EDU-DESIGN-BRIEF.md` | Como pedir e revisar tela; estados obrigatórios; prioridades por dispositivo |
 | `INTEGRA-EDU-UI-KIT.md` | Como levar o mockup ao código sem perder fidelidade; inventário de componentes |
 | `docs/design/{gestao,professor,aluno}/` | PNGs exportados do canvas — **a referência que o código persegue** |
+| `DEMO.md` | Como subir com dados e o que mostrar numa apresentação |
 
 Canvas de origem do fluxo do Professor:
 <https://claude.ai/code/artifact/06b60c49-cbb7-4c62-8389-f9a3f2611436>
@@ -37,16 +38,28 @@ O requisito marca as próprias pendências: **29 pontos `[A VALIDAR]`** e 15
 
 ### Distância entre o especificado e o construído
 
-O MVP (§31) tem 24 módulos; existe **um** (`classroom`, e ainda só nome + ano
-letivo — o requisito amarra turma a série, disciplinas, grade e professores).
-Dois desalinhamentos a resolver antes de construir tela de gestão:
+O MVP (§31) tem 24 módulos. Construídos: **turma, aluno, aula com chamada e
+diário, avaliação com nota em rascunho/publicada** e os painéis dos três
+perfis. É o suficiente para o fluxo diário de professor e aluno fechar de ponta
+a ponta; o resto do §31 não existe.
+
+Fora do ar, e sinalizado como "em breve" no próprio menu: matrículas,
+financeiro, comunicados, relatórios, calendário, grade horária, atividades e
+materiais. O item de menu aparece desabilitado de propósito — esconder o
+roadmap faz o produto parecer menor, e link que não leva a lugar nenhum é pior.
+
+Desalinhamentos ainda abertos:
 
 - **Papéis.** O requisito §2.2 prevê administrador, diretor, coordenador,
   secretário, responsável financeiro, professor e funcionário. O RBAC tem
   `owner/admin/teacher/student`. Precisa reconciliar.
 - **Multi-instituição.** O requisito trata professor com vínculo em várias
-  escolas; `schoolProcedure` já assume uma escola ativa por requisição, o que
-  serve, mas a troca de contexto (`ContextBar`) ainda não existe.
+  escolas; `schoolProcedure` assume uma escola ativa por requisição, o que
+  serve, mas a `ContextBar` ainda não troca de instituição — hoje a escola
+  ativa é definida no login (ver `databaseHooks.session.create` em
+  `packages/auth/src/index.ts`) e trocar exige sair e entrar.
+- **Turma rasa.** `classroom` é nome + ano letivo. O requisito amarra turma a
+  série, disciplinas, grade horária e professores alocados.
 
 ## Comandos
 
@@ -75,6 +88,18 @@ Cria a `organization`, a `school` e o primeiro `member` como `owner`. É
 idempotente pelo `slug`. Roda via `jiti` porque o CLI importa TypeScript com
 resolução de bundler, que o Node puro não resolve.
 
+Para desenvolver ou demonstrar, o atalho é a escola de exemplo — turmas,
+alunos, aulas, chamadas, avaliações e notas coerentes entre si:
+
+```bash
+pnpm run seed:demo
+```
+
+**As aulas são geradas em torno da data de execução**, não em datas fixas:
+"Aulas de hoje" precisa ter conteúdo no dia em que alguém abre o app. Rodar de
+novo apaga e regrava, então o estado é sempre o mesmo. Acessos e roteiro em
+`DEMO.md`.
+
 | Comando | O que faz |
 | --- | --- |
 | `pnpm run test` | Suíte completa (precisa do Postgres no ar) |
@@ -82,6 +107,7 @@ resolução de bundler, que o Node puro não resolve.
 | `pnpm run check-types` | `tsc --noEmit` em todos os workspaces |
 | `pnpm run check` | Biome: formata e corrige lint |
 | `pnpm run build` | Build de todos os workspaces |
+| `pnpm run seed:demo` | Popula a escola de demonstração (regrava se já existir) |
 | `pnpm run db:generate` | Gera migration a partir do schema |
 | `pnpm run db:studio` | Drizzle Studio |
 | `pnpm run db:stop` / `db:down` | Para / remove o container do Postgres |
@@ -166,6 +192,33 @@ dado de uma escola para outra. Três camadas seguram isso:
 
 O mesmo teste exige que todo módulo tenha `repository.ts`, `service.ts` e
 `router.ts`.
+
+### Módulos existentes
+
+| Módulo | O que resolve |
+| --- | --- |
+| `classroom` | Turma. O módulo mais simples — use como referência de forma |
+| `student` | Aluno, matrícula, frequência derivada e o recorte "em risco" |
+| `lesson` | Aula, chamada, diário e prazo de registro |
+| `assessment` | Avaliação, grade de notas, média ponderada e publicação |
+| `overview` | Números dos três painéis. Só consulta agregada, nunca lista |
+
+Três regras de negócio atravessam quase tudo e vivem num lugar só:
+
+- **Frequência mínima de 75%** (LDB, art. 24, VI) —
+  `student/service.ts`. Atraso conta como presença. Sem aula registrada a
+  frequência é `null`, não 0%: senão a tela acusaria de faltoso quem ainda não
+  teve aula.
+- **Média ponderada e situação** — `assessment/service.ts`. Avaliação sem
+  lançamento **não vale zero**: fica de fora da conta, e a situação do aluno
+  fica em "sem nota" enquanto houver pendência. Veredito sobre nota parcial é
+  afirmação que os dados não sustentam.
+- **Publicação é o que torna a nota visível ao aluno** — e não acontece com
+  aluno sem lançamento. O boletim do aluno lê só `status = 'publicada'`, e o
+  filtro é na query, não numa checagem depois.
+
+`overview` importa esses limiares dos outros services em vez de repeti-los; do
+contrário o painel e o boletim discordariam sobre quem está aprovado.
 
 ### Anatomia de um módulo
 
@@ -295,9 +348,33 @@ Três coisas que não são óbvias:
 
 **Componente não escreve cor.** Se precisou de um hex, falta um token.
 `packages/ui/src/design-system.test.ts` reprova literal de cor em
-`packages/ui/src/components/` e `apps/web/src/` — `packages/ui/src/styles/` é a
-única exceção. Derivar de token é válido e a regra reconhece:
-`oklch(from var(--primary) …)` e `color-mix(in oklch, var(--muted), …)` passam.
+`packages/ui/src/components/`, `packages/ui/src/integra/` e `apps/web/src/` —
+`packages/ui/src/styles/` é a única exceção. Derivar de token é válido e a
+regra reconhece: `oklch(from var(--primary) …)` e
+`color-mix(in oklch, var(--muted), …)` passam.
+
+**Primitivos do Integra ficam em `packages/ui/src/integra/`**, não em
+`components/`: aquela pasta é regenerada pelo `shadcn add` e tem regras de a11y
+desligadas no `biome.json`. O que é nosso continua sujeito a todas as regras.
+
+| Primitivo | Papel |
+| --- | --- |
+| `Panel` / `PanelHeader` / `Eyebrow` | O card de 22px, sem sombra, e seus rótulos |
+| `StatCard` | Número em destaque do painel |
+| `StatusBadge` | Situação, sempre com texto — cor nunca é a única informação |
+| `InitialsAvatar` | Iniciais; o tom vem do **estado** da linha, nunca do nome |
+| `SegmentedControl` | Presente/falta/atraso. `input[type=radio]` de verdade |
+| `GradeCell` | Célula de nota: preenchida, vazia obrigatória, travada |
+| `BarComparison` | Duas séries por linha, com o número ao lado |
+| `EmptyState` / `ErrorState` / `PermissionState` / `ListSkeleton` | Os estados obrigatórios |
+
+Duas decisões que não são óbvias nesses componentes:
+
+- **`SegmentedControl` usa rádio nativo escondido** (`sr-only` + `peer-checked`)
+  em vez de `role="radio"` em botão: navegação por seta, agrupamento e o
+  anúncio "1 de 3" saem de graça do navegador.
+- **`InitialsAvatar` não deriva cor do nome.** Cor derivada de hash vira
+  informação falsa — o leitor tenta atribuir sentido a ela.
 
 ### CI
 
@@ -330,6 +407,14 @@ versão por pacote.
 
 ## Convenções e armadilhas
 
+- **A escola ativa é definida no login**, por um `databaseHooks.session.create`
+  em `packages/auth/src/index.ts`. Sem ele a sessão nasce sem
+  `activeOrganizationId` e toda `schoolProcedure` responde "nenhuma escola
+  ativa" — o app sobe autenticado e inútil.
+- **Sair precisa limpar o cache do React Query** (`queryClient.clear()` em
+  `app-shell.tsx`). Sem isso o próximo login reaproveita as respostas da pessoa
+  anterior até expirarem, incluindo `me`, que decide menu e painel. É
+  vazamento entre contas, não só tela errada.
 - **`apps/web/src/routeTree.gen.ts` é gerado** pelo plugin do TanStack Start,
   ignorado pelo git e excluído do Biome. Nunca edite nem commite. Enquanto ele
   não existe, `tsc` em `apps/web` cospe uma cascata enganosa de erros

@@ -13,9 +13,18 @@ const REPO_ROOT = resolve(UI_SRC, "..", "..", "..");
 
 /**
  * Onde a fidelidade com o mockup vaza: componente que escreve cor em vez de
- * consumir token. Varremos os primitivos e as telas.
+ * consumir token. Varremos os primitivos (do shadcn e os nossos) e as telas.
+ *
+ * `src/integra/` são os componentes do Integra Edu, escritos por nós. Ficam
+ * fora de `src/components/` de propósito: aquela pasta é regenerada pelo
+ * `shadcn add` e tem regras de a11y desligadas no `biome.json` — o que é nosso
+ * continua sujeito a todas as regras.
  */
-const SCANNED = [join(UI_SRC, "components"), join(REPO_ROOT, "apps", "web", "src")];
+const SCANNED = [
+  join(UI_SRC, "components"),
+  join(UI_SRC, "integra"),
+  join(REPO_ROOT, "apps", "web", "src"),
+];
 
 /** `packages/ui/src/styles/` é o único lugar onde valor de cor pode existir. */
 const IGNORED = [`${sep}styles${sep}`, "routeTree.gen.ts"];

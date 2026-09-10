@@ -8,30 +8,50 @@ import { adminAc, defaultStatements, ownerAc } from "better-auth/plugins/organiz
  * (organization, member, invitation, team, ac). Só acrescentamos recursos
  * de domínio aqui — um recurso que não existe neste objeto é rejeitado
  * em tempo de compilação ao montar um papel.
+ *
+ * O RBAC responde "este papel pode ler notas?", não "quais notas". O recorte
+ * de escopo (as turmas deste professor, o boletim deste aluno) é regra de
+ * negócio e vive no service — permissão grossa aqui, filtro fino lá.
  */
 export const statement = {
   ...defaultStatements,
   classroom: ["create", "read", "update", "delete"],
   enrollment: ["create", "read", "update", "delete"],
+  student: ["create", "read", "update", "delete"],
+  lesson: ["create", "read", "update", "delete"],
+  attendance: ["create", "read", "update"],
+  assessment: ["create", "read", "update", "delete", "publish"],
+  grade: ["create", "read", "update"],
 } as const;
 
 export const ac = createAccessControl(statement);
 
+const fullAcademicAccess = {
+  classroom: ["create", "read", "update", "delete"],
+  enrollment: ["create", "read", "update", "delete"],
+  student: ["create", "read", "update", "delete"],
+  lesson: ["create", "read", "update", "delete"],
+  attendance: ["create", "read", "update"],
+  assessment: ["create", "read", "update", "delete", "publish"],
+  grade: ["create", "read", "update"],
+} as const;
+
 /** Diretor(a) / mantenedor(a) da escola. Único papel que pode excluir a escola. */
 export const owner = ac.newRole({
   ...ownerAc.statements,
-  classroom: ["create", "read", "update", "delete"],
-  enrollment: ["create", "read", "update", "delete"],
+  ...fullAcademicAccess,
 });
 
 /** Secretaria / administrativo: opera a escola inteira, menos excluí-la. */
 export const admin = ac.newRole({
   ...adminAc.statements,
-  classroom: ["create", "read", "update", "delete"],
-  enrollment: ["create", "read", "update", "delete"],
+  ...fullAcademicAccess,
 });
 
-/** Professor(a): enxerga turmas e matrículas, não administra a escola. */
+/**
+ * Professor(a): registra chamada e nota das próprias turmas, não administra a
+ * escola. Não publica nem apaga aluno — o cadastro é da secretaria.
+ */
 export const teacher = ac.newRole({
   organization: [],
   member: [],
@@ -40,9 +60,17 @@ export const teacher = ac.newRole({
   ac: ["read"],
   classroom: ["read"],
   enrollment: ["read"],
+  student: ["read"],
+  lesson: ["read", "update"],
+  attendance: ["create", "read", "update"],
+  assessment: ["create", "read", "update", "delete", "publish"],
+  grade: ["create", "read", "update"],
 });
 
-/** Estudante: apenas leitura da própria turma. */
+/**
+ * Estudante: só leitura, e só do que é seu — o service filtra pelo vínculo.
+ * Sem `assessment: publish` e sem escrita em lugar nenhum.
+ */
 export const student = ac.newRole({
   organization: [],
   member: [],
@@ -51,6 +79,11 @@ export const student = ac.newRole({
   ac: [],
   classroom: ["read"],
   enrollment: [],
+  student: ["read"],
+  lesson: ["read"],
+  attendance: ["read"],
+  assessment: ["read"],
+  grade: ["read"],
 });
 
 export const roles = { owner, admin, teacher, student };

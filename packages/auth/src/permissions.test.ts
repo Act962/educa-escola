@@ -40,6 +40,39 @@ describe("papéis da escola", () => {
     expect(can("student", { member: ["create"] })).toBe(false);
   });
 
+  it("professor registra chamada e nota, mas não cadastra aluno", () => {
+    expect(can("teacher", { attendance: ["create", "update"] })).toBe(true);
+    expect(can("teacher", { grade: ["create", "update"] })).toBe(true);
+    expect(can("teacher", { assessment: ["publish"] })).toBe(true);
+    expect(can("teacher", { student: ["read"] })).toBe(true);
+    expect(can("teacher", { student: ["create"] })).toBe(false);
+    expect(can("teacher", { student: ["delete"] })).toBe(false);
+  });
+
+  /**
+   * O aluno é o papel em que um deslize custa caro: qualquer escrita aqui
+   * significaria alguém alterando a própria nota ou a própria frequência.
+   */
+  it("estudante só lê, e nunca publica nem escreve", () => {
+    expect(can("student", { grade: ["read"] })).toBe(true);
+    expect(can("student", { assessment: ["read"] })).toBe(true);
+    expect(can("student", { attendance: ["read"] })).toBe(true);
+
+    expect(can("student", { grade: ["create"] })).toBe(false);
+    expect(can("student", { grade: ["update"] })).toBe(false);
+    expect(can("student", { attendance: ["create"] })).toBe(false);
+    expect(can("student", { assessment: ["publish"] })).toBe(false);
+    expect(can("student", { lesson: ["update"] })).toBe(false);
+  });
+
+  it("só direção e secretaria cadastram aluno", () => {
+    for (const role of APP_ROLES) {
+      const expected = role === "owner" || role === "admin";
+      expect(can(role, { student: ["create"] })).toBe(expected);
+      expect(can(role, { student: ["delete"] })).toBe(expected);
+    }
+  });
+
   it("nenhum papel além do owner/admin escreve matrícula", () => {
     for (const role of APP_ROLES) {
       const expected = role === "owner" || role === "admin";

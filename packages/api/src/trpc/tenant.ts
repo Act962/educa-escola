@@ -14,4 +14,6 @@ export interface TenantContext {
 export interface Membership extends TenantContext {
   readonly userId: string;
   readonly role: AppRole;
+  /** Nome da escola ativa. A casca do app mostra em toda tela (ContextBar). */
+  readonly schoolName: string;
 }
