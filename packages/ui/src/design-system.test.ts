@@ -92,4 +92,22 @@ describe("design system", () => {
     expect(colorLiterals("background: rgb(46, 147, 201)")).toEqual(["rgb(46, 147, 201)"]);
     expect(colorLiterals("oklch(0.631 0.121 237.1)")).toEqual(["oklch(0.631 0.121 237.1)"]);
   });
+
+  /**
+   * `DropdownMenuLabel` é o rótulo de um grupo: o Base UI procura o contexto
+   * de `Menu.Group` e, sem achar, derruba a árvore inteira. Não é erro de
+   * tipo nem de lint — só aparece quando alguém abre o menu, o que já custou
+   * uma tela em branco no lugar do menu da conta.
+   */
+  it("rótulo de menu vive dentro de um grupo", () => {
+    const offenders = SCANNED.flatMap(sourceFiles)
+      .filter((file) => !file.endsWith("dropdown-menu.tsx"))
+      .filter((file) => {
+        const source = readFileSync(file, "utf8");
+        return source.includes("<DropdownMenuLabel") && !source.includes("<DropdownMenuGroup");
+      })
+      .map((file) => relative(REPO_ROOT, file).split(sep).join("/"));
+
+    expect(offenders).toEqual([]);
+  });
 });

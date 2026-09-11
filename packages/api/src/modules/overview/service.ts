@@ -81,6 +81,28 @@ export function createOverviewService(deps: DashboardDeps) {
 
       const missingByTeacher = new Map(missing.map((row) => [row.teacherId, row.missing]));
 
+      const pendingByTeacher = [
+        ...pendingCalls.map((row) => ({
+          teacherId: row.teacherId,
+          teacherName: row.teacherName,
+          pendingCalls: row.pending,
+          pendingGrades: missingByTeacher.get(row.teacherId) ?? 0,
+        })),
+        // Professor em dia com a chamada mas devendo nota também é cobrança.
+        ...missing
+          .filter((row) => !pendingCalls.some((call) => call.teacherId === row.teacherId))
+          .map((row) => ({
+            teacherId: row.teacherId,
+            teacherName: row.teacherName,
+            pendingCalls: 0,
+            pendingGrades: row.missing,
+          })),
+      ].sort(
+        (a, b) =>
+          b.pendingCalls + b.pendingGrades - (a.pendingCalls + a.pendingGrades) ||
+          a.teacherName.localeCompare(b.teacherName, "pt-BR"),
+      );
+
       const belowAttendance = byStudent.filter(isBelowMinimumAttendance).length;
       const belowAverage = averages.filter((row) => row.average < PASSING_AVERAGE).length;
 
@@ -99,17 +121,10 @@ export function createOverviewService(deps: DashboardDeps) {
           belowAverage,
           total: belowAttendance + belowAverage,
         },
-        pending: pendingCalls.map((row) => ({
-          teacherId: row.teacherId,
-          teacherName: row.teacherName,
-          pendingCalls: row.pending,
-          pendingGrades: missingByTeacher.get(row.teacherId) ?? 0,
-        })),
-        // Professor sem chamada pendente mas com nota atrasada também precisa
-        // aparecer — a lista acima só conhece quem tem chamada em aberto.
-        pendingGradesOnly: missing
-          .filter((row) => !pendingCalls.some((call) => call.teacherId === row.teacherId))
-          .map((row) => ({ teacherId: row.teacherId, pendingGrades: row.missing })),
+        // Uma fila só, de quem deve alguma coisa. Chamada em aberto e nota em
+        // aberto são duas dívidas com a mesma pessoa: separá-las em duas
+        // listas fazia a tela mostrar uma e esquecer a outra.
+        pending: pendingByTeacher,
       };
     },
 

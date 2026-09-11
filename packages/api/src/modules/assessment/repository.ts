@@ -1,8 +1,9 @@
-import { assessment, classroom, grade, student, subject } from "@educa-escola/db/schema";
+import { assessment, classroom, grade, student, subject, user } from "@educa-escola/db/schema";
 import type { DbHandle } from "@educa-escola/db/types";
 import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import type { TenantContext } from "../../trpc/tenant";
+import { ENROLLED_STATUSES } from "../student/schema";
 
 export interface CreateAssessmentData {
   classroomId: string;
@@ -141,20 +142,30 @@ export function createAssessmentRepository(db: DbHandle, tenant: TenantContext) 
      * Cada aluno ativo da turma multiplicado por cada avaliação: o que não tem
      * linha em `grade` é pendência. É esse número que a Gestão cobra.
      */
+    /**
+     * Quem deve lançamento, com nome — a direção cobra pessoa, não id.
+     *
+     * O `innerJoin` com `user` é o que permite essa linha aparecer na fila de
+     * cobrança mesmo quando o professor está em dia com as chamadas.
+     */
     async countMissingGradesByTeacher() {
       return db
-        .select({ teacherId: assessment.teacherId, missing: count() })
+        .select({ teacherId: assessment.teacherId, teacherName: user.name, missing: count() })
         .from(assessment)
+        .innerJoin(user, eq(user.id, assessment.teacherId))
         .innerJoin(
           student,
-          and(eq(student.classroomId, assessment.classroomId), eq(student.status, "ativo")),
+          and(
+            eq(student.classroomId, assessment.classroomId),
+            inArray(student.status, ENROLLED_STATUSES),
+          ),
         )
         .leftJoin(
           grade,
           and(eq(grade.assessmentId, assessment.id), eq(grade.studentId, student.id)),
         )
         .where(and(withinSchool, isNull(grade.id)))
-        .groupBy(assessment.teacherId);
+        .groupBy(assessment.teacherId, user.name);
     },
 
     async countMissingGradesFor(assessmentId: string, classroomId: string) {
@@ -166,7 +177,7 @@ export function createAssessmentRepository(db: DbHandle, tenant: TenantContext) 
           and(
             eq(student.schoolId, tenant.schoolId),
             eq(student.classroomId, classroomId),
-            eq(student.status, "ativo"),
+            inArray(student.status, ENROLLED_STATUSES),
             isNull(grade.id),
           ),
         );

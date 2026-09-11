@@ -12,6 +12,7 @@ import type { DbHandle } from "@educa-escola/db/types";
 import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
 
 import type { TenantContext } from "../../trpc/tenant";
+import { ENROLLED_STATUSES } from "../student/schema";
 
 /**
  * Único lugar do módulo que monta query.
@@ -69,7 +70,7 @@ export function createOverviewRepository(db: DbHandle, tenant: TenantContext) {
         .from(attendance)
         .innerJoin(student, eq(student.id, attendance.studentId))
         .leftJoin(classroom, eq(classroom.id, student.classroomId))
-        .where(and(eq(attendance.schoolId, school), eq(student.status, "ativo")))
+        .where(and(eq(attendance.schoolId, school), inArray(student.status, ENROLLED_STATUSES)))
         .groupBy(attendance.studentId, student.name, student.classroomId, classroom.name);
     },
 
@@ -155,7 +156,7 @@ export function createOverviewRepository(db: DbHandle, tenant: TenantContext) {
         .where(
           and(
             eq(attendance.schoolId, school),
-            eq(student.status, "ativo"),
+            inArray(student.status, ENROLLED_STATUSES),
             inArray(student.classroomId, classroomIds),
           ),
         )

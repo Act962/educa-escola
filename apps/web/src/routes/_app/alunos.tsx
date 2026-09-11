@@ -24,7 +24,7 @@ import { initialsOf } from "@educa-escola/ui/lib/initials";
 import { cn } from "@educa-escola/ui/lib/utils";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useState } from "react";
 
 import { inteiro, percentualCurto, situacaoMatricula, turno } from "@/lib/format";
@@ -38,6 +38,9 @@ export const Route = createFileRoute("/_app/alunos")({
     busca: typeof search.busca === "string" ? search.busca : undefined,
   }),
 });
+
+/** Quantas matrículas por página. A secretaria trabalha em tela cheia. */
+const POR_PAGINA = 25;
 
 /** `TODAS` em vez de "" porque o Select do shadcn não aceita valor vazio. */
 const TODAS = "TODAS";
@@ -73,6 +76,21 @@ function Alunos() {
   const [status, setStatus] = useState<Situacao>(TODAS);
   const [shift, setShift] = useState<Turno>(TODAS);
   const [atRisk, setAtRisk] = useState(false);
+  const [page, setPage] = useState(0);
+
+  /**
+   * Todo filtro volta para a primeira página.
+   *
+   * Sem isto, restringir a busca estando na página 4 devolve uma tela vazia —
+   * e a leitura de quem está olhando é "não encontrou ninguém", não "você está
+   * além do fim da lista".
+   */
+  const filtrar =
+    <T,>(set: (value: T) => void) =>
+    (value: T) => {
+      set(value);
+      setPage(0);
+    };
 
   const alunos = useQuery({
     ...trpc.student.list.queryOptions({
@@ -80,8 +98,8 @@ function Alunos() {
       status: status === TODAS ? undefined : status,
       shift: shift === TODAS ? undefined : shift,
       atRisk: atRisk || undefined,
-      limit: 50,
-      offset: 0,
+      limit: POR_PAGINA,
+      offset: page * POR_PAGINA,
     }),
     // Sem isto a tabela pisca em branco a cada tecla digitada na busca.
     placeholderData: keepPreviousData,
@@ -103,6 +121,10 @@ function Alunos() {
   }
 
   const itens = alunos.data?.items ?? [];
+  const total = alunos.data?.total ?? 0;
+  const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  const primeiro = total === 0 ? 0 : page * POR_PAGINA + 1;
+  const ultimo = page * POR_PAGINA + itens.length;
 
   return (
     <>
@@ -126,7 +148,7 @@ function Alunos() {
             <Input
               type="search"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => filtrar(setSearch)(event.target.value)}
               placeholder="Buscar por nome, matrícula ou responsável"
               aria-label="Buscar por nome, matrícula ou responsável"
               className="pl-11"
@@ -136,7 +158,7 @@ function Alunos() {
           <Select
             items={SITUACOES.map((opcao) => ({ value: opcao.value, label: opcao.label }))}
             value={status}
-            onValueChange={(value) => setStatus(value as Situacao)}
+            onValueChange={(value) => filtrar(setStatus)(value as Situacao)}
           >
             <SelectTrigger aria-label="Situação">
               <SelectValue />
@@ -153,7 +175,7 @@ function Alunos() {
           <Select
             items={TURNOS.map((opcao) => ({ value: opcao.value, label: opcao.label }))}
             value={shift}
-            onValueChange={(value) => setShift(value as Turno)}
+            onValueChange={(value) => filtrar(setShift)(value as Turno)}
           >
             <SelectTrigger aria-label="Turno">
               <SelectValue />
@@ -170,7 +192,7 @@ function Alunos() {
           <Button
             variant={atRisk ? "destructive" : "secondary"}
             aria-pressed={atRisk}
-            onClick={() => setAtRisk((current) => !current)}
+            onClick={() => filtrar(setAtRisk)(!atRisk)}
           >
             Alerta de frequência
           </Button>
@@ -245,14 +267,42 @@ function Alunos() {
                 );
               })}
             </TableBody>
-            {alunos.data ? (
-              <TableCaption>
-                Mostrando {itens.length} de {inteiro(alunos.data.total)} alunos. Dado sensível
-                (saúde, laudo, financeiro) não aparece em listagem, nem para a direção.
-              </TableCaption>
-            ) : null}
+            <TableCaption>
+              Dado sensível (saúde, laudo, financeiro) não aparece em listagem, nem para a direção.
+            </TableCaption>
           </Table>
         )}
+
+        {total > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[13px] text-muted-foreground tabular-nums">
+              {primeiro}–{ultimo} de {inteiro(total)} alunos
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page === 0}
+                onClick={() => setPage((atual) => Math.max(0, atual - 1))}
+              >
+                <ChevronLeft size={16} strokeWidth={1.7} aria-hidden />
+                Anterior
+              </Button>
+              <span className="text-[13px] text-muted-foreground tabular-nums">
+                {page + 1} / {paginas}
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page + 1 >= paginas}
+                onClick={() => setPage((atual) => atual + 1)}
+              >
+                Próxima
+                <ChevronRight size={16} strokeWidth={1.7} aria-hidden />
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </Card>
     </>
   );

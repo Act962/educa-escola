@@ -4,6 +4,7 @@ import { Button } from "@educa-escola/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -148,19 +149,23 @@ function MenuDoUsuario({ me, onSignOut }: { me: CurrentUser; onSignOut: () => vo
         }
       />
       <DropdownMenuContent align="end" className="min-w-56">
-        <DropdownMenuLabel className="flex flex-col gap-0.5">
-          <span className="font-extrabold text-[13px]">{me.name}</span>
-          <span className="font-medium text-[11px] text-muted-foreground">{me.email}</span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled>
-          <UserRound size={16} strokeWidth={1.7} aria-hidden />
-          Meu perfil
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled>
-          <Settings size={16} strokeWidth={1.7} aria-hidden />
-          Configurações
-        </DropdownMenuItem>
+        {/* O `DropdownMenuLabel` é o rótulo de um grupo: fora de um
+            `DropdownMenuGroup` o Base UI derruba a tela inteira procurando o
+            contexto que falta. Aqui a identidade nomeia as ações da conta. */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex flex-col gap-0.5">
+            <span className="font-extrabold text-[13px]">{me.name}</span>
+            <span className="font-medium text-[11px] text-muted-foreground">{me.email}</span>
+          </DropdownMenuLabel>
+          <DropdownMenuItem disabled>
+            <UserRound size={16} strokeWidth={1.7} aria-hidden />
+            Meu perfil
+          </DropdownMenuItem>
+          <DropdownMenuItem disabled>
+            <Settings size={16} strokeWidth={1.7} aria-hidden />
+            Configurações
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onSignOut}>
           <LogOut size={16} strokeWidth={1.7} aria-hidden />

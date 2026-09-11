@@ -8,6 +8,16 @@ export const STUDENT_STATUSES = [
   "inativo",
 ] as const;
 
+/**
+ * Quem está na sala — a definição de "matriculado" usada pela chamada e pela
+ * grade de notas.
+ *
+ * Documentação pendente **não** tira o aluno da turma: ele assiste à aula,
+ * recebe nota e conta como pendência de lançamento. Quem consultar só por
+ * `ativo` mostra uma lista e valida outra.
+ */
+export const ENROLLED_STATUSES = ["ativo", "documentacao_pendente"] as const;
+
 export const studentName = z.string().trim().min(1, "Informe o nome do aluno").max(120);
 
 /** Matrícula é identificador impresso em documento: sem espaço, caixa alta. */

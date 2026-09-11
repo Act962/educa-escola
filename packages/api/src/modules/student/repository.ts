@@ -3,6 +3,7 @@ import type { DbHandle } from "@educa-escola/db/types";
 import { and, asc, count, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
 import type { TenantContext } from "../../trpc/tenant";
+import { ENROLLED_STATUSES } from "./schema";
 
 export interface StudentFilters {
   search?: string;
@@ -143,7 +144,7 @@ export function createStudentRepository(db: DbHandle, tenant: TenantContext) {
           and(
             withinSchool,
             eq(student.classroomId, classroomId),
-            inArray(student.status, ["ativo", "documentacao_pendente"]),
+            inArray(student.status, ENROLLED_STATUSES),
           ),
         )
         .groupBy(student.id)

@@ -11,9 +11,29 @@ import {
   student,
   subject,
 } from "@educa-escola/db/schema";
+import type { DbHandle } from "@educa-escola/db/types";
 import { eq } from "drizzle-orm";
 
 import { auth } from "./index";
+import {
+  ALUNA_COM_ACESSO,
+  absencesFor,
+  assignTeachers,
+  buildClassrooms,
+  DEMO_TERM,
+  DEMO_YEAR,
+  type DemoClassroom,
+  DIRETORA,
+  DISCIPLINAS,
+  NOTAS_DO_ROTEIRO,
+  type Person,
+  PROFESSOR_DEMO,
+  PROFESSORES,
+  SECRETARIA,
+  scoreFor,
+  spreadIndexes,
+  timetableOf,
+} from "./seed-demo-data";
 
 /**
  * Popula uma escola de demonstração com dados coerentes entre si.
@@ -28,239 +48,34 @@ import { auth } from "./index";
  *
  * Idempotente pelo slug: rodar de novo em cima da mesma escola apaga o que
  * havia e regrava, para o estado de demonstração ser sempre o mesmo.
+ *
+ * O que é fictício e o que é regra: as notas e as faltas são inventadas, mas
+ * frequência, média e situação saem das mesmas funções que o app usa em
+ * produção. Nenhum número desta escola é escrito direto na tela.
  */
 
 export const DEMO_SLUG = "dom-pedro-ii";
 export const DEMO_PASSWORD = "integra2026";
-export const DEMO_YEAR = new Date().getFullYear();
-/** Bimestre em foco na demonstração. */
-export const DEMO_TERM = 3;
+export { DEMO_TERM, DEMO_YEAR } from "./seed-demo-data";
 
-interface Person {
-  name: string;
-  email: string;
-  role: "owner" | "admin" | "teacher" | "student";
-}
-
-const DIRETORA: Person = {
-  name: "Marina Duarte",
-  email: "marina.duarte@dompedroii.edu.br",
-  role: "owner",
-};
-
-const PROFESSORES: (Person & { subject: string })[] = [
-  {
-    name: "Ricardo Alves",
-    email: "ricardo.alves@dompedroii.edu.br",
-    role: "teacher",
-    subject: "Matemática",
-  },
-  {
-    name: "Helena Diniz",
-    email: "helena.diniz@dompedroii.edu.br",
-    role: "teacher",
-    subject: "Língua Portuguesa",
-  },
-  {
-    name: "Marcos Aurélio",
-    email: "marcos.aurelio@dompedroii.edu.br",
-    role: "teacher",
-    subject: "Ciências",
-  },
-  {
-    name: "Cláudia Reis",
-    email: "claudia.reis@dompedroii.edu.br",
-    role: "teacher",
-    subject: "História",
-  },
-];
-
-const ALUNA_COM_ACESSO = {
-  name: "Ana Clara Souza Lima",
-  email: "ana.clara@aluno.dompedroii.edu.br",
-};
-
-interface StudentSeed {
-  name: string;
-  registration: string;
-  guardian: string;
-  /** Faltas no ano. É daqui que sai o percentual de frequência da tela. */
-  absences: number;
-  lates?: number;
-  status?: "ativo" | "documentacao_pendente" | "transferido";
-}
-
-const TURMAS: { name: string; shift: "manha" | "tarde"; students: StudentSeed[] }[] = [
-  {
-    name: "8º A",
-    shift: "manha",
-    students: [
-      {
-        name: "Ana Clara Souza Lima",
-        registration: `${DEMO_YEAR}-0301`,
-        guardian: "Roberta Souza Lima",
-        absences: 3,
-      },
-      {
-        name: "Beatriz Macedo Rocha",
-        registration: `${DEMO_YEAR}-0305`,
-        guardian: "Marcos Macedo Rocha",
-        absences: 2,
-      },
-      {
-        name: "Caio Esteves Portela",
-        registration: `${DEMO_YEAR}-0309`,
-        guardian: "Luciana Esteves",
-        absences: 6,
-      },
-      {
-        name: "Davi Fontes Xavier",
-        registration: `${DEMO_YEAR}-0312`,
-        guardian: "Sandra Fontes",
-        absences: 14,
-      },
-      {
-        name: "Eduarda Mendes Vieira",
-        registration: `${DEMO_YEAR}-0318`,
-        guardian: "Paulo Mendes Vieira",
-        absences: 0,
-      },
-      {
-        name: "Gabriel Tavares Pinto",
-        registration: `${DEMO_YEAR}-0323`,
-        guardian: "Renata Tavares",
-        absences: 4,
-        lates: 2,
-      },
-      {
-        name: "Helena Lacerda Guedes",
-        registration: `${DEMO_YEAR}-0327`,
-        guardian: "Cristina Lacerda",
-        absences: 2,
-        status: "documentacao_pendente",
-      },
-    ],
-  },
-  {
-    name: "9º B",
-    shift: "manha",
-    students: [
-      {
-        name: "Alice Barreto Nunes",
-        registration: `${DEMO_YEAR}-0412`,
-        guardian: "Fernanda Barreto",
-        absences: 3,
-      },
-      {
-        name: "Bruno Carvalho Dias",
-        registration: `${DEMO_YEAR}-0418`,
-        guardian: "Marcos Carvalho Dias",
-        absences: 1,
-      },
-      {
-        name: "Júlia Moraes Ribeiro",
-        registration: `${DEMO_YEAR}-0427`,
-        guardian: "Vera Moraes",
-        absences: 15,
-      },
-      {
-        name: "Lucas Ferreira Gomes",
-        registration: `${DEMO_YEAR}-0433`,
-        guardian: "Antônio Ferreira",
-        absences: 2,
-        lates: 4,
-      },
-      {
-        name: "Mariana Pinheiro Costa",
-        registration: `${DEMO_YEAR}-0441`,
-        guardian: "Sílvia Pinheiro",
-        absences: 0,
-      },
-      {
-        name: "Pedro Lins Andrade",
-        registration: `${DEMO_YEAR}-0449`,
-        guardian: "Rui Andrade",
-        absences: 8,
-      },
-      {
-        name: "Rafael Santana Melo",
-        registration: `${DEMO_YEAR}-0455`,
-        guardian: "Denise Santana",
-        absences: 1,
-      },
-      {
-        name: "Sofia Vasconcelos Braga",
-        registration: `${DEMO_YEAR}-0460`,
-        guardian: "Jorge Vasconcelos",
-        absences: 0,
-      },
-    ],
-  },
-  {
-    name: "7º C",
-    shift: "tarde",
-    students: [
-      {
-        name: "Igor Nascimento Braga",
-        registration: `${DEMO_YEAR}-0331`,
-        guardian: "Fábio Nascimento",
-        absences: 4,
-      },
-      {
-        name: "Laura Antunes Prado",
-        registration: `${DEMO_YEAR}-0336`,
-        guardian: "Camila Antunes",
-        absences: 1,
-      },
-      {
-        name: "Miguel Rocha Teixeira",
-        registration: `${DEMO_YEAR}-0340`,
-        guardian: "Eduardo Teixeira",
-        absences: 2,
-      },
-      {
-        name: "Nina Barbosa Freire",
-        registration: `${DEMO_YEAR}-0344`,
-        guardian: "Patrícia Freire",
-        absences: 0,
-      },
-      {
-        name: "Otávio Campos Nunes",
-        registration: `${DEMO_YEAR}-0349`,
-        guardian: "Hélio Campos",
-        absences: 5,
-      },
-    ],
-  },
-];
+/** Nove semanas de histórico e uma semana de grade à frente. */
+const DIAS_PARA_TRAS = 63;
+const DIAS_PARA_FRENTE = 7;
 
 /**
- * Grade semanal do professor de Matemática: dia da semana (1 = segunda) e
- * horário. Três aulas por dia útil — é o que faz o "Aulas de hoje" do
- * dashboard ter conteúdo em qualquer dia em que a demonstração aconteça.
+ * Chamadas em atraso por professor, contadas a partir da aula mais recente.
+ *
+ * O Ricardo tem **exatamente uma** porque é o número que o roteiro ensaia: o
+ * painel dele abre com uma pendência, ele registra, e o contador zera. Os
+ * outros existem para o painel da direção ter uma fila de cobrança de verdade
+ * em vez de uma linha só.
  */
-const HORARIO: Record<
-  string,
-  { weekday: number; startsAt: string; endsAt: string; room: string }[]
-> = {
-  "8º A": [1, 2, 3, 4, 5].map((weekday) => ({
-    weekday,
-    startsAt: "07:30",
-    endsAt: "08:20",
-    room: "Sala 12",
-  })),
-  "9º B": [1, 2, 3, 4, 5].map((weekday) => ({
-    weekday,
-    startsAt: "08:20",
-    endsAt: "09:10",
-    room: "Sala 12",
-  })),
-  "7º C": [1, 2, 3, 4].map((weekday) => ({
-    weekday,
-    startsAt: "10:00",
-    endsAt: "10:50",
-    room: "Sala 08",
-  })),
+const CHAMADAS_EM_ATRASO: Record<string, number> = {
+  [PROFESSOR_DEMO.email]: 1,
+  "helena.diniz@dompedroii.edu.br": 4,
+  "tiago.pecanha@dompedroii.edu.br": 3,
+  "douglas.prata@dompedroii.edu.br": 2,
+  "vanessa.lobo@dompedroii.edu.br": 2,
 };
 
 const CONTEUDOS = [
@@ -288,22 +103,23 @@ function schoolDays(from: Date, to: Date): Date[] {
 }
 
 /**
- * Espalha `count` faltas pelas `total` aulas, sem sorteio.
+ * Insere em lotes.
  *
- * Aleatoriedade tornaria cada execução do seed diferente, e uma demonstração
- * que muda de número a cada rodada é impossível de ensaiar.
+ * A escola gera dezenas de milhares de linhas de chamada, e um `insert` único
+ * estoura o limite de parâmetros de uma instrução do Postgres.
  */
-function spreadIndexes(total: number, count: number, offset = 0): Set<number> {
-  const picked = new Set<number>();
-  if (count <= 0 || total <= 0) return picked;
-  for (let k = 0; k < Math.min(count, total); k += 1) {
-    picked.add((Math.floor((k * total) / Math.min(count, total)) + offset) % total);
+async function insertInBatches<T>(
+  rows: T[],
+  size: number,
+  write: (batch: T[]) => Promise<unknown>,
+): Promise<number> {
+  for (let offset = 0; offset < rows.length; offset += size) {
+    await write(rows.slice(offset, offset + size));
   }
-  return picked;
+  return rows.length;
 }
 
-async function ensureUser(person: Person): Promise<string> {
-  const db = createDb();
+async function ensureUser(db: DbHandle, person: Person): Promise<string> {
   const existing = await db.query.user.findFirst({
     where: (table, { eq: is }) => is(table.email, person.email),
   });
@@ -318,7 +134,15 @@ async function ensureUser(person: Person): Promise<string> {
 export interface SeedResult {
   schoolId: string;
   logins: { perfil: string; email: string; senha: string }[];
-  counts: { alunos: number; aulas: number; chamadas: number; notas: number };
+  counts: {
+    turmas: number;
+    alunos: number;
+    professores: number;
+    disciplinas: number;
+    aulas: number;
+    chamadas: number;
+    notas: number;
+  };
 }
 
 export async function seedDemoSchool(): Promise<SeedResult> {
@@ -350,12 +174,16 @@ export async function seedDemoSchool(): Promise<SeedResult> {
     await db.delete(classroom).where(eq(classroom.schoolId, schoolId));
   }
 
-  const people = [DIRETORA, ...PROFESSORES];
+  // ---- Pessoas ----
+  const people: Person[] = [DIRETORA, SECRETARIA, ...PROFESSORES];
   const userIds = new Map<string, string>();
   for (const person of people) {
-    userIds.set(person.email, await ensureUser(person));
+    userIds.set(person.email, await ensureUser(db, person));
   }
-  userIds.set(ALUNA_COM_ACESSO.email, await ensureUser({ ...ALUNA_COM_ACESSO, role: "student" }));
+  userIds.set(
+    ALUNA_COM_ACESSO.email,
+    await ensureUser(db, { ...ALUNA_COM_ACESSO, role: "student" }),
+  );
 
   for (const person of [...people, { ...ALUNA_COM_ACESSO, role: "student" as const }]) {
     const userId = userIds.get(person.email) as string;
@@ -373,17 +201,19 @@ export async function seedDemoSchool(): Promise<SeedResult> {
     });
   }
 
+  // ---- Disciplinas e turmas ----
   const subjectIds = new Map<string, string>();
-  for (const name of [...new Set(PROFESSORES.map((p) => p.subject))]) {
+  for (const name of DISCIPLINAS) {
     const [row] = await db.insert(subject).values({ schoolId, name }).returning({ id: subject.id });
     subjectIds.set(name, (row as { id: string }).id);
   }
 
+  const turmas = buildClassrooms();
   const classroomIds = new Map<string, string>();
   const studentIds = new Map<string, string>();
   let alunos = 0;
 
-  for (const turma of TURMAS) {
+  for (const turma of turmas) {
     const [row] = await db
       .insert(classroom)
       .values({ schoolId, name: turma.name, academicYear: DEMO_YEAR })
@@ -391,269 +221,348 @@ export async function seedDemoSchool(): Promise<SeedResult> {
     const classroomId = (row as { id: string }).id;
     classroomIds.set(turma.name, classroomId);
 
-    for (const person of turma.students) {
-      const [created] = await db
-        .insert(student)
-        .values({
-          schoolId,
-          classroomId,
-          userId:
-            person.name === ALUNA_COM_ACESSO.name
-              ? (userIds.get(ALUNA_COM_ACESSO.email) as string)
-              : null,
-          name: person.name,
-          registration: person.registration,
-          shift: turma.shift,
-          guardianName: person.guardian,
-          status: person.status ?? "ativo",
-        })
-        .returning({ id: student.id });
-      studentIds.set(person.registration, (created as { id: string }).id);
-      alunos += 1;
-    }
+    const rows = turma.students.map((person) => ({
+      schoolId,
+      classroomId,
+      userId:
+        person.name === ALUNA_COM_ACESSO.name
+          ? (userIds.get(ALUNA_COM_ACESSO.email) as string)
+          : null,
+      id: crypto.randomUUID(),
+      name: person.name,
+      registration: person.registration,
+      shift: turma.shift,
+      guardianName: person.guardian,
+      status: person.status ?? ("ativo" as const),
+    }));
+
+    await insertInBatches(rows, 500, (batch) => db.insert(student).values(batch));
+    for (const row of rows) studentIds.set(row.registration, row.id);
+    alunos += rows.length;
   }
 
-  // ---- Aulas: dois meses para trás e uma semana para a frente ----
-  const today = new Date(`${isoDate(new Date())}T00:00:00Z`);
-  const start = new Date(today);
-  start.setUTCDate(start.getUTCDate() - 63);
-  const end = new Date(today);
-  end.setUTCDate(end.getUTCDate() + 7);
+  // ---- Grade horária e alocação de professores ----
+  const timetables = turmas.map((turma, index) => ({
+    name: turma.name,
+    shift: turma.shift,
+    timetable: timetableOf(index, turma.shift, turma.room),
+  }));
+  const assignment = assignTeachers(timetables);
 
-  const matematica = PROFESSORES[0] as (typeof PROFESSORES)[number];
-  const teacherId = userIds.get(matematica.email) as string;
-  const subjectId = subjectIds.get(matematica.subject) as string;
+  const { lessonRows, recordedByClassroom } = buildLessons({
+    schoolId,
+    turmas,
+    timetables,
+    classroomIds,
+    subjectIds,
+    userIds,
+    assignment,
+  });
 
-  const lessonRows: (typeof lesson.$inferInsert)[] = [];
-  for (const turma of TURMAS) {
-    const grid = HORARIO[turma.name] ?? [];
-    for (const day of schoolDays(start, end)) {
-      const weekday = day.getUTCDay();
-      for (const slot of grid.filter((item) => item.weekday === weekday)) {
-        lessonRows.push({
-          schoolId,
-          classroomId: classroomIds.get(turma.name) as string,
-          subjectId,
-          teacherId,
-          date: isoDate(day),
-          startsAt: slot.startsAt,
-          endsAt: slot.endsAt,
-          room: slot.room,
-        });
-      }
-    }
-  }
+  await insertInBatches(lessonRows, 400, (batch) => db.insert(lesson).values(batch));
 
-  const inserted = await db
-    .insert(lesson)
-    .values(lessonRows)
-    .returning({ id: lesson.id, date: lesson.date, classroomId: lesson.classroomId });
-
-  const todayIso = isoDate(today);
-
-  /**
-   * Uma aula passada fica sem chamada de propósito: é a pendência que o
-   * dashboard do professor e o painel da Gestão precisam ter o que mostrar.
-   */
-  const past = inserted.filter((row) => row.date < todayIso);
-  const skipped = past.at(-1);
-
-  let chamadas = 0;
+  // ---- Chamadas ----
   const attendanceRows: (typeof attendance.$inferInsert)[] = [];
 
-  for (const turma of TURMAS) {
+  for (const turma of turmas) {
     const classroomId = classroomIds.get(turma.name) as string;
-    const turmaLessons = past
-      .filter((row) => row.classroomId === classroomId && row.id !== skipped?.id)
-      .sort((a, b) => a.date.localeCompare(b.date));
+    const aulas = recordedByClassroom.get(classroomId) ?? [];
 
-    turma.students.forEach((person, personIndex) => {
+    turma.students.forEach((person, seat) => {
       const studentId = studentIds.get(person.registration) as string;
-      const faltas = spreadIndexes(turmaLessons.length, person.absences, personIndex);
-      const atrasos = spreadIndexes(turmaLessons.length, person.lates ?? 0, personIndex + 3);
+      const { absences, lates } = absencesFor(person, aulas.length);
+      const faltas = spreadIndexes(aulas.length, absences, seat);
+      const atrasos = spreadIndexes(aulas.length, lates, seat + 3);
 
-      turmaLessons.forEach((row, index) => {
+      aulas.forEach((lessonId, index) => {
         const status = faltas.has(index)
           ? "falta"
           : atrasos.has(index)
             ? "atraso"
             : ("presente" as const);
-        attendanceRows.push({ schoolId, lessonId: row.id, studentId, status });
+        attendanceRows.push({ schoolId, lessonId, studentId, status });
       });
     });
-
-    chamadas += turmaLessons.length;
   }
 
-  for (let offset = 0; offset < attendanceRows.length; offset += 500) {
-    await db.insert(attendance).values(attendanceRows.slice(offset, offset + 500));
-  }
+  await insertInBatches(attendanceRows, 1000, (batch) => db.insert(attendance).values(batch));
 
-  const recorded = new Set(past.filter((row) => row.id !== skipped?.id).map((row) => row.id));
-  for (const row of inserted) {
-    if (recorded.has(row.id)) {
-      await db
-        .update(lesson)
-        .set({ attendanceRecordedAt: new Date() })
-        .where(eq(lesson.id, row.id));
-    }
-  }
-
-  // Diário preenchido nas aulas mais recentes, para a tela de chamada não
-  // abrir sempre em branco.
-  const recentes = past.slice(-CONTEUDOS.length);
-  for (const [index, row] of recentes.entries()) {
-    await db.update(lesson).set({ content: CONTEUDOS[index] }).where(eq(lesson.id, row.id));
-  }
+  const chamadas = [...recordedByClassroom.values()].reduce((sum, ids) => sum + ids.length, 0);
 
   // ---- Avaliações e notas ----
   const notas = await seedAssessments({
     db,
     schoolId,
-    teacherId,
-    subjectId,
+    turmas,
     classroomIds,
+    subjectIds,
     studentIds,
+    userIds,
+    assignment,
   });
 
   return {
     schoolId,
     logins: [
       { perfil: "Gestão (diretora)", email: DIRETORA.email, senha: DEMO_PASSWORD },
-      { perfil: "Professor", email: matematica.email, senha: DEMO_PASSWORD },
+      { perfil: "Professor", email: PROFESSOR_DEMO.email, senha: DEMO_PASSWORD },
       { perfil: "Aluna", email: ALUNA_COM_ACESSO.email, senha: DEMO_PASSWORD },
     ],
-    counts: { alunos, aulas: inserted.length, chamadas, notas },
+    counts: {
+      turmas: turmas.length,
+      alunos,
+      professores: PROFESSORES.length,
+      disciplinas: DISCIPLINAS.length,
+      aulas: lessonRows.length,
+      chamadas,
+      notas,
+    },
   };
 }
 
-/** Notas por turma. O 8º A fica com uma prova em rascunho e sem lançamento. */
-const NOTAS_POR_TURMA: Record<string, Record<string, [number, number, number | null]>> = {
-  "8º A": {
-    "-0301": [8.5, 9, 7.5],
-    "-0305": [7, 8, 6.5],
-    "-0309": [5, 6, null],
-    "-0312": [4, 5.5, 4.5],
-    "-0318": [9.5, 9.5, 10],
-    "-0323": [6.5, 7.5, 7],
-    "-0327": [8, 7, null],
-  },
-  "9º B": {
-    "-0412": [7.5, 8, 7],
-    "-0418": [8, 7.5, 8.5],
-    "-0427": [4, 3.5, 4],
-    "-0433": [6, 6.5, 6],
-    "-0441": [9, 8.5, 9],
-    "-0449": [4.5, 4, 3.5],
-    "-0455": [7, 7.5, 7],
-    "-0460": [8.5, 9, 8],
-  },
-  "7º C": {
-    "-0331": [8, 8.5, 8],
-    "-0336": [9, 8, 8.5],
-    "-0340": [7.5, 7, 8],
-    "-0344": [9.5, 9, 9.5],
-    "-0349": [6.5, 6, 7],
-  },
-};
-
-async function seedAssessments(input: {
-  db: ReturnType<typeof createDb>;
+/**
+ * Monta as aulas do período e decide, já na criação, quais ficam sem chamada.
+ *
+ * Decidir aqui em vez de atualizar depois não é detalhe: seriam milhares de
+ * `UPDATE` de uma linha só, e o seed passaria de segundos a minutos.
+ */
+function buildLessons(input: {
   schoolId: string;
-  teacherId: string;
-  subjectId: string;
+  turmas: DemoClassroom[];
+  timetables: { name: string; timetable: ReturnType<typeof timetableOf> }[];
   classroomIds: Map<string, string>;
-  studentIds: Map<string, string>;
-}): Promise<number> {
-  const { db, schoolId, teacherId, subjectId } = input;
-  const rows: (typeof grade.$inferInsert)[] = [];
+  subjectIds: Map<string, string>;
+  userIds: Map<string, string>;
+  assignment: Map<string, string>;
+}) {
+  const { schoolId, turmas, timetables, classroomIds, subjectIds, userIds, assignment } = input;
 
-  const byRegistrationSuffix = (suffix: string) =>
-    [...input.studentIds.entries()].find(([registration]) => registration.endsWith(suffix))?.[1];
+  const today = new Date(`${isoDate(new Date())}T00:00:00Z`);
+  const start = new Date(today);
+  start.setUTCDate(start.getUTCDate() - DIAS_PARA_TRAS);
+  const end = new Date(today);
+  end.setUTCDate(end.getUTCDate() + DIAS_PARA_FRENTE);
+  const todayIso = isoDate(today);
 
-  for (const [turmaName, notas] of Object.entries(NOTAS_POR_TURMA)) {
-    const classroomId = input.classroomIds.get(turmaName);
-    if (!classroomId) continue;
+  const dias = schoolDays(start, end);
+  const lessonRows: (typeof lesson.$inferInsert)[] = [];
+  /** Aulas passadas por professor, para escolher quais ficam pendentes. */
+  const pastByTeacher = new Map<string, { id: string; order: string }[]>();
 
-    // Bimestre anterior, já fechado: é ele que dá a barra de comparação do
-    // gráfico "média por turma" no dashboard do professor.
-    const [anterior] = await db
-      .insert(assessment)
-      .values({
-        schoolId,
-        classroomId,
-        subjectId,
-        teacherId,
-        name: `Média do ${DEMO_TERM - 1}º bimestre`,
-        weight: 1,
-        term: DEMO_TERM - 1,
-        status: "publicada",
-        publishedAt: new Date(),
-      })
-      .returning({ id: assessment.id });
+  for (const turma of turmas) {
+    const horario = timetables.find((item) => item.name === turma.name)?.timetable ?? [];
+    const classroomId = classroomIds.get(turma.name) as string;
 
-    /**
-     * Duas avaliações publicadas e uma em rascunho. É esse rascunho que
-     * demonstra as duas regras: o aluno não vê a nota, e publicar com aluno
-     * sem lançamento é recusado.
-     */
-    const definicoes = [
-      { name: "Prova 1", weight: 4, status: "publicada" as const, offset: -28 },
-      { name: "Trabalho em grupo", weight: 3, status: "publicada" as const, offset: -12 },
-      { name: "Prova 2", weight: 3, status: "rascunho" as const, offset: -4 },
-    ];
+    for (const day of dias) {
+      const weekday = day.getUTCDay();
+      const date = isoDate(day);
 
-    const criadas: string[] = [];
-    for (const definicao of definicoes) {
-      const appliedOn = new Date();
-      appliedOn.setUTCDate(appliedOn.getUTCDate() + definicao.offset);
+      for (const slot of horario.filter((item) => item.weekday === weekday)) {
+        const teacherEmail = assignment.get(`${turma.name}|${slot.subject}`);
+        const teacherId = teacherEmail ? userIds.get(teacherEmail) : undefined;
+        if (!teacherId || !teacherEmail) continue;
 
-      const [row] = await db
-        .insert(assessment)
-        .values({
+        const id = crypto.randomUUID();
+        lessonRows.push({
+          id,
           schoolId,
           classroomId,
-          subjectId,
+          subjectId: subjectIds.get(slot.subject) as string,
+          teacherId,
+          date,
+          startsAt: slot.startsAt,
+          endsAt: slot.endsAt,
+          room: slot.room,
+        });
+
+        if (date < todayIso) {
+          const list = pastByTeacher.get(teacherEmail) ?? [];
+          list.push({ id, order: `${date} ${slot.startsAt}` });
+          pastByTeacher.set(teacherEmail, list);
+        }
+      }
+    }
+  }
+
+  // As pendências são sempre as aulas mais recentes do professor: cobrar uma
+  // aula de dois meses atrás e não a de ontem não se parece com a realidade.
+  const pending = new Set<string>();
+  for (const [email, quantidade] of Object.entries(CHAMADAS_EM_ATRASO)) {
+    const aulas = (pastByTeacher.get(email) ?? []).sort((a, b) => a.order.localeCompare(b.order));
+    for (const aula of aulas.slice(-quantidade)) pending.add(aula.id);
+  }
+
+  const recordedAt = new Date();
+  const recordedByClassroom = new Map<string, string[]>();
+  const diario = [...(pastByTeacher.get(PROFESSOR_DEMO.email) ?? [])]
+    .sort((a, b) => a.order.localeCompare(b.order))
+    .slice(-(CONTEUDOS.length + 1), -1)
+    .map((aula) => aula.id);
+
+  for (const row of lessonRows) {
+    const id = row.id as string;
+    const conteudo = diario.indexOf(id);
+    if (conteudo >= 0) row.content = CONTEUDOS[conteudo];
+
+    if ((row.date as string) >= todayIso || pending.has(id)) continue;
+
+    row.attendanceRecordedAt = recordedAt;
+    const list = recordedByClassroom.get(row.classroomId) ?? [];
+    list.push(id);
+    recordedByClassroom.set(row.classroomId, list);
+  }
+
+  return { lessonRows, recordedByClassroom };
+}
+
+/**
+ * Avaliações e notas de todas as turmas, em todas as disciplinas.
+ *
+ * Cada turma recebe a média fechada do bimestre anterior — é ela que dá a
+ * barra de comparação do painel do professor — mais três avaliações do
+ * bimestre corrente.
+ */
+async function seedAssessments(input: {
+  db: DbHandle;
+  schoolId: string;
+  turmas: DemoClassroom[];
+  classroomIds: Map<string, string>;
+  subjectIds: Map<string, string>;
+  studentIds: Map<string, string>;
+  userIds: Map<string, string>;
+  assignment: Map<string, string>;
+}): Promise<number> {
+  const { db, schoolId, turmas, classroomIds, subjectIds, studentIds, userIds, assignment } = input;
+
+  const hoje = new Date();
+  const dataDe = (offset: number) => {
+    const value = new Date(hoje);
+    value.setUTCDate(value.getUTCDate() + offset);
+    return isoDate(value);
+  };
+
+  const assessmentRows: (typeof assessment.$inferInsert)[] = [];
+  const gradeRows: (typeof grade.$inferInsert)[] = [];
+
+  for (const [turmaIndex, turma] of turmas.entries()) {
+    const classroomId = classroomIds.get(turma.name) as string;
+
+    for (const [subjectIndex, subjectName] of DISCIPLINAS.entries()) {
+      const teacherEmail = assignment.get(`${turma.name}|${subjectName}`);
+      const teacherId = teacherEmail ? userIds.get(teacherEmail) : undefined;
+      if (!teacherId) continue;
+
+      const doRoteiro = turma.name === "8º A" && subjectName === PROFESSOR_DEMO.subject;
+
+      /**
+       * A Prova 2 fica em rascunho — e com lançamento faltando — no 8º A de
+       * Matemática, que é o caso da apresentação, e em alguns outros pares
+       * para a fila de cobrança da direção não ter uma linha só. Nunca em
+       * outra turma do professor da demonstração: a pendência dele é a do
+       * roteiro, e só.
+       */
+      const pendente =
+        doRoteiro ||
+        (teacherEmail !== PROFESSOR_DEMO.email && (turmaIndex * 5 + subjectIndex) % 13 === 0);
+
+      const definicoes = [
+        {
+          name: `Média do ${DEMO_TERM - 1}º bimestre`,
+          weight: 1,
+          term: DEMO_TERM - 1,
+          status: "publicada" as const,
+          appliedOn: null,
+        },
+        {
+          name: "Prova 1",
+          weight: 4,
+          term: DEMO_TERM,
+          status: "publicada" as const,
+          appliedOn: dataDe(-28),
+        },
+        {
+          name: "Trabalho em grupo",
+          weight: 3,
+          term: DEMO_TERM,
+          status: "publicada" as const,
+          appliedOn: dataDe(-12),
+        },
+        {
+          name: "Prova 2",
+          weight: 3,
+          term: DEMO_TERM,
+          status: pendente ? ("rascunho" as const) : ("publicada" as const),
+          appliedOn: dataDe(-4),
+        },
+      ];
+
+      const ids = definicoes.map(() => crypto.randomUUID());
+
+      definicoes.forEach((definicao, index) => {
+        assessmentRows.push({
+          id: ids[index] as string,
+          schoolId,
+          classroomId,
+          subjectId: subjectIds.get(subjectName) as string,
           teacherId,
           name: definicao.name,
           weight: definicao.weight,
-          term: DEMO_TERM,
-          appliedOn: isoDate(appliedOn),
+          term: definicao.term,
+          appliedOn: definicao.appliedOn,
           status: definicao.status,
-          publishedAt: definicao.status === "publicada" ? new Date() : null,
-        })
-        .returning({ id: assessment.id });
-
-      criadas.push((row as { id: string }).id);
-    }
-
-    for (const [sufixo, scores] of Object.entries(notas)) {
-      const studentId = byRegistrationSuffix(sufixo);
-      if (!studentId) continue;
-
-      const lancadas = scores.filter((score): score is number => score !== null);
-      const media = lancadas.reduce((sum, score) => sum + score, 0) / (lancadas.length || 1);
-
-      // O bimestre anterior fica 0,7 abaixo do atual: a comparação do gráfico
-      // precisa de diferença visível, e a evolução é a história da tela.
-      rows.push({
-        schoolId,
-        assessmentId: (anterior as { id: string }).id,
-        studentId,
-        score: Math.max(0, Math.round((media - 0.7) * 10) / 10),
+          publishedAt: definicao.status === "publicada" ? hoje : null,
+        });
       });
 
-      scores.forEach((score, index) => {
-        const assessmentId = criadas[index];
-        if (score === null || !assessmentId) return;
-        rows.push({ schoolId, assessmentId, studentId, score });
+      turma.students.forEach((person, seat) => {
+        const studentId = studentIds.get(person.registration);
+        if (!studentId) return;
+
+        // Aluno transferido não recebe lançamento do bimestre corrente: ele
+        // não está mais na sala.
+        if (person.status === "transferido") return;
+
+        const escritas = doRoteiro ? NOTAS_DO_ROTEIRO[person.registration] : undefined;
+
+        /**
+         * Só a Prova 2 fica sem lançamento, e só nas duas últimas carteiras:
+         * as outras duas avaliações já estão publicadas, e avaliação
+         * publicada com buraco é justamente o que o app não deixa existir.
+         */
+        const notas = [1, 2, 3].map((assessmentIndex, position) => {
+          if (escritas) return escritas[position] ?? null;
+          const ultima = position === definicoes.length - 2;
+          if (pendente && ultima && seat >= turma.students.length - 2) return null;
+          return scoreFor(seat, subjectIndex, assessmentIndex, person.aptitude);
+        });
+
+        const lancadas = notas.filter((value): value is number => value !== null);
+        const media = lancadas.reduce((sum, value) => sum + value, 0) / (lancadas.length || 1);
+
+        // O bimestre anterior fica 0,7 abaixo do atual: a comparação do
+        // gráfico precisa de diferença visível, e a evolução é a história.
+        gradeRows.push({
+          schoolId,
+          assessmentId: ids[0] as string,
+          studentId,
+          score: Math.min(10, Math.max(0, Math.round((media - 0.7) * 10) / 10)),
+        });
+
+        notas.forEach((score, position) => {
+          if (score === null) return;
+          gradeRows.push({
+            schoolId,
+            assessmentId: ids[position + 1] as string,
+            studentId,
+            score,
+          });
+        });
       });
     }
   }
 
-  for (let offset = 0; offset < rows.length; offset += 500) {
-    await db.insert(grade).values(rows.slice(offset, offset + 500));
-  }
+  await insertInBatches(assessmentRows, 400, (batch) => db.insert(assessment).values(batch));
+  await insertInBatches(gradeRows, 1000, (batch) => db.insert(grade).values(batch));
 
-  return rows.length;
+  return gradeRows.length;
 }

@@ -10,10 +10,15 @@ import { seedDemoSchool } from "./seed-demo";
  */
 const result = await seedDemoSchool();
 
+const { counts } = result;
+
 console.log(`\nEscola de demonstração pronta: ${result.schoolId}`);
 console.log(
-  `${result.counts.alunos} alunos · ${result.counts.aulas} aulas · ` +
-    `${result.counts.chamadas} chamadas · ${result.counts.notas} notas\n`,
+  `${counts.alunos} alunos · ${counts.turmas} turmas · ` +
+    `${counts.professores} professores · ${counts.disciplinas} disciplinas`,
+);
+console.log(
+  `${counts.aulas} aulas · ${counts.chamadas} chamadas · ${counts.notas} notas lançadas\n`,
 );
 
 console.log("Acessos:");

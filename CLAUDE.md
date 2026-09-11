@@ -100,6 +100,22 @@ pnpm run seed:demo
 novo apaga e regrava, então o estado é sempre o mesmo. Acessos e roteiro em
 `DEMO.md`.
 
+Os dados e os geradores vivem em `seed-demo-data.ts`, separados da escrita em
+`seed-demo.ts`: lá não há banco, é tudo função pura, e `seed-demo-data.test.ts`
+cobre a grade horária, a alocação de professores e a distribuição de notas sem
+subir Postgres. Três armadilhas que esse teste guarda:
+
+- **Nada sorteia.** Demonstração que muda de número a cada execução não se
+  ensaia. Todo valor vem de aritmética sobre o índice — e o passo precisa ser
+  coprimo com o tamanho da lista, senão degenera: com passo 30 numa lista de 30
+  sobrenomes a turma inteira virou homônima.
+- **Frequência é guardada como taxa, não como número de faltas.** A grade
+  cresceu de 5 para 20 aulas semanais e a Júlia teria saltado de 67% para 92%,
+  deixando de ser o exemplo de aluno abaixo do mínimo.
+- **O professor da demonstração é fixado nas turmas do roteiro**
+  (`TURMAS_DO_PROFESSOR_DEMO`). Depender do desempate da alocação já tirou o
+  Ricardo do 9º B quando o critério mudou.
+
 | Comando | O que faz |
 | --- | --- |
 | `pnpm run test` | Suíte completa (precisa do Postgres no ar) |
@@ -203,6 +219,11 @@ O mesmo teste exige que todo módulo tenha `repository.ts`, `service.ts` e
 | `assessment` | Avaliação, grade de notas, média ponderada e publicação |
 | `overview` | Números dos três painéis. Só consulta agregada, nunca lista |
 
+A fila de pendências da direção é **uma lista só**: quem deve chamada e quem
+deve apenas nota saem juntos de `overview.gestao`, ordenados pelo tamanho da
+dívida. Eram duas, e a tela mostrava a primeira e esquecia a segunda — com um
+professor no banco isso não aparecia; com vinte, sumiam seis.
+
 Três regras de negócio atravessam quase tudo e vivem num lugar só:
 
 - **Frequência mínima de 75%** (LDB, art. 24, VI) —
@@ -216,6 +237,12 @@ Três regras de negócio atravessam quase tudo e vivem num lugar só:
 - **Publicação é o que torna a nota visível ao aluno** — e não acontece com
   aluno sem lançamento. O boletim do aluno lê só `status = 'publicada'`, e o
   filtro é na query, não numa checagem depois.
+- **Quem está na sala é `ENROLLED_STATUSES`** (`student/schema.ts`): `ativo` e
+  `documentacao_pendente`. Documentação pendente não tira o aluno da turma — ele
+  assiste à aula, recebe nota e conta como pendência. A constante existe porque
+  a grade de notas listava os dois e a checagem de publicação contava só
+  `ativo`: o aluno aparecia como "Sem nota" na tela e a publicação passava
+  assim mesmo, deixando no boletim exatamente o buraco que a regra proíbe.
 
 `overview` importa esses limiares dos outros services em vez de repeti-los; do
 contrário o painel e o boletim discordariam sobre quem está aprovado.
@@ -378,6 +405,12 @@ O que foi ajustado, e por quê:
 | `Sidebar` | Variante `floating`: casca de 24px sobre o azul, e `Sheet` em tela estreita |
 | `Tabs` / `Toggle` | Trilho segmentado do mockup |
 | `Empty` | Base dos quatro estados obrigatórios |
+
+> **Armadilha do Base UI:** `DropdownMenuLabel` é o rótulo de um grupo e
+> exige um `DropdownMenuGroup` em volta. Sem ele o Base UI não acha o contexto
+> e **derruba a árvore inteira** — o menu da conta virava "Something went
+> wrong!". Não é erro de tipo nem de lint, só aparece ao clicar, então há uma
+> regra mecânica em `packages/ui/src/design-system.test.ts`.
 
 **Não existe barra de navegação inferior.** O produto é web: em tela estreita a
 sidebar vira o `Sheet` do próprio shadcn, acionado pelo `SidebarTrigger`. Uma

@@ -24,11 +24,16 @@ bagunçar e voltar ao estado inicial.
 
 Escola fictícia **E. M. Dom Pedro II**, senha `integra2026` para todos:
 
-| Perfil | E-mail |
-| --- | --- |
-| Direção | `marina.duarte@dompedroii.edu.br` |
-| Professor | `ricardo.alves@dompedroii.edu.br` |
-| Aluna | `ana.clara@aluno.dompedroii.edu.br` |
+| Visão | Perfil | E-mail |
+| --- | --- | --- |
+| **Instituição** | Direção (`owner`) | `marina.duarte@dompedroii.edu.br` |
+| **Professor** | Matemática (`teacher`) | `ricardo.alves@dompedroii.edu.br` |
+| **Aluno** | 8º A (`student`) | `ana.clara@aluno.dompedroii.edu.br` |
+
+Há também `vera.amorim@dompedroii.edu.br` (secretaria, `admin`), mesma senha —
+útil só para mostrar que a direção e a secretaria enxergam o mesmo, com papéis
+distintos. Os demais professores existem no quadro mas não fazem parte do
+roteiro.
 
 > Senha fraca e compartilhada existe **só** para esta escola de demonstração,
 > com dados fictícios. Instalação real é provisionada por
@@ -36,13 +41,23 @@ Escola fictícia **E. M. Dom Pedro II**, senha `integra2026` para todos:
 
 ## O que o seed deixa preparado
 
-- 3 turmas (8º A, 9º B, 7º C), 20 alunos, 5 disciplinas, ~143 aulas
-- Chamadas registradas em quase todo o histórico, **uma aula anterior de
-  propósito sem registro** — é a pendência do painel
-- 2 alunos abaixo dos 75% de frequência (Júlia Moraes, Davi Fontes Xavier)
-- 1 aluna com documentação pendente (Helena Lacerda)
-- Por turma: duas avaliações publicadas e **uma em rascunho**, com dois alunos
-  do 8º A sem nota — é o que trava a publicação
+Uma escola municipal inteira, de porte realista:
+
+- **12 turmas** (6º ao 9º ano), **299 alunos**, **20 professores**, 8 disciplinas
+- Grade horária de verdade: 20 aulas semanais por turma, quatro tempos por dia,
+  **sem professor em duas salas ao mesmo tempo**
+- ~2.450 aulas em nove semanas de histórico e uma semana à frente, com ~9.450
+  notas lançadas
+- Frequência média da rede em 93,7%; **28 alunos abaixo dos 75%** da LDB, entre
+  eles os dois do roteiro — Júlia Moraes (67%) e Davi Fontes Xavier (69%)
+- 10 matrículas com documentação pendente, incluindo Helena Lacerda no 8º A
+- Chamadas registradas em quase todo o histórico. **Ricardo tem exatamente uma
+  aula anterior sem registro** — é a pendência que o roteiro usa; outros quatro
+  professores têm as suas, para a fila de cobrança da direção não ter uma linha
+  só
+- Por turma e disciplina: duas avaliações publicadas e uma Prova 2. No **8º A de
+  Matemática** ela está em rascunho, com **dois alunos sem nota** — é o que
+  trava a publicação
 
 ## Roteiro
 
@@ -86,6 +101,8 @@ Saia e entre como Ana Clara.
 
 - Frequência, média geral e **as notas que acabaram de ser publicadas**. Antes
   da publicação elas não existiam para ela: o filtro é na consulta, não na tela.
+- O gráfico "Desempenho por disciplina" traz as **oito disciplinas** dela contra
+  a média da turma, e o dia inteiro de aulas com professor e sala de cada uma.
 - Em **Minhas notas**, cada avaliação mostra `nota × peso` e o peso total. "Como
   sua média foi calculada" é requisito.
 - Comparação com a turma é anônima: nenhum nome de colega em lugar nenhum.
@@ -95,9 +112,11 @@ Saia e entre como Ana Clara.
 Entre como Marina.
 
 - Alunos ativos, turmas, professores, frequência média da rede.
-- **Pendências de lançamento** por professor: chamadas e notas em aberto.
-- **Alunos** com busca, filtros e o recorte "Alerta de frequência", que é
-  derivado dos 75% da LDB, não um campo que alguém marca.
+- **Pendências de lançamento** por professor, numa fila só: quem deve chamada e
+  quem deve apenas nota aparecem lado a lado, ordenados pelo tamanho da dívida.
+- **Alunos**: 299 matrículas paginadas, com busca, filtros combináveis e o
+  recorte "Alerta de frequência", derivado dos 75% da LDB — não um campo que
+  alguém marca.
 
 ## Se algo der errado
 

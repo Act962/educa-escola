@@ -45,7 +45,9 @@ function situacaoDoLancamento(pendingCalls: number, pendingGrades: number) {
   if (pendingCalls > 0) {
     return { label: "Atenção", tone: "warning" as BadgeTone, row: "bg-warning-soft" };
   }
-  return { label: "Em dia", tone: "success" as BadgeTone, row: "" };
+  // Chegou aqui: chamada em dia, mas nota em aberto. Dizer "Em dia" a quem
+  // ainda deve lançamento é a tela contradizendo a própria coluna ao lado.
+  return { label: "Notas em aberto", tone: "warning" as BadgeTone, row: "bg-warning-soft" };
 }
 
 export function DashboardGestao() {
