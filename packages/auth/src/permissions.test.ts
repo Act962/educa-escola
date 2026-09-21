@@ -80,3 +80,27 @@ describe("papéis da escola", () => {
     }
   });
 });
+
+describe("apps do Órbita", () => {
+  it("todo papel de trabalho enxerga a lista de apps", () => {
+    for (const role of ["owner", "admin", "teacher"] as const) {
+      expect(can(role, { app: ["read"] })).toBe(true);
+    }
+  });
+
+  /**
+   * Instalar é contratar: cria organização no Órbita e debita Stars da escola.
+   * Secretaria abre o que já está instalado; quem assina é a direção.
+   */
+  it("só o owner instala e remove app", () => {
+    for (const role of APP_ROLES) {
+      const esperado = role === "owner";
+      expect(can(role, { app: ["install"] })).toBe(esperado);
+      expect(can(role, { app: ["remove"] })).toBe(esperado);
+    }
+  });
+
+  it("aluno não vê a aba de apps", () => {
+    expect(can("student", { app: ["read"] })).toBe(false);
+  });
+});

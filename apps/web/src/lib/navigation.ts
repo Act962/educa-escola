@@ -1,6 +1,7 @@
 import type { AppRole } from "@educa-escola/auth";
 import {
   BarChart3,
+  Blocks,
   BookOpen,
   CalendarDays,
   CircleCheck,
@@ -34,6 +35,7 @@ const GESTAO: NavEntry[] = [
   { label: "Início", to: "/inicio", icon: Home },
   { label: "Alunos", to: "/alunos", icon: GraduationCap },
   { label: "Turmas", to: "/turmas", icon: LayoutGrid },
+  { label: "Apps", to: "/apps", icon: Blocks },
   { label: "Professores", icon: Users, soon: true },
   { label: "Matrículas", to: "/matriculas", icon: IdCard },
   { label: "Acadêmico", icon: BookOpen, soon: true },
