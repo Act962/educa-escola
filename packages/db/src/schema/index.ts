@@ -3,3 +3,4 @@ export * from "./auth";
 export * from "./enrollment";
 export * from "./orbita";
 export * from "./school";
+export * from "./score";

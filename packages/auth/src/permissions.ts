@@ -30,6 +30,17 @@ export const statement = {
    * assina.
    */
   app: ["read", "install", "remove"],
+  /**
+   * Pontuação. `apurar` é escrita em massa: reprocessa o ano inteiro da
+   * escola, então fica com quem responde pela escola, não com quem dá aula.
+   */
+  score: ["read", "apurar"],
+  /**
+   * Placar nominal. Fora de `fullAcademicAccess` de propósito: ver quem está
+   * em que posição é decisão da direção, e `read_cross_school` é a porta que
+   * a PR do placar entre escolas vai usar — nenhum papel a tem ainda.
+   */
+  ranking: ["read", "read_cross_school", "opt_in"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -42,6 +53,7 @@ const fullAcademicAccess = {
   attendance: ["create", "read", "update"],
   assessment: ["create", "read", "update", "delete", "publish"],
   grade: ["create", "read", "update"],
+  score: ["read", "apurar"],
 } as const;
 
 /** Diretor(a) / mantenedor(a) da escola. Único papel que pode excluir a escola. */
@@ -50,6 +62,10 @@ export const owner = ac.newRole({
   ...fullAcademicAccess,
   // Só a direção instala: instalar app gera custo em Stars na conta da escola.
   app: ["read", "install", "remove"],
+  // Sem `read_cross_school`: ler dado de outra escola é a única coisa que a
+  // arquitetura inteira existe para impedir, e entra na PR do placar entre
+  // escolas — com o aval do João, não por herança de papel.
+  ranking: ["read", "opt_in"],
 });
 
 /** Secretaria / administrativo: opera a escola inteira, menos excluí-la. */
@@ -57,6 +73,8 @@ export const admin = ac.newRole({
   ...adminAc.statements,
   ...fullAcademicAccess,
   app: ["read"],
+  /** Secretaria enxerga o placar; aderir a placar externo é da direção. */
+  ranking: ["read"],
 });
 
 /**
@@ -77,6 +95,9 @@ export const teacher = ac.newRole({
   assessment: ["create", "read", "update", "delete", "publish"],
   grade: ["create", "read", "update"],
   app: ["read"],
+  /** Vê os próprios pontos; não reprocessa o ano da escola. */
+  score: ["read"],
+  ranking: [],
 });
 
 /**
@@ -97,6 +118,13 @@ export const student = ac.newRole({
   assessment: ["read"],
   grade: ["read"],
   app: [],
+  /**
+   * Vê os próprios pontos. `ranking: []` é a tradução do §7.5 em permissão:
+   * aluno não vê classificação nominal de colega. A tela dele devolve posição
+   * e total, e quem garante isso é a forma do retorno em `score/service.ts`.
+   */
+  score: ["read"],
+  ranking: [],
 });
 
 export const roles = { owner, admin, teacher, student };
