@@ -11,6 +11,11 @@ function serviceFor(ctx: { db: DbHandle; tenant: TenantContext }) {
 }
 
 export const studentRouter = router({
+  /** Panorama de frequência da direção. Exige leitura de aluno. */
+  attendanceOverview: permitted({ student: ["read"] }).query(({ ctx }) =>
+    serviceFor(ctx).attendanceOverview(),
+  ),
+
   list: permitted({ student: ["read"] })
     .input(listStudentsInput)
     .query(({ ctx, input }) => serviceFor(ctx).list(input)),

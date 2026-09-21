@@ -129,10 +129,29 @@ Entre como Marina.
 
 ## O que ainda não existe
 
+A fila de matrículas tem **dois modos**: lista, com busca e paginação, e
+**quadro**, com uma coluna por etapa do link. Os cartões não arrastam de
+propósito — a secretaria não controla as três primeiras transições, quem
+entrega a ficha é a família.
+
+A aba **Frequência** da direção mostra a média de cada turma, da pior para a
+melhor, e quem está abaixo dos 75% da LDB. Monta sobre a chamada que o
+professor já faz.
+
+A ficha traz ainda a **identificação facial** para a catraca: a foto fica
+cifrada no nosso banco, o molde vive no equipamento, e quem não autoriza entra
+pela carteirinha com QR.
+
+**Matrícula online** já está no ar e fecha o ciclo: a secretaria cria, o
+responsável confere a ficha por um link no celular — sem conta, provando quem
+é pela data de nascimento do aluno — e a secretaria confirma, cancela ou
+renova. O envio do link ainda é manual: a tela mostra o endereço uma vez, com
+botão de copiar, e a integração com o WhatsApp oficial entra depois.
+
 Vale dizer antes que perguntem — os itens marcados **em breve** no menu são o
 roadmap do `INTEGRA-EDU-REQUISITOS.md`, não telas quebradas:
 
-- Matrículas, financeiro, comunicados, relatórios e calendário
+- Financeiro, comunicados, relatórios e calendário
 - Grade horária e diário completo do aluno
 - Troca de instituição na barra de contexto (o modelo já é multi-escola; falta a
   troca sem sair e entrar)

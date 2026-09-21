@@ -98,6 +98,10 @@ function repositories(options: { grades: GradeEntry[]; missing?: number }) {
       },
     ],
     create: async () => ({}) as never,
+    // Não usado por este service; existe para o dublê continuar satisfazendo
+    // a interface real — que é o que faz este teste quebrar na compilação
+    // quando o repositório muda, em vez de mentir.
+    presenceByStudent: async () => [],
   } satisfies StudentRepository;
 
   return { assessments, students, publicadas };

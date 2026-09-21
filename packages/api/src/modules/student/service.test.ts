@@ -37,6 +37,19 @@ function fakeRepository(seed: Row[] = []): StudentRepository {
   return {
     list: async (filters: StudentFilters) =>
       rows.slice(filters.offset, filters.offset + filters.limit),
+    presenceByStudent: async () =>
+      rows.map((row) => ({
+        studentId: row.id,
+        studentName: row.name,
+        registration: row.registration,
+        shift: row.shift,
+        classroomId: row.classroomId ?? null,
+        classroomName: row.classroomName ?? null,
+        academicYear: 2026,
+        presentCount: row.presentCount,
+        lateCount: row.lateCount,
+        absentCount: row.absentCount,
+      })),
     countMatching: async () => rows.length,
     findById: async () => null,
     findByRegistration: async (value) => {
@@ -126,5 +139,102 @@ describe("listagem", () => {
 
     expect(items.map((item) => item.name)).toEqual(["Em risco"]);
     expect(total).toBe(2);
+  });
+});
+
+describe("attendanceOverview", () => {
+  it("agrupa por turma e usa o mesmo limiar do resto do sistema", async () => {
+    const service = createStudentService(
+      fakeRepository([
+        aluno({ id: "a", name: "Ana", classroomId: "t1", classroomName: "6º A", presentCount: 10 }),
+        aluno({
+          id: "b",
+          name: "Beto",
+          classroomId: "t1",
+          classroomName: "6º A",
+          presentCount: 9,
+          absentCount: 1,
+        }),
+        // 6 de 10 = 60%, abaixo dos 75%.
+        aluno({
+          id: "c",
+          name: "Caio",
+          classroomId: "t2",
+          classroomName: "7º C",
+          presentCount: 6,
+          absentCount: 4,
+        }),
+      ]),
+    );
+
+    const panorama = await service.attendanceOverview();
+
+    expect(panorama.minimumRate).toBe(MINIMUM_ATTENDANCE_RATE);
+    expect(panorama.students).toBe(3);
+    expect(panorama.belowMinimum).toBe(1);
+    expect(panorama.below.map((aluno) => aluno.studentName)).toEqual(["Caio"]);
+
+    const seisA = panorama.classrooms.find((turma) => turma.classroomName === "6º A");
+    expect(seisA?.rate).toBeCloseTo(19 / 20);
+    expect(seisA?.belowMinimum).toBe(0);
+  });
+
+  /** Atraso conta como presença — a mesma regra da chamada, não outra. */
+  it("atraso não derruba a turma", async () => {
+    const service = createStudentService(
+      fakeRepository([
+        aluno({ id: "a", classroomId: "t1", classroomName: "6º A", presentCount: 5, lateCount: 5 }),
+      ]),
+    );
+
+    const panorama = await service.attendanceOverview();
+    expect(panorama.rate).toBe(1);
+    expect(panorama.belowMinimum).toBe(0);
+  });
+
+  /**
+   * Turma sem aula registrada tem taxa nula, não 0%. Acusar 0% de quem ainda
+   * não teve aula é mentir com número.
+   */
+  it("sem aula registrada devolve taxa nula", async () => {
+    const service = createStudentService(
+      fakeRepository([
+        aluno({ id: "a", classroomId: "t1", classroomName: "6º A", presentCount: 0 }),
+      ]),
+    );
+
+    const panorama = await service.attendanceOverview();
+    expect(panorama.rate).toBeNull();
+    expect(panorama.classrooms[0]?.rate).toBeNull();
+    expect(panorama.belowMinimum).toBe(0);
+  });
+
+  it("ordena as turmas da pior para a melhor", async () => {
+    const service = createStudentService(
+      fakeRepository([
+        aluno({ id: "a", classroomId: "t1", classroomName: "6º A", presentCount: 10 }),
+        aluno({
+          id: "b",
+          classroomId: "t2",
+          classroomName: "7º C",
+          presentCount: 5,
+          absentCount: 5,
+        }),
+        aluno({
+          id: "c",
+          classroomId: "t3",
+          classroomName: "8º B",
+          presentCount: 8,
+          absentCount: 2,
+        }),
+      ]),
+    );
+
+    const panorama = await service.attendanceOverview();
+    expect(panorama.classrooms.map((turma) => turma.classroomName)).toEqual([
+      "7º C",
+      "8º B",
+      "6º A",
+    ]);
   });
 });
