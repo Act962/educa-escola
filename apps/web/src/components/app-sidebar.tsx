@@ -15,10 +15,13 @@ import {
   SidebarSeparator,
 } from "@educa-escola/ui/components/sidebar";
 import { initialsOf } from "@educa-escola/ui/lib/initials";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { GraduationCap, LogOut, Settings, UserRound } from "lucide-react";
 
+import { appOrbitaDe } from "@/lib/apps-orbita";
 import { navigationFor } from "@/lib/navigation";
+import { useTRPC } from "@/utils/trpc";
 
 interface AppSidebarProps {
   role: AppRole;
@@ -92,6 +95,8 @@ export function AppSidebar({ role, schoolName, pendingCalls, onSignOut }: AppSid
           </SidebarGroupContent>
         </SidebarGroup>
 
+        <AppsInstalados />
+
         {previstos.length > 0 ? (
           <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel>Em breve</SidebarGroupLabel>
@@ -145,5 +150,50 @@ export function AppSidebar({ role, schoolName, pendingCalls, onSignOut }: AppSid
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+/**
+ * Os apps do Órbita que a escola instalou, na barra lateral.
+ *
+ * É o que torna "aba própria dentro do Integra" verdade: sem isso o app existe,
+ * mas só se chega a ele passando pela grade. Usa `orbita.installed`, que lê só
+ * a tabela local — `overview` chama o Órbita para resolver preço e saldo, e
+ * pagar isso em toda navegação para desenhar três itens seria caro.
+ */
+function AppsInstalados() {
+  const trpc = useTRPC();
+  const instalados = useQuery({
+    ...trpc.orbita.installed.queryOptions(),
+    // Quem não tem `app: ["read"]` recebe 403; é resposta esperada, não falha
+    // que mereça repetição.
+    retry: false,
+  });
+
+  const apps = (instalados.data ?? [])
+    .map((linha) => appOrbitaDe(linha.appKey))
+    .filter((app): app is NonNullable<typeof app> => app !== null);
+
+  if (apps.length === 0) return null;
+
+  return (
+    <SidebarGroup className="p-0">
+      <SidebarGroupLabel>Apps instalados</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {apps.map((app) => (
+            <SidebarMenuItem key={app.key}>
+              <SidebarMenuButton
+                tooltip={app.nome}
+                render={<Link to="/apps/$appKey" params={{ appKey: app.key }} />}
+              >
+                <app.icon strokeWidth={1.7} aria-hidden />
+                <span>{app.nome}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   );
 }

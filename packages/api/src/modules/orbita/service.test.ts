@@ -283,3 +283,31 @@ describe("openApp", () => {
     expect(new URL(url).searchParams.get("embedded")).toBe("1");
   });
 });
+
+describe("installed", () => {
+  /**
+   * A barra lateral desenha um item por app instalado. App que ficou em
+   * `instalando` ou que foi removido não pode virar item de menu: o clique
+   * levaria a uma aba que o `openApp` recusa.
+   */
+  it("traz só o que está instalado de fato", async () => {
+    const repo = fakeRepository({
+      workspace: conectada,
+      installs: [
+        { appKey: "chat", status: "instalado", installedAt: AGORA } as InstallRow,
+        { appKey: "forms", status: "instalando" } as InstallRow,
+        { appKey: "pages", status: "removido" } as InstallRow,
+        { appKey: "astro", status: "falhou" } as InstallRow,
+      ],
+    });
+
+    const lista = await servico(repo).installed();
+
+    expect(lista).toEqual([{ appKey: "chat", installedAt: AGORA }]);
+  });
+
+  /** Sem conexão não há instalação — e a lista vazia não pode virar erro. */
+  it("devolve lista vazia sem conexão, sem falhar", async () => {
+    await expect(servico(fakeRepository()).installed()).resolves.toEqual([]);
+  });
+});

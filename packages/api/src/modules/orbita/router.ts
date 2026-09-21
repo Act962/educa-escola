@@ -43,6 +43,9 @@ function serviceFor(ctx: {
 export const orbitaRouter = router({
   overview: permitted({ app: ["read"] }).query(({ ctx }) => serviceFor(ctx).overview()),
 
+  /** Leve, para a barra lateral: só a tabela local, sem chamar o Órbita. */
+  installed: permitted({ app: ["read"] }).query(({ ctx }) => serviceFor(ctx).installed()),
+
   events: permitted({ app: ["read"] }).query(({ ctx }) => serviceFor(ctx).events()),
 
   /**

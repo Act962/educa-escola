@@ -167,6 +167,20 @@ export function createOrbitaService(repo: OrbitaRepository, deps: OrbitaServiceD
     },
 
     /**
+     * Só os apps instalados, sem tocar no catálogo.
+     *
+     * A barra lateral chama isto em toda página. `overview` faz chamada ao
+     * Órbita para resolver preço e saldo — pagar isso a cada navegação para
+     * desenhar três itens de menu seria caro e frágil.
+     */
+    async installed() {
+      const linhas = await repo.listInstalls();
+      return linhas
+        .filter((linha) => linha.status === "instalado")
+        .map((linha) => ({ appKey: linha.appKey, installedAt: linha.installedAt }));
+    },
+
+    /**
      * O endereço para abrir um app, já autenticado.
      *
      * Só para app instalado: abrir o que a escola não contratou levaria a uma
