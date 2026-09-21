@@ -1,11 +1,13 @@
 import type { DbHandle } from "@educa-escola/db/types";
+import { env } from "@educa-escola/env/server";
 import { z } from "zod";
 
 import { permitted, router } from "../../index";
 import { createDemoCatalog } from "../../integrations/orbita/catalog";
+import { createOrbitaIdentity } from "../../integrations/orbita/identity";
 import type { Membership, TenantContext } from "../../trpc/tenant";
 import { createOrbitaRepository } from "./repository";
-import { installAppInput, removeAppInput } from "./schema";
+import { installAppInput, openAppInput, removeAppInput } from "./schema";
 import { createOrbitaService } from "./service";
 
 /**
@@ -21,10 +23,19 @@ import { createOrbitaService } from "./service";
  * Alternativas: porta máquina-a-máquina no Órbita (plugin `apiKey` ou `bearer`
  *   do Better Auth) · leitura direta do banco dele, se compartilharem infra.
  */
-function serviceFor(ctx: { db: DbHandle; tenant: TenantContext; membership: Membership }) {
+function serviceFor(ctx: {
+  db: DbHandle;
+  tenant: TenantContext;
+  membership: Membership;
+  issueOrbitaToken: () => Promise<string | null>;
+}) {
   return createOrbitaService(createOrbitaRepository(ctx.db, ctx.tenant), {
     now: () => new Date(),
     catalog: createDemoCatalog(),
+    identity: createOrbitaIdentity({
+      baseUrl: env.ORBITA_BASE_URL,
+      issueToken: ctx.issueOrbitaToken,
+    }),
     actor: { userId: ctx.membership.userId },
   });
 }
@@ -47,6 +58,17 @@ export const orbitaRouter = router({
   install: permitted({ app: ["install"] })
     .input(installAppInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).install(input)),
+
+  /**
+   * O endereço para abrir um app.
+   *
+   * É `mutation` e não `query` de propósito: emite um token de uso único que
+   * vale segundos. Como query, o React Query guardaria em cache um endereço
+   * que já morreu, e o segundo clique abriria uma tela de erro.
+   */
+  openApp: permitted({ app: ["read"] })
+    .input(openAppInput)
+    .mutation(({ ctx, input }) => serviceFor(ctx).openApp(input)),
 
   remove: permitted({ app: ["remove"] })
     .input(removeAppInput)

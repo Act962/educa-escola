@@ -39,6 +39,13 @@ export const installAppInput = z.object({
 
 export const removeAppInput = z.object({ appKey });
 
+export const openAppInput = z.object({
+  appKey,
+  /** `true` pede ao Órbita o layout sem a navegação dele, para o embutido. */
+  embedded: z.boolean().default(false),
+});
+
 export type AppKey = (typeof APP_KEYS)[number];
 export type InstallAppInput = z.infer<typeof installAppInput>;
 export type RemoveAppInput = z.infer<typeof removeAppInput>;
+export type OpenAppInput = z.infer<typeof openAppInput>;

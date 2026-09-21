@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../errors";
 import { createDemoCatalog } from "../../integrations/orbita/catalog";
+import { createStubIdentity } from "../../integrations/orbita/identity";
 import type { InstallRow, OrbitaRepository, WorkspaceRow } from "./repository";
 import { createOrbitaService } from "./service";
 
@@ -80,6 +81,7 @@ function servico(repo: OrbitaRepository, saldo?: { balance: number; bonusBalance
   return createOrbitaService(repo, {
     now: () => AGORA,
     catalog: createDemoCatalog(saldo),
+    identity: createStubIdentity(),
     actor: { userId: "usuario-1" },
   });
 }
@@ -235,5 +237,49 @@ describe("remove", () => {
     const linha = await repo.findInstall("pages");
     expect(linha?.status).toBe("removido");
     expect(linha?.removedAt).toEqual(AGORA);
+  });
+});
+
+describe("openApp", () => {
+  it("recusa antes de a escola conectar", async () => {
+    await expect(servico(fakeRepository()).openApp({ appKey: "chat" })).rejects.toThrow(
+      ValidationError,
+    );
+  });
+
+  /**
+   * Abrir o que a escola não contratou levaria a uma tela de erro do Órbita, e
+   * o problema pareceria do Integra.
+   */
+  it("recusa app que não está instalado", async () => {
+    await expect(
+      servico(fakeRepository({ workspace: conectada })).openApp({ appKey: "chat" }),
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it("devolve o endereço com organização, app e token", async () => {
+    const repo = fakeRepository({
+      workspace: conectada,
+      installs: [{ appKey: "chat", status: "instalado" } as InstallRow],
+    });
+
+    const { url } = await servico(repo).openApp({ appKey: "chat" });
+    const endereco = new URL(url);
+
+    expect(endereco.pathname).toBe("/entrar");
+    expect(endereco.searchParams.get("org")).toBe(ORG);
+    expect(endereco.searchParams.get("app")).toBe("chat");
+    expect(endereco.searchParams.get("token")).toBeTruthy();
+    expect(endereco.searchParams.get("embedded")).toBeNull();
+  });
+
+  it("pede o layout sem navegação quando for embutido", async () => {
+    const repo = fakeRepository({
+      workspace: conectada,
+      installs: [{ appKey: "chat", status: "instalado" } as InstallRow],
+    });
+
+    const { url } = await servico(repo).openApp({ appKey: "chat", embedded: true });
+    expect(new URL(url).searchParams.get("embedded")).toBe("1");
   });
 });

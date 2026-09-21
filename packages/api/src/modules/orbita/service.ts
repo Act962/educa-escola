@@ -1,11 +1,13 @@
 import { ConflictError, NotFoundError, ValidationError } from "../../errors";
 import type { AppCost, OrbitaCatalog, StarBalance } from "../../integrations/orbita/catalog";
+import type { OrbitaIdentity } from "../../integrations/orbita/identity";
 import type { OrbitaRepository } from "./repository";
 import { APP_KEYS, type AppKey, type InstallAppInput, type RemoveAppInput } from "./schema";
 
 export interface OrbitaServiceDeps {
   now: () => Date;
   catalog: OrbitaCatalog;
+  identity: OrbitaIdentity;
   actor: { userId: string };
 }
 
@@ -162,6 +164,34 @@ export function createOrbitaService(repo: OrbitaRepository, deps: OrbitaServiceD
       });
 
       return { appKey: input.appKey, status: linha.status, now };
+    },
+
+    /**
+     * O endereço para abrir um app, já autenticado.
+     *
+     * Só para app instalado: abrir o que a escola não contratou levaria a uma
+     * tela de erro do Órbita, e o problema pareceria do Integra. O token é
+     * emitido no momento do clique e vale segundos — não dá para guardar este
+     * endereço nem compartilhá-lo.
+     */
+    async openApp(input: { appKey: AppKey; embedded?: boolean }) {
+      const workspace = await repo.workspace();
+      if (!workspace?.orbitaOrganizationId || workspace.status !== "ativo") {
+        throw new ValidationError("Conecte a escola ao Órbita antes de abrir um app.");
+      }
+
+      const linha = await repo.findInstall(input.appKey);
+      if (!linha || linha.status !== "instalado") {
+        throw new NotFoundError("Este app não está instalado.");
+      }
+
+      const url = await deps.identity.handoffUrl({
+        orbitaOrganizationId: workspace.orbitaOrganizationId,
+        appKey: input.appKey,
+        embedded: input.embedded,
+      });
+
+      return { url };
     },
 
     async remove(input: RemoveAppInput) {

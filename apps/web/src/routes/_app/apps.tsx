@@ -39,6 +39,21 @@ function Apps() {
 
   const panorama = useQuery(trpc.orbita.overview.queryOptions());
 
+  /**
+   * O endereço vem no clique, não antes: o token vale segundos e é de uso
+   * único. Buscá-lo junto com a lista entregaria um endereço já morto.
+   */
+  const abrir = useMutation(
+    trpc.orbita.openApp.mutationOptions({
+      onSuccess: ({ url }) => {
+        // Até a PR do embutido, abre em aba nova. A aba própria dentro do
+        // Integra é o próximo passo, e usa exatamente este endereço.
+        window.open(url, "_blank", "noopener,noreferrer");
+      },
+      onError: (erro) => toast.error(erro.message),
+    }),
+  );
+
   const instalar = useMutation(
     trpc.orbita.install.mutationOptions({
       onSuccess: (resultado) => {
@@ -127,7 +142,9 @@ function Apps() {
             app={app}
             estado={estadoDe.get(app.key)}
             conectada={dados.connected}
+            abrindo={abrir.isPending && abrir.variables?.appKey === app.key}
             onInstalar={setConfirmando}
+            onAbrir={() => abrir.mutate({ appKey: app.key, embedded: false })}
           />
         ))}
       </div>
@@ -245,12 +262,16 @@ function CardApp({
   app,
   estado,
   conectada,
+  abrindo,
   onInstalar,
+  onAbrir,
 }: {
   app: AppOrbita;
   estado: AppState | undefined;
   conectada: boolean;
+  abrindo: boolean;
   onInstalar: (estado: AppState) => void;
+  onAbrir: () => void;
 }) {
   const Icone = app.icon;
   const status = estado?.status ?? "disponivel";
@@ -293,8 +314,13 @@ function CardApp({
           <Badge variant={instalando ? "info" : "success"}>
             {instalando ? "Instalando…" : "Instalado"}
           </Badge>
-          <Button size="sm" disabled={instalando} className="min-h-8 px-3 text-[11px]">
-            {instalando ? "Aguarde" : "Abrir"}
+          <Button
+            size="sm"
+            disabled={instalando || abrindo}
+            className="min-h-8 px-3 text-[11px]"
+            onClick={onAbrir}
+          >
+            {instalando ? "Aguarde" : abrindo ? "Abrindo…" : "Abrir"}
           </Button>
         </div>
       ) : (
