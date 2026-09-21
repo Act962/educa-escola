@@ -294,6 +294,29 @@ export interface DemoStudent {
   aptitude?: number;
 }
 
+/**
+ * Data de nascimento coerente com a série, derivada da matrícula.
+ *
+ * Nada sorteia — demonstração que muda de número a cada execução não se
+ * ensaia. A idade sai da série (6º ano tem 11 anos, 9º tem 14) e o dia e o mês
+ * saem do número de matrícula, com passo coprimo para não agrupar todo mundo
+ * no mesmo mês. O dia para em 28 porque fevereiro existe.
+ *
+ * Sem ela a matrícula online não funciona na escola de demonstração: a
+ * conferência do link pede exatamente este dado.
+ */
+export function birthDateOf(registration: string, classroomName: string, year: number): string {
+  const serie = Number.parseInt(classroomName, 10);
+  const idade = (Number.isNaN(serie) ? 6 : serie) + 5;
+  const sequencial = Number.parseInt(registration.slice(-4), 10) || 1;
+
+  const mes = ((sequencial * 5) % 12) + 1;
+  const dia = ((sequencial * 7) % 28) + 1;
+
+  const dois = (valor: number) => String(valor).padStart(2, "0");
+  return `${year - idade}-${dois(mes)}-${dois(dia)}`;
+}
+
 export interface DemoClassroom {
   name: string;
   shift: Shift;

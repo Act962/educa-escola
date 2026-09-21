@@ -72,6 +72,14 @@ export const student = pgTable(
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
     name: text("name").notNull(),
     registration: text("registration").notNull(),
+    /**
+     * Data civil, não instante: aniversário não muda de dia conforme o fuso.
+     *
+     * Nula porque aluno cadastrado antes da matrícula online não tem. Emitir
+     * link de confirmação exige preenchida — é o dado que o responsável digita
+     * para provar que o link é dele.
+     */
+    birthDate: date("birth_date", { mode: "string" }),
     shift: shift("shift").default("manha").notNull(),
     guardianName: text("guardian_name"),
     status: studentStatus("status").default("ativo").notNull(),

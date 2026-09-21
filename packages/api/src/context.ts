@@ -55,6 +55,21 @@ export async function createContext({ req }: { req: Request }) {
     session,
     /** Resolvido sob demanda: procedures públicas não pagam essa consulta. */
     getMembership: () => (membership ??= resolveMembership(req.headers)),
+    /**
+     * Origem da requisição, em strings.
+     *
+     * Fechamos sobre os headers em vez de expô-los no contexto: com
+     * `declaration: true`, o tipo `Headers` vem do `undici-types` e não é
+     * nomeável na emissão (TS2883). Serve ao registro de consentimento, que
+     * precisa provar de onde veio o aceite.
+     */
+    getRequestOrigin: () => ({
+      ip:
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+        req.headers.get("x-real-ip") ??
+        undefined,
+      userAgent: req.headers.get("user-agent") ?? undefined,
+    }),
   };
 }
 

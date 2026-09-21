@@ -75,3 +75,113 @@ export function primeiroNome(name: string): string {
   const parts = name.trim().split(/\s+/);
   return parts.slice(0, 2).join(" ");
 }
+
+const SITUACOES_ENROLLMENT: Record<string, { label: string; tone: BadgeTone }> = {
+  pendente: { label: "Pendente", tone: "warning" },
+  ativa: { label: "Ativa", tone: "success" },
+  suspensa: { label: "Suspensa", tone: "neutral" },
+  cancelada: { label: "Cancelada", tone: "neutral" },
+  transferida: { label: "Transferida", tone: "neutral" },
+  concluida: { label: "Concluída", tone: "info" },
+};
+
+export function situacaoEnrollment(value: string) {
+  return SITUACOES_ENROLLMENT[value] ?? { label: value, tone: "neutral" as BadgeTone };
+}
+
+/**
+ * Situação do link, derivada do convite — nunca digitada.
+ *
+ * É a coluna que responde "de quem estou esperando o quê" sem abrir a ficha.
+ */
+const SITUACOES_LINK: Record<string, { label: string; tone: BadgeTone }> = {
+  nao_enviado: { label: "Link não enviado", tone: "neutral" },
+  aguardando: { label: "Aguardando família", tone: "warning" },
+  ficha_entregue: { label: "Ficha entregue", tone: "info" },
+  vencido: { label: "Vencido", tone: "danger" },
+  bloqueado: { label: "Bloqueado", tone: "danger" },
+  revogado: { label: "Revogado", tone: "neutral" },
+};
+
+export function situacaoLink(value: string) {
+  return SITUACOES_LINK[value] ?? { label: value, tone: "neutral" as BadgeTone };
+}
+
+const PARENTESCOS: Record<string, string> = {
+  mae: "Mãe",
+  pai: "Pai",
+  avo: "Avó ou avô",
+  responsavel_legal: "Responsável legal",
+  outro: "Outro",
+};
+
+export function parentesco(value: string): string {
+  return PARENTESCOS[value] ?? value;
+}
+
+const MOTIVOS_CANCELAMENTO: Record<string, string> = {
+  transferencia_outra_escola: "Transferência para outra escola",
+  mudanca_de_cidade: "Mudança de cidade",
+  desistencia: "Desistência",
+  dados_incorretos: "Dados incorretos",
+  prazo_expirado: "Prazo de confirmação expirado",
+  outro: "Outro",
+};
+
+export function motivoCancelamento(value: string): string {
+  return MOTIVOS_CANCELAMENTO[value] ?? value;
+}
+
+/**
+ * "+5586998122039" -> "(86) ••••-2039".
+ *
+ * Listagem não precisa do número inteiro para a secretaria reconhecer de quem
+ * se trata, e a §24.3 pede mascaramento parcial quando o dado completo não é
+ * necessário na tela.
+ */
+export function telefoneMascarado(value: string | null | undefined): string {
+  if (!value) return "—";
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 6) return "—";
+  const nacional = digits.startsWith("55") ? digits.slice(2) : digits;
+  const ddd = nacional.slice(0, 2);
+  return `(${ddd}) ••••-${nacional.slice(-4)}`;
+}
+
+/** "+5586998122039" -> "(86) 99812-2039". Só no detalhe, nunca em listagem. */
+export function telefone(value: string | null | undefined): string {
+  if (!value) return "—";
+  const digits = value.replace(/\D/g, "");
+  const nacional = digits.startsWith("55") ? digits.slice(2) : digits;
+  if (nacional.length < 10) return value;
+  const ddd = nacional.slice(0, 2);
+  const resto = nacional.slice(2);
+  return `(${ddd}) ${resto.slice(0, resto.length - 4)}-${resto.slice(-4)}`;
+}
+
+/** "2015-03-14" -> "14/03/2015". Data civil não passa por fuso. */
+export function dataCivil(value: string | null | undefined): string {
+  if (!value) return "—";
+  const [ano, mes, dia] = value.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+/** Instante -> "21/09 às 14h32", no fuso de quem lê. */
+export function dataHora(value: Date | string | null | undefined): string {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  const dia = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const hora = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return `${dia} às ${hora.replace(":", "h")}`;
+}
+
+/** "vence hoje", "em 4 dias", "vencido" — o que a fila precisa dizer. */
+export function prazo(value: Date | string | null | undefined, agora = new Date()): string {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  const dias = Math.ceil((date.getTime() - agora.getTime()) / 86_400_000);
+  if (dias < 0) return "vencido";
+  if (dias === 0) return "vence hoje";
+  if (dias === 1) return "1 dia";
+  return `${dias} dias`;
+}
