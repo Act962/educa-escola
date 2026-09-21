@@ -35,7 +35,36 @@ const PRAZO_DE_CARGA_MS = 8000;
  */
 const AVISO_DE_PRONTO = "orbita:pronto";
 
-type Estado = "pedindo" | "carregando" | "pronto" | "nao_embutiu" | "recusado";
+type Estado = "pedindo" | "carregando" | "pronto" | "nao_embutiu" | "inalcancavel" | "recusado";
+
+/** Quanto esperar o Órbita responder ao toque antes de desistir. */
+const PRAZO_DO_TOQUE_MS = 5000;
+
+/**
+ * Bate na porta do Órbita antes de montar o iframe.
+ *
+ * É o que separa "o endereço não responde" de "respondeu e recusou ser
+ * embutido" — duas falhas que o iframe mostra igual, como um retângulo branco.
+ * `no-cors` devolve resposta opaca, que não dá para ler: o que interessa aqui
+ * não é o conteúdo, é se a conexão aconteceu. Host fora do ar rejeita.
+ *
+ * Duas coisas que ele não pega: a recusa por CSP, que chega como conexão
+ * bem-sucedida — para essa o sinal certo é o aperto de mão logo abaixo —, e o
+ * host morto atrás de proxy corporativo, que responde a página de bloqueio do
+ * proxy e passa por vivo. Ele acerta o caso que mais aparece em
+ * desenvolvimento: o Órbita simplesmente não está no ar.
+ */
+async function respondeu(endereco: string): Promise<boolean> {
+  try {
+    await fetch(new URL(endereco).origin, {
+      mode: "no-cors",
+      signal: AbortSignal.timeout(PRAZO_DO_TOQUE_MS),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Um app do Órbita, aberto por dentro do Integra.
@@ -96,8 +125,17 @@ function AppEmbutido() {
   useEffect(() => {
     let vivo = true;
 
-    pedirEndereco(true).then((endereco) => {
+    pedirEndereco(true).then(async (endereco) => {
       if (!vivo || !endereco) return;
+
+      if (!(await respondeu(endereco))) {
+        if (!vivo) return;
+        setUrl(endereco);
+        setEstado("inalcancavel");
+        return;
+      }
+      if (!vivo) return;
+
       setUrl(endereco);
       setEstado("carregando");
 
@@ -217,6 +255,22 @@ function AppEmbutido() {
                   }
                 />
               )}
+            </div>
+          ) : estado === "inalcancavel" ? (
+            <div className="grid h-full place-items-center p-6">
+              <ErrorState
+                title="O Órbita não respondeu"
+                description={
+                  url
+                    ? `Nada atende em ${new URL(url).host}. Ou a integração ainda não aponta para um Órbita no ar, ou ele está fora.`
+                    : "Nada atende no endereço configurado para o Órbita."
+                }
+                action={
+                  <Button variant="secondary" onClick={() => window.location.reload()}>
+                    Tentar de novo
+                  </Button>
+                }
+              />
             </div>
           ) : estado === "nao_embutiu" ? (
             <div className="grid h-full place-items-center p-6">
