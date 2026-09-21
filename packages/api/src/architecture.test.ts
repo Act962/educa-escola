@@ -47,6 +47,46 @@ describe("regras de arquitetura", () => {
     expect(withoutTenant).toEqual([]);
   });
 
+  /**
+   * As consultas que atravessam a fronteira entre escolas, uma a uma.
+   *
+   * A regra acima — `repository.ts` precisa conter `tenant.schoolId` — é
+   * satisfeita por um arquivo que tenha *uma* fábrica com tenant, mesmo que
+   * tenha outra sem. Foi essa folga que deixou `createInviteLookup` passar
+   * despercebida. Aqui a checagem é por fábrica exportada: quem não recebe
+   * `tenant` precisa estar nesta lista, e entrar nela é um ato de revisão.
+   *
+   * **Acrescentar uma linha aqui é mudar o contrato de isolamento do
+   * produto.** Se você está prestes a fazer isso, o comentário no topo da
+   * função em questão precisa explicar o que segura a travessia.
+   */
+  const CONSULTAS_SEM_TENANT = [
+    // O responsável não tem conta: a autorização dele é a posse do token, e o
+    // `schoolId` da linha encontrada é o que vira o tenant de todo o resto.
+    "modules/enrollment-link/repository.ts::createInviteLookup",
+    // O placar entre escolas. `innerJoin` na adesão, e a tabela publicada não
+    // tem coluna onde uma pessoa caberia.
+    "modules/leaderboard/repository.ts::createLeaderboardLookup",
+  ];
+
+  it("toda consulta sem tenant está na allowlist", () => {
+    const fabrica = /export function (create\w+)\(([^)]*)\)/g;
+
+    const semTenant = sourceFiles(join(SRC, "modules"))
+      .filter((file) => file.endsWith(`${sep}repository.ts`))
+      .flatMap((file) => {
+        const fonte = readFileSync(file, "utf8");
+        return [...fonte.matchAll(fabrica)]
+          .filter(([, , params]) => !(params ?? "").includes("tenant"))
+          .map(([, nome]) => `${rel(file)}::${nome}`);
+      });
+
+    // Subconjunto, e não igualdade: a lista precisa sobreviver a um branch em
+    // que o módulo citado ainda não existe. O que este teste guarda é a
+    // consulta nova que ninguém autorizou, não a linha velha que sobrou.
+    expect(semTenant.filter((chave) => !CONSULTAS_SEM_TENANT.includes(chave))).toEqual([]);
+  });
+
   it("todo módulo expõe repository, service e router", () => {
     const modulesDir = join(SRC, "modules");
     const incomplete = readdirSync(modulesDir, { withFileTypes: true })

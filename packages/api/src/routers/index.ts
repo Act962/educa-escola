@@ -3,6 +3,7 @@ import { assessmentRouter } from "../modules/assessment/router";
 import { classroomRouter } from "../modules/classroom/router";
 import { enrollmentRouter } from "../modules/enrollment/router";
 import { enrollmentLinkRouter } from "../modules/enrollment-link/router";
+import { leaderboardRouter } from "../modules/leaderboard/router";
 import { lessonRouter } from "../modules/lesson/router";
 import { orbitaRouter } from "../modules/orbita/router";
 import { overviewRouter } from "../modules/overview/router";
@@ -44,6 +45,7 @@ export const appRouter = router({
   photo: photoRouter,
   lesson: lessonRouter,
   assessment: assessmentRouter,
+  leaderboard: leaderboardRouter,
   overview: overviewRouter,
   /** Apps do ecossistema Órbita. O dado deles mora lá; aqui, o vínculo. */
   orbita: orbitaRouter,
