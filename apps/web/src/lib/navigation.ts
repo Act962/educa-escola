@@ -41,13 +41,21 @@ export interface NavEntry {
   params?: Record<string, string>;
   soon?: boolean;
   badge?: "chamadasPendentes" | "comunicadosNaoLidos";
+  /**
+   * Pinta o ícone com o azul da identidade.
+   *
+   * Um item só usa isto, e de propósito: "Apps" não é uma tela do Integra, é a
+   * porta para outro produto. O azul é a mesma pista que a barra de contexto e
+   * os botões primários dão — se dois ou três itens ganharem destaque, nenhum
+   * destaca mais nada e o menu volta a ser uma lista plana.
+   */
+  destaque?: boolean;
 }
 
 const GESTAO: NavEntry[] = [
   { label: "Início", to: "/inicio", icon: Home },
   { label: "Alunos", to: "/alunos", icon: GraduationCap },
   { label: "Turmas", to: "/turmas", icon: LayoutGrid },
-  { label: "Apps", to: "/apps", icon: Blocks },
   { label: "Professores", to: "/professores", icon: Users },
   { label: "Matrículas", to: "/matriculas", icon: IdCard },
   { label: "Acadêmico", to: "/academico", icon: BookOpen },
@@ -71,6 +79,15 @@ const GESTAO: NavEntry[] = [
   { label: "Placar entre escolas", to: "/placar-escolas", icon: Trophy },
   { label: "Indicações", to: "/indicacoes", icon: Share2 },
   { label: "Relatórios", to: "/relatorios", icon: BarChart3 },
+  /**
+   * Por último, e destacado.
+   *
+   * Todo o resto do menu é tela do Integra; esta é a porta do ecossistema
+   * Órbita. Ficava no meio, entre Turmas e Professores, como se fosse mais um
+   * módulo da escola — e logo abaixo dela vem o grupo "Apps instalados", que é
+   * justamente o que sai daqui. Os dois juntos no fim contam a mesma história.
+   */
+  { label: "Apps", to: "/apps", icon: Blocks, destaque: true },
 ];
 
 const PROFESSOR: NavEntry[] = [

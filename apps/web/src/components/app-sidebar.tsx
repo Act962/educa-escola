@@ -111,7 +111,11 @@ export function AppSidebar({
                     onClick={recolher}
                     render={<Link to={entry.to as string} params={entry.params ?? {}} />}
                   >
-                    <entry.icon strokeWidth={1.7} aria-hidden />
+                    <entry.icon
+                      strokeWidth={1.7}
+                      aria-hidden
+                      className={entry.destaque ? "text-primary" : undefined}
+                    />
                     <span>{entry.label}</span>
                   </SidebarMenuButton>
                   {/* O contador só aparece quando há o que fazer: um "0"
