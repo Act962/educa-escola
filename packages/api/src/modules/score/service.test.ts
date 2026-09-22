@@ -12,6 +12,7 @@ interface EstadoDoDuble {
   lancamentos?: { studentId: string; term: number; score: number; weight: number }[];
   turma?: string[];
   alunos?: { id: string; name: string; classroomId: string | null }[];
+  docentes?: { id: string; name: string }[];
 }
 
 /**
@@ -48,6 +49,7 @@ function fakeRepository(estado: EstadoDoDuble = {}) {
     avaliacoesDoAno: async () => estado.avaliacoes ?? [],
     lancamentosPublicadosDoAno: async () => estado.lancamentos ?? [],
     studentsByIds: async (ids) => (estado.alunos ?? []).filter((a) => ids.includes(a.id)),
+    teachersByIds: async (ids) => (estado.docentes ?? []).filter((d) => ids.includes(d.id)),
     studentIdsByClassroom: async () => estado.turma ?? [],
   };
 
@@ -269,5 +271,32 @@ describe("placar nominal", () => {
 
     const placar = await createScoreService(repo).rankingDeAlunos(2026);
     expect(placar[0]?.nome).toBe("Aluno removido");
+  });
+});
+
+describe("placar de professores", () => {
+  it("resolve o nome pelo vínculo com a escola", async () => {
+    const { repo } = fakeRepository({
+      saldos: [{ subjectKind: "professor", subjectId: "prof-1", points: 500 }],
+      docentes: [{ id: "prof-1", name: "Ricardo Alves" }],
+    });
+
+    const placar = await createScoreService(repo).rankingDeProfessores(2026);
+    expect(placar[0]).toMatchObject({ posicao: 1, nome: "Ricardo Alves", pontos: 500 });
+  });
+
+  /**
+   * Quem saiu da escola mantém os pontos do que fez — o fato aconteceu. A
+   * linha precisa de rótulo, e mostrar o id cru do usuário numa tela da
+   * direção seria vazar uma chave interna sem necessidade.
+   */
+  it("rotula quem perdeu o vínculo, sem mostrar o id", async () => {
+    const { repo } = fakeRepository({
+      saldos: [{ subjectKind: "professor", subjectId: "prof-antigo", points: 120 }],
+      docentes: [],
+    });
+
+    const placar = await createScoreService(repo).rankingDeProfessores(2026);
+    expect(placar[0]?.nome).toBe("Sem vínculo atual");
   });
 });

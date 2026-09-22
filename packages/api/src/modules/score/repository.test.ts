@@ -246,3 +246,30 @@ describe("createScoreRepository", () => {
     });
   });
 });
+
+describe("volume de escola de verdade", () => {
+  /**
+   * Um ano de chamadas de uma escola com centenas de alunos produz dezenas de
+   * milhares de eventos. Numa tacada só, o `insert` estoura a pilha ao montar
+   * a query e passa do teto de parâmetros do Postgres — defeito que não
+   * aparece com uma turma no banco e aparece no primeiro clique em produção.
+   */
+  const ACIMA_DO_TETO = 7_000;
+
+  // Dois lotes gravados e dois conferidos, contra Postgres de verdade: é mais
+  // lento que o teste comum, e o prazo padrão de 5s não cobre.
+  it("grava muito mais eventos do que cabe num único insert", async () => {
+    await withRollback(async (tx) => {
+      const escola = await createTestSchool(tx);
+      const repo = createScoreRepository(tx, { schoolId: escola.id });
+
+      const muitos = Array.from({ length: ACIMA_DO_TETO }, (_, i) =>
+        evento({ sourceId: `att-${i}`, subjectId: `aluno-${i % 300}` }),
+      );
+
+      expect(await repo.appendEvents(muitos)).toBe(ACIMA_DO_TETO);
+      // E reapurar continua sendo inofensivo no mesmo volume.
+      expect(await repo.appendEvents(muitos)).toBe(0);
+    });
+  }, 30_000);
+});

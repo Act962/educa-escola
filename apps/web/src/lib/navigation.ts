@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   type LucideIcon,
   MessageCircle,
+  Sparkles,
   Users,
   Wallet,
 } from "lucide-react";
@@ -43,6 +44,7 @@ const GESTAO: NavEntry[] = [
   { label: "Financeiro", icon: Wallet, soon: true },
   { label: "Comunicados", icon: MessageCircle, soon: true },
   { label: "Calendário", icon: CalendarDays, soon: true },
+  { label: "Pontuação", to: "/pontuacao", icon: Sparkles },
   { label: "Relatórios", icon: BarChart3, soon: true },
 ];
 
@@ -51,6 +53,7 @@ const PROFESSOR: NavEntry[] = [
   { label: "Minhas turmas", to: "/turmas", icon: Users },
   { label: "Chamada", to: "/chamada", icon: CircleCheck, badge: "chamadasPendentes" },
   { label: "Notas e avaliações", to: "/notas", icon: BookOpen },
+  { label: "Meus pontos", to: "/meus-pontos", icon: Sparkles },
   { label: "Atividades", icon: FileText, soon: true },
   { label: "Agenda", icon: CalendarDays, soon: true },
   { label: "Comunicados", icon: MessageCircle, soon: true },
@@ -60,6 +63,7 @@ const ALUNO: NavEntry[] = [
   { label: "Início", to: "/inicio", icon: Home },
   { label: "Minhas notas", to: "/boletim", icon: BookOpen },
   { label: "Frequência", to: "/frequencia", icon: ClipboardCheck },
+  { label: "Meus pontos", to: "/pontos", icon: Sparkles },
   { label: "Atividades", icon: FileText, soon: true },
   { label: "Materiais", icon: FolderOpen, soon: true },
   { label: "Agenda", icon: CalendarDays, soon: true },

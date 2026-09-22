@@ -190,9 +190,15 @@ export function createScoreService(repo: ScoreRepository) {
     /** O placar de professores. Mesma ressalva do §10.6 registrada no requisito. */
     async rankingDeProfessores(academicYear: number) {
       const placar = await repo.scoreboard({ subjectKind: "professor", academicYear });
+      const docentes = await repo.teachersByIds(placar.map((linha) => linha.subjectId));
+      const porId = new Map(docentes.map((docente) => [docente.id, docente.name]));
+
       return placar.map((linha, indice) => ({
         posicao: indice + 1,
         subjectId: linha.subjectId,
+        // Quem perdeu o vínculo com a escola mantém os pontos do que fez, e a
+        // tela precisa de um rótulo para a linha em vez de um id cru.
+        nome: porId.get(linha.subjectId) ?? "Sem vínculo atual",
         pontos: linha.points,
         nivel: nivelDe(linha.points),
       }));

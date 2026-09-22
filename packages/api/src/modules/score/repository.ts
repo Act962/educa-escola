@@ -3,9 +3,11 @@ import {
   attendance,
   grade,
   lesson,
+  member,
   scoreBalance,
   scoreEvent,
   student,
+  user,
 } from "@educa-escola/db/schema";
 import type { DbHandle } from "@educa-escola/db/types";
 import { and, asc, count, desc, eq, inArray, sql, sum } from "drizzle-orm";
@@ -13,6 +15,15 @@ import { and, asc, count, desc, eq, inArray, sql, sum } from "drizzle-orm";
 import type { TenantContext } from "../../trpc/tenant";
 import type { AulaApurada, AvaliacaoApurada, NovoEvento, PresencaApurada } from "./apuracao";
 import type { SubjectKind } from "./rules";
+
+/**
+ * Quantos eventos por `insert`.
+ *
+ * O Postgres aceita 65.535 parâmetros por statement e a linha tem dez
+ * colunas, então o teto real fica perto de 6.500. Mil deixa folga para a
+ * coluna que alguém acrescentar sem refazer esta conta.
+ */
+const LOTE_DE_EVENTOS = 1000;
 
 /**
  * Único lugar do módulo que monta query.
@@ -31,17 +42,29 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
      *
      * `onConflictDoNothing` sobre o índice único de origem é o que torna
      * reapurar inofensivo. Sem agendador, alguém vai clicar duas vezes.
+     *
+     * **Em lotes, e não numa tacada.** A escola de demonstração tem 288
+     * alunos e um ano de chamadas: a apuração produz dezenas de milhares de
+     * eventos, e um único `insert` com todos eles estoura a pilha ao montar a
+     * query e passa do teto de parâmetros do Postgres. Com uma turma no banco
+     * isso não aparece — com uma escola de verdade, aparece no primeiro
+     * clique.
      */
     async appendEvents(eventos: NovoEvento[]) {
       if (eventos.length === 0) return 0;
 
-      const inseridos = await db
-        .insert(scoreEvent)
-        .values(eventos.map((evento) => ({ ...evento, schoolId: tenant.schoolId })))
-        .onConflictDoNothing()
-        .returning({ id: scoreEvent.id });
+      let gravados = 0;
+      for (let inicio = 0; inicio < eventos.length; inicio += LOTE_DE_EVENTOS) {
+        const lote = eventos.slice(inicio, inicio + LOTE_DE_EVENTOS);
+        const inseridos = await db
+          .insert(scoreEvent)
+          .values(lote.map((evento) => ({ ...evento, schoolId: tenant.schoolId })))
+          .onConflictDoNothing()
+          .returning({ id: scoreEvent.id });
+        gravados += inseridos.length;
+      }
 
-      return inseridos.length;
+      return gravados;
     },
 
     /**
@@ -282,6 +305,23 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
         })
         .from(student)
         .where(and(eq(student.schoolId, tenant.schoolId), inArray(student.id, ids)));
+    },
+
+    /**
+     * Nome de quem aparece no placar de professores.
+     *
+     * Passa por `member` e não direto por `user`: `user` é tabela da auth e
+     * não tem `schoolId`. O vínculo é o que amarra a pessoa a esta escola, e
+     * sem ele a consulta devolveria o nome de um professor de outra
+     * instituição a quem soubesse o id.
+     */
+    async teachersByIds(ids: string[]) {
+      if (ids.length === 0) return [];
+      return db
+        .select({ id: user.id, name: user.name })
+        .from(member)
+        .innerJoin(user, eq(user.id, member.userId))
+        .where(and(eq(member.organizationId, tenant.schoolId), inArray(member.userId, ids)));
     },
 
     /** Os alunos de uma turma, para a média da turma do painel do aluno. */
