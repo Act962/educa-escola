@@ -2,7 +2,7 @@ import type { DbHandle } from "@educa-escola/db/types";
 import { env } from "@educa-escola/env/server";
 import { z } from "zod";
 
-import { permitted, router } from "../../index";
+import { permitted, router, schoolProcedure } from "../../index";
 import { createDemoCatalog } from "../../integrations/orbita/catalog";
 import { createOrbitaIdentity } from "../../integrations/orbita/identity";
 import type { Membership, TenantContext } from "../../trpc/tenant";
@@ -45,6 +45,15 @@ export const orbitaRouter = router({
 
   /** Leve, para a barra lateral: só a tabela local, sem chamar o Órbita. */
   installed: permitted({ app: ["read"] }).query(({ ctx }) => serviceFor(ctx).installed()),
+
+  /**
+   * Se o assistente está no ar, para o botão do Astro.
+   *
+   * `schoolProcedure` e não `permitted({ app: ["read"] })`: o botão aparece
+   * para todo papel, e o aluno tem `app: []`. O que volta é um booleano sobre
+   * um app só — a lista do que a escola contratou continua fechada.
+   */
+  assistente: schoolProcedure.query(({ ctx }) => serviceFor(ctx).assistenteDisponivel()),
 
   events: permitted({ app: ["read"] }).query(({ ctx }) => serviceFor(ctx).events()),
 

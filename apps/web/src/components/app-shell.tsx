@@ -27,6 +27,7 @@ import { ChevronDown, LogOut, Search, Settings, UserRound } from "lucide-react";
 import { useState } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { Astro } from "@/components/astro";
 import { authClient } from "@/lib/auth-client";
 import { roleLabel } from "@/lib/navigation";
 import { TERMS, type Term, useSchoolContext } from "@/lib/school-context";
@@ -252,6 +253,10 @@ export function AppShell({ me, pendingCalls, unreadNotices, children }: AppShell
         </header>
 
         <main className="flex flex-col gap-5">{children}</main>
+
+        {/* Só dentro da casca: no login não há escola ativa, e o assistente
+            não teria de quem falar. */}
+        <Astro />
       </SidebarInset>
     </SidebarProvider>
   );

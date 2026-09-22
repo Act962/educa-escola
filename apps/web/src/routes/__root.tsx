@@ -52,8 +52,12 @@ function RootDocument() {
             sem rede externa, o app segue exatamente como antes. */}
         <VLibras />
         <Toaster richColors />
+        {/* As duas ferramentas de desenvolvimento no mesmo canto, à esquerda:
+            o canto inferior direito é do Astro. Elas não existem em produção,
+            mas disputar o pixel com o assistente atrapalharia o time todo dia
+            — e esconderia justamente o que se quer conferir. */}
         <TanStackRouterDevtools position="bottom-left" />
-        <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+        <ReactQueryDevtools position="bottom" buttonPosition="bottom-left" />
         <Scripts />
       </body>
     </html>
