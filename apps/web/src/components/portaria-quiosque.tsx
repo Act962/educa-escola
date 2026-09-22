@@ -296,6 +296,16 @@ export function PortariaQuiosque({
       }
     };
 
+    /*
+     * Olha agora, e depois a cada intervalo.
+     *
+     * `setInterval` só dispara **depois** do primeiro período: sem esta
+     * chamada, quem chegava esperava meio segundo parado antes de a portaria
+     * sequer notar que havia alguém. Somado ao mesmo atraso no laço de
+     * leitura, era quase um segundo de nada acontecendo — e é isso que a
+     * pessoa sente como lentidão.
+     */
+    void olhar();
     const t = setInterval(olhar, INTERVALO_DO_SENSOR_MS);
     return () => {
       vivo = false;
@@ -388,6 +398,9 @@ export function PortariaQuiosque({
       }
     };
 
+    // Lê agora: o sensor já confirmou que há alguém na frente da câmera, e
+    // esperar mais um período seria atraso puro.
+    void ler();
     const t = setInterval(ler, INTERVALO_DA_LEITURA_MS);
     return () => {
       vivo = false;

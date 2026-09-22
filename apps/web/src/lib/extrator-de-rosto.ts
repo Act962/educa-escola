@@ -31,6 +31,17 @@ const CAMINHO_DOS_PESOS = "/modelos-de-rosto";
 const CONFIANCA_MINIMA = 0.6;
 
 /**
+ * O lado do quadro que vai ao detector.
+ *
+ * O padrão da biblioteca é 416, e a câmera entrega 720. Reduzir é a alavanca
+ * mais direta sobre o tempo de leitura — o custo cresce com a área, então cair
+ * para 320 tira mais da metade do trabalho. Rosto de portaria chega perto da
+ * câmera e ocupa boa parte do quadro; é o caso em que a resolução menor não
+ * atrapalha. Se um dia deixar de achar rosto de longe, é aqui que se mexe.
+ */
+const LADO_DO_DETECTOR = 320;
+
+/**
  * O que se pode ler: o vídeo ao vivo ou um quadro já congelado.
  *
  * O canvas existe aqui por um defeito que custou caro. A captura da foto
@@ -101,6 +112,43 @@ async function carregar(): Promise<FaceApi | null> {
         api.nets.faceLandmark68TinyNet.loadFromUri(CAMINHO_DOS_PESOS),
         api.nets.faceRecognitionNet.loadFromUri(CAMINHO_DOS_PESOS),
       ]);
+
+      /*
+       * Aquece antes de alguém chegar.
+       *
+       * Carregar os pesos não compila os núcleos de GPU: isso acontece na
+       * primeira detecção, e custa segundos. Deixá-la para a primeira pessoa
+       * do dia é entregar a pior leitura logo a quem está olhando a câmera —
+       * e foi essa demora que apareceu no uso real. Um quadro em branco não
+       * tem rosto, mas paga a compilação do detector, que é a parte cara.
+       */
+      const aquecimento = document.createElement("canvas");
+      aquecimento.width = LADO_DO_DETECTOR;
+      aquecimento.height = LADO_DO_DETECTOR;
+      try {
+        /*
+         * As três redes, uma a uma.
+         *
+         * Aquecer só o detector não bastava: o quadro em branco não tem rosto,
+         * então os pontos e o descritor nunca rodavam e a compilação deles
+         * caía na primeira pessoa do dia — **1,3 segundo**, medido. Chamadas
+         * direto em cada rede compilam sem precisar de rosto nenhum; depois
+         * disso cada leitura fica em algumas dezenas de milissegundos.
+         */
+        await api.detectSingleFace(
+          aquecimento,
+          new api.TinyFaceDetectorOptions({ inputSize: LADO_DO_DETECTOR }),
+        );
+        const recorte = document.createElement("canvas");
+        recorte.width = 150;
+        recorte.height = 150;
+        await api.nets.faceLandmark68TinyNet.detectLandmarks(recorte);
+        await api.nets.faceRecognitionNet.computeFaceDescriptor(recorte);
+      } catch {
+        // Quadro em branco não tem rosto; o que importa aqui é a compilação
+        // ter acontecido, não o resultado.
+      }
+
       modulo = api;
       return api;
     } catch {
@@ -135,7 +183,10 @@ export const extratorDeRosto: ExtratorDeRosto = {
 
     const achado = await api.detectSingleFace(
       quadro,
-      new api.TinyFaceDetectorOptions({ scoreThreshold: CONFIANCA_MINIMA }),
+      new api.TinyFaceDetectorOptions({
+        scoreThreshold: CONFIANCA_MINIMA,
+        inputSize: LADO_DO_DETECTOR,
+      }),
     );
     return !!achado;
   },
@@ -147,7 +198,10 @@ export const extratorDeRosto: ExtratorDeRosto = {
     const achado = await api
       .detectSingleFace(
         quadro,
-        new api.TinyFaceDetectorOptions({ scoreThreshold: CONFIANCA_MINIMA }),
+        new api.TinyFaceDetectorOptions({
+          scoreThreshold: CONFIANCA_MINIMA,
+          inputSize: LADO_DO_DETECTOR,
+        }),
       )
       .withFaceLandmarks(true)
       .withFaceDescriptor();
