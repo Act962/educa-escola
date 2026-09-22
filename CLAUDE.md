@@ -35,6 +35,7 @@ Está em fase de fundação: a base arquitetural existe e está testada (ver
 | `INTEGRA-EDU-UI-KIT.md` | Como levar o mockup ao código sem perder fidelidade; inventário de componentes |
 | `docs/design/{gestao,professor,aluno}/` | PNGs exportados do canvas — **a referência que o código persegue** |
 | `DEMO.md` | Como subir com dados e o que mostrar numa apresentação |
+| `docs/deploy/` | Plano de deploy e o roteiro tela a tela do Coolify |
 
 Canvas de origem do fluxo do Professor:
 <https://claude.ai/code/artifact/06b60c49-cbb7-4c62-8389-f9a3f2611436>
@@ -571,6 +572,10 @@ serviço Postgres 18. Quatro portões, nesta ordem:
 4. **Deriva de migration** — roda `drizzle-kit generate` e falha se aparecer
    arquivo novo, ou seja, se o schema mudou sem migration commitada
 
+Mexeu em `packages/db/src/schema/`? Rode `pnpm run db:generate` e commite a
+migration junto, senão o portão 4 reprova. Há um quinto passo que roda **só na
+`main`**, o `publish` — ver "Do branch à produção".
+
 Reproduzir o ambiente do CI localmente (sem arquivo `.env`, variáveis só no
 ambiente) é a forma de pegar dependência acidental do `apps/web/.env`:
 
@@ -579,6 +584,69 @@ mv apps/web/.env apps/web/.env.bak
 DATABASE_URL=... BETTER_AUTH_SECRET=... BETTER_AUTH_URL=... pnpm run test
 mv apps/web/.env.bak apps/web/.env
 ```
+
+### Do branch à produção
+
+O produto está no ar em <https://orbitaedu.nasaex.com>, numa VPS gerenciada
+com **Coolify**. Do merge ao container novo não há clique nenhum:
+
+```
+branch → PR (base: main) → CI verde → merge
+                             → CI da main → imagem no GHCR → Coolify
+```
+
+O job `publish` do `ci.yml` roda **só em push para `main`**, nunca em PR. Antes
+de publicar, ele **sobe a imagem contra um Postgres descartável e exige 200 em
+`/api/health`** — prova que ela migra e atende, não só que compila. Só então
+publica `ghcr.io/act962/integra-web` com duas etiquetas: `main`, que o Coolify
+acompanha, e `sha-<commit>`, que existe para rollback.
+
+**As migrations rodam na subida do container**, no `CMD` do
+`apps/web/Dockerfile`, e só depois o servidor sobe (`exec`, para o node ser o
+PID 1). Não é o *pre-deployment* do Coolify: aquele roda no container
+**antigo**, com as migrations da versão anterior, e é pulado no primeiro
+deploy. Migração que falha impede o servidor de subir, o healthcheck não
+passa, e o Coolify mantém o container anterior no ar.
+
+`runMigrations` (`packages/db/src/migrate.ts`) existe porque `drizzle-kit
+migrate` engole a mensagem do Postgres e sai só com exit 1 — num deploy isso é
+um log que não diz nada. Ele aplica o lote numa transação, sob lock advisory
+(réplicas que sobem juntas), e devolve o erro inteiro.
+
+**Rollback é trocar a etiqueta**, não reverter commit: no Coolify, app →
+*Configuration → General → Tag*, troque `main` por um `sha-<commit>` anterior e
+faça deploy; depois volte para `main`.
+
+> **Armadilha, e a mais cara delas:** o rollback **não desfaz migration**. O
+> banco fica no schema novo servindo código antigo. Pela mesma razão, durante o
+> rolling update o container antigo atende alguns segundos com o schema já
+> migrado. Então **toda migration precisa continuar funcionando com a versão
+> anterior do app**: acrescente a coluna num deploy, remova a antiga só num
+> seguinte.
+
+Detalhes de infraestrutura, variáveis de produção e o roteiro tela a tela do
+Coolify ficam em `docs/deploy/` — não os repita aqui.
+
+> **Armadilha do healthcheck:** o check HTTP do painel do Coolify roda `curl`
+> ou `wget` **dentro** do container, e `node:24-slim` não tem nenhum dos dois.
+> Use o tipo **CMD** com o comando do roteiro. A imagem também traz um
+> `HEALTHCHECK` próprio, pelo node, para valer fora do Coolify.
+
+### Branch, PR e merge
+
+**Branch curta, PR com base na `main`, mescla no mesmo dia.** Empilhar PR sobre
+PR só quando um trabalho de fato depender de outro que ainda não entrou.
+
+A pilha de 15 PRs encadeados de 22/09/2026 é o registro do custo: mesclar
+exigiu reapontar a base de cada um para a `main` na ordem, sem parar; duas
+migrations nasceram `0016` em branches paralelas e uma teve de ser regerada
+como `0020`; um PR em rascunho travou a fila no meio; e a base se moveu três
+vezes enquanto o merge era preparado. Nada disso é defeito de ferramenta — é o
+preço de manter muita coisa aberta em paralelo.
+
+Antes de mesclar uma pilha, mescle a base primeiro. `gh pr merge --merge
+--match-head-commit <sha>` recusa a mescla se a branch andou desde a
+verificação — use sempre, e passe o SHA **completo**.
 
 ### Configuração compartilhada
 
