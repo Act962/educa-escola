@@ -53,6 +53,7 @@ function fakeRepo(over: Partial<AssistantRepository> = {}): AssistantRepository 
 
 const modeloQueResponde = (texto = "Resposta."): ModeloDeLinguagem => ({
   responder: async () => ({ texto, tokens: 42 }),
+  listarModelos: async () => ["modelo-x", "modelo-y"],
 });
 
 /**
@@ -340,6 +341,7 @@ describe("perguntar", () => {
       responder: async () => {
         throw new ErroDoModelo("O modelo recusou a credencial.", true);
       },
+      listarModelos: async () => [],
     };
     const s = servico({ repo: comConfiguracao(), modelo: quebrado });
 
@@ -354,6 +356,7 @@ describe("perguntar", () => {
       responder: async () => {
         throw new ErroDoModelo("caiu", true);
       },
+      listarModelos: async () => [],
     };
     const s = servico({
       repo: {
@@ -374,6 +377,7 @@ describe("perguntar", () => {
   it("a resposta não carrega a credencial", async () => {
     const ecoa: ModeloDeLinguagem = {
       responder: async ({ sistema }) => ({ texto: sistema, tokens: null }),
+      listarModelos: async () => [],
     };
     const s = servico({ repo: comConfiguracao(), modelo: ecoa });
 
@@ -411,5 +415,38 @@ describe("montarInstrucao", () => {
     expect(montarInstrucao({ escola: "E", papel: "student", nome: "A", fatos: "" })).toContain(
       "apenas o que é dele",
     );
+  });
+});
+
+describe("modelosDisponiveis", () => {
+  it("exige endereço e credencial salvos", async () => {
+    await expect(servico().modelosDisponiveis()).rejects.toThrow(/Salve o endereço e a credencial/);
+  });
+
+  it("devolve a lista que o provedor deu", async () => {
+    const s = servico({
+      repo: comConfiguracao(),
+      modelo: {
+        responder: async () => ({ texto: "", tokens: null }),
+        listarModelos: async () => ["a", "b"],
+      },
+    });
+
+    expect(await s.modelosDisponiveis()).toEqual(["a", "b"]);
+  });
+
+  /** Falha de provedor sai como 4xx legível, igual ao resto do módulo. */
+  it("traduz erro do provedor", async () => {
+    const s = servico({
+      repo: comConfiguracao(),
+      modelo: {
+        responder: async () => ({ texto: "", tokens: null }),
+        listarModelos: async () => {
+          throw new ErroDoModelo("O modelo recusou a credencial.", true);
+        },
+      },
+    });
+
+    await expect(s.modelosDisponiveis()).rejects.toBeInstanceOf(ValidationError);
   });
 });

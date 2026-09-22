@@ -11,6 +11,14 @@ export interface ModeloDeLinguagem {
     pergunta: string;
     maxTokens: number;
   }): Promise<{ texto: string; tokens: number | null }>;
+  /**
+   * Os modelos que o provedor oferece agora.
+   *
+   * Existe porque nome de modelo envelhece: provedor lança e aposenta o tempo
+   * todo, e uma lista escrita no código estaria errada em três meses. Perguntar
+   * a ele devolve o que existe hoje.
+   */
+  listarModelos(): Promise<string[]>;
 }
 
 export class ErroDoModelo extends Error {
@@ -109,6 +117,48 @@ export function createClienteCompativel(config: {
       }
 
       return { texto, tokens: dados?.usage?.total_tokens ?? null };
+    },
+
+    async listarModelos() {
+      const lista = `${config.baseUrl.replace(/\/+$/, "")}/models`;
+      let resposta: Response;
+
+      try {
+        resposta = await fetch(lista, {
+          headers: {
+            authorization: `Bearer ${config.apiKey}`,
+            ...(config.organizationId ? { "openai-organization": config.organizationId } : {}),
+          },
+          signal: AbortSignal.timeout(PRAZO_MS),
+        });
+      } catch {
+        throw new ErroDoModelo(
+          "Não foi possível falar com o modelo. Confira o endereço nas configurações.",
+          true,
+        );
+      }
+
+      if (!resposta.ok)
+        throw new ErroDoModelo(mensagemDoStatus(resposta.status, ""), resposta.status < 500);
+
+      const dados = (await resposta.json().catch(() => null)) as {
+        data?: { id?: string }[];
+      } | null;
+
+      const ids = (dados?.data ?? [])
+        .map((linha) => linha.id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+      if (ids.length === 0) {
+        // Endpoint que existe mas devolve vazio (ou noutro formato) não é
+        // falha nossa: a escola digita o nome e segue.
+        throw new ErroDoModelo(
+          "O provedor não devolveu nenhum modelo. Digite o nome do modelo à mão.",
+          true,
+        );
+      }
+
+      return ids.sort((a, b) => a.localeCompare(b));
     },
   };
 }

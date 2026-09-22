@@ -1,13 +1,26 @@
+import {
+  camposAoTrocarProvedor,
+  PROVEDORES,
+  provedorDe,
+} from "@educa-escola/api/modules/assistant/provedores";
 import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components/alert";
 import { Button } from "@educa-escola/ui/components/button";
 import { Card, CardEyebrow } from "@educa-escola/ui/components/card";
 import { Input } from "@educa-escola/ui/components/input";
 import { Label } from "@educa-escola/ui/components/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@educa-escola/ui/components/select";
 import { OrbitaAstro } from "@educa-escola/ui/integra/orbita";
 import { ListSkeleton } from "@educa-escola/ui/integra/states";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, TriangleAlert } from "lucide-react";
+import { KeyRound, RefreshCw, TriangleAlert } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -21,6 +34,9 @@ import { useTRPC } from "@/utils/trpc";
  * O que a tela mostra é a dica — os quatro últimos caracteres — para a direção
  * reconhecer qual chave está no ar sem que ela volte do servidor.
  */
+/** Opção que troca o `Select` pelo campo de texto. Não é nome de modelo. */
+const DIGITAR = "__digitar__";
+
 export function ConfiguracaoDoAstro() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -71,10 +87,36 @@ function Formulario({
   };
   salvar: { mutateAsync: (input: never) => Promise<unknown>; isPending: boolean };
 }) {
+  const trpc = useTRPC();
+
+  /**
+   * O que o provedor respondeu na última busca.
+   *
+   * Fica em estado local, e não em cache de query, porque é uma foto do
+   * momento do clique: guardar entre visitas devolveria uma lista que pode
+   * ter mudado no provedor sem ninguém saber.
+   */
+  const [modelosDoProvedor, setModelosDoProvedor] = useState<string[] | null>(null);
+
+  const buscarModelos = useMutation(
+    trpc.assistant.buscarModelos.mutationOptions({
+      onSuccess: (lista) => {
+        setModelosDoProvedor(lista);
+        toast.success(`${lista.length} modelos encontrados.`);
+      },
+      onError: (erro) => toast.error(erro.message),
+    }),
+  );
+
   const form = useForm({
     defaultValues: {
       enabled: atual.enabled,
-      providerLabel: atual.providerLabel ?? "",
+      providerLabel: atual.providerLabel ?? "outro",
+      // Quando o modelo salvo não está na lista do provedor, a tela já abre
+      // no campo de texto — senão o `Select` mostraria outro valor e a
+      // primeira gravação trocaria o modelo sem ninguém pedir.
+      modeloDigitado:
+        !!atual.model && !provedorDe(atual.providerLabel).modelos.includes(atual.model),
       baseUrl: atual.baseUrl ?? "",
       model: atual.model ?? "",
       organizationId: atual.organizationId ?? "",
@@ -90,6 +132,7 @@ function Formulario({
       onSubmit: z.object({
         enabled: z.boolean(),
         providerLabel: z.string().trim().max(60),
+        modeloDigitado: z.boolean(),
         baseUrl: z
           .string()
           .trim()
@@ -190,39 +233,129 @@ function Formulario({
             {(field) => (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor={field.name}>Provedor</Label>
-                <Input
-                  id={field.name}
+                <Select
                   value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="OpenAI, Azure, Ollama…"
-                />
-                <p className="text-meta text-muted-foreground">
-                  Só um rótulo, para você reconhecer. Quem define o provedor é o endereço abaixo.
-                </p>
+                  onValueChange={(valor) => {
+                    // A regra mora em `camposAoTrocarProvedor`, testada: ela
+                    // zera endereço e modelo junto, porque os dois eram do
+                    // provedor que saiu.
+                    const campos = camposAoTrocarProvedor(valor ?? "outro");
+                    field.handleChange(campos.providerLabel);
+                    form.setFieldValue("baseUrl", campos.baseUrl);
+                    form.setFieldValue("model", campos.model);
+                    form.setFieldValue("modeloDigitado", campos.modeloDigitado);
+                    setModelosDoProvedor(null);
+                  }}
+                  items={PROVEDORES.map((p) => ({ value: p.id, label: p.nome }))}
+                >
+                  <SelectTrigger id={field.name} className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROVEDORES.map((provedor) => (
+                      <SelectItem key={provedor.id} value={provedor.id}>
+                        {provedor.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {provedorDe(field.state.value).nota ? (
+                  <p className="text-meta text-muted-foreground">
+                    {provedorDe(field.state.value).nota}
+                  </p>
+                ) : null}
               </div>
             )}
           </form.Field>
 
-          <form.Field name="model">
-            {(field) => (
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor={field.name}>Modelo</Label>
-                <Input
-                  id={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="gpt-4o-mini, llama3.1…"
-                />
-                {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-danger text-meta">
-                    {erro?.message}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
+          <form.Subscribe
+            selector={(estado) => ({
+              provedor: estado.values.providerLabel,
+              digitado: estado.values.modeloDigitado,
+            })}
+          >
+            {({ provedor, digitado }) => {
+              // A lista buscada no provedor vence a curada: ela é de hoje, a
+              // outra é do dia em que o arquivo foi escrito.
+              const opcoes = modelosDoProvedor ?? provedorDe(provedor).modelos;
+
+              return (
+                <form.Field name="model">
+                  {(field) => (
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor={field.name}>Modelo</Label>
+                        {atual.credencialGravada && atual.baseUrl ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => buscarModelos.mutate()}
+                            disabled={buscarModelos.isPending}
+                          >
+                            <RefreshCw size={14} strokeWidth={1.8} aria-hidden />
+                            {buscarModelos.isPending ? "Buscando…" : "Buscar no provedor"}
+                          </Button>
+                        ) : null}
+                      </div>
+
+                      {digitado || opcoes.length === 0 ? (
+                        <Input
+                          id={field.name}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          placeholder="gpt-4o-mini, llama3.1…"
+                        />
+                      ) : (
+                        <Select
+                          value={field.state.value || opcoes[0]}
+                          onValueChange={(valor) => {
+                            if (valor === DIGITAR) {
+                              form.setFieldValue("modeloDigitado", true);
+                              field.handleChange("");
+                              return;
+                            }
+                            field.handleChange(valor ?? "");
+                          }}
+                          items={[
+                            ...opcoes.map((m) => ({ value: m, label: m })),
+                            { value: DIGITAR, label: "Outro (digitar)" },
+                          ]}
+                        >
+                          <SelectTrigger id={field.name} className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {opcoes.map((modelo) => (
+                              <SelectItem key={modelo} value={modelo}>
+                                {modelo}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value={DIGITAR}>Outro (digitar)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+
+                      <p className="text-meta text-muted-foreground">
+                        {modelosDoProvedor
+                          ? "Lista vinda do provedor agora."
+                          : atual.credencialGravada
+                            ? "Sugestões. Clique em “Buscar no provedor” para a lista de hoje."
+                            : "Sugestões. Salve a credencial para buscar a lista real."}
+                      </p>
+
+                      {field.state.meta.errors.map((erro) => (
+                        <p key={erro?.message} className="text-danger text-meta">
+                          {erro?.message}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </form.Field>
+              );
+            }}
+          </form.Subscribe>
         </div>
 
         <form.Field name="baseUrl">

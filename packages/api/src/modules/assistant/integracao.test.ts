@@ -29,6 +29,7 @@ describe("Astro, de ponta a ponta", () => {
       visto.sistema = sistema;
       return { texto: "São 289 alunos ativos.", tokens: 87 };
     },
+    listarModelos: async () => ["modelo-x"],
   });
 
   it("grava cifrado, decifra na pergunta e nunca devolve a credencial", async () => {

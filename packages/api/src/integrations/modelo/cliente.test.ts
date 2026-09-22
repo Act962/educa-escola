@@ -193,3 +193,58 @@ describe("createClienteCompativel", () => {
     expect(init.body as string).not.toContain("sk-segreda");
   });
 });
+
+describe("listarModelos", () => {
+  /**
+   * Nome de modelo envelhece: provedor lança e aposenta o tempo todo. Quem
+   * responde o que existe hoje é ele, não uma lista escrita no código.
+   */
+  it("pergunta ao provedor e devolve os ids em ordem", async () => {
+    const fetchFalso = respondeCom({
+      data: [{ id: "gpt-4o" }, { id: "gpt-4o-mini" }, { id: "o4-mini" }],
+    });
+    vi.stubGlobal("fetch", fetchFalso);
+
+    const lista = await createClienteCompativel(config).listarModelos();
+
+    expect(fetchFalso.mock.calls[0]?.[0]).toBe("https://api.exemplo.com/v1/models");
+    expect(lista).toEqual(["gpt-4o", "gpt-4o-mini", "o4-mini"]);
+  });
+
+  it("leva credencial e organização na consulta", async () => {
+    const fetchFalso = respondeCom({ data: [{ id: "m" }] });
+    vi.stubGlobal("fetch", fetchFalso);
+
+    await createClienteCompativel({ ...config, organizationId: "org-x" }).listarModelos();
+
+    const [, init = {}] = fetchFalso.mock.calls[0] ?? [];
+    const headers = init.headers as Record<string, string>;
+    expect(headers.authorization).toBe("Bearer sk-segreda");
+    expect(headers["openai-organization"]).toBe("org-x");
+  });
+
+  /** Ignora linha sem id em vez de devolver `undefined` para dentro da tela. */
+  it("descarta entrada sem id", async () => {
+    vi.stubGlobal("fetch", respondeCom({ data: [{ id: "bom" }, {}, { id: "" }] }));
+
+    expect(await createClienteCompativel(config).listarModelos()).toEqual(["bom"]);
+  });
+
+  /**
+   * Endpoint que existe e devolve vazio — ou noutro formato — não é falha
+   * nossa: a escola digita o nome e segue.
+   */
+  it("manda digitar à mão quando não vem nada", async () => {
+    vi.stubGlobal("fetch", respondeCom({ data: [] }));
+
+    await expect(createClienteCompativel(config).listarModelos()).rejects.toThrow(
+      /Digite o nome do modelo à mão/,
+    );
+  });
+
+  it("traduz o status como no resto do cliente", async () => {
+    vi.stubGlobal("fetch", respondeCom({}, 401));
+
+    await expect(createClienteCompativel(config).listarModelos()).rejects.toThrow(/credencial/i);
+  });
+});

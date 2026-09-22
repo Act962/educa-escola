@@ -154,6 +154,42 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
       return this.configuracao();
     },
 
+    /**
+     * A lista de modelos, perguntada ao próprio provedor.
+     *
+     * Exige endereço e credencial salvos: a consulta é autenticada. É o que
+     * mantém a tela sem nome de modelo envelhecido escrito no código — quem
+     * responde o que existe hoje é o provedor, não este repositório.
+     */
+    async modelosDisponiveis() {
+      const salva = await configuracaoBruta();
+
+      if (!(salva?.baseUrl && salva.apiKeyCipher && salva.apiKeyIv && salva.apiKeyTag)) {
+        throw new ValidationError(
+          "Salve o endereço e a credencial antes de buscar a lista de modelos.",
+        );
+      }
+
+      const apiKey = decifrarCredencial(
+        { cipher: salva.apiKeyCipher, iv: salva.apiKeyIv, authTag: salva.apiKeyTag },
+        deps.chave,
+      );
+
+      try {
+        return await deps
+          .modelo({
+            baseUrl: salva.baseUrl,
+            apiKey,
+            model: salva.model ?? "",
+            organizationId: salva.organizationId,
+          })
+          .listarModelos();
+      } catch (erro) {
+        if (erro instanceof ErroDoModelo) throw new ValidationError(erro.message);
+        throw erro;
+      }
+    },
+
     /** O que o botão do Astro precisa saber, sem revelar configuração. */
     async situacao(papel: AppRole) {
       const salva = await configuracaoBruta();

@@ -86,6 +86,16 @@ export const assistantRouter = router({
     .input(updateSettingsInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).salvar(input, ctx.membership.userId)),
 
+  /**
+   * Pergunta ao provedor quais modelos ele tem.
+   *
+   * Mutation e não query de propósito: bate na rede do provedor a cada
+   * chamada, e cache de query esconderia isso de quem clicou em "buscar".
+   */
+  buscarModelos: permitted({ assistant: ["manage"] }).mutation(({ ctx }) =>
+    serviceFor(ctx).modelosDisponiveis(),
+  ),
+
   situacao: schoolProcedure.query(({ ctx }) => serviceFor(ctx).situacao(ctx.membership.role)),
 
   perguntar: schoolProcedure.input(askInput).mutation(async ({ ctx, input }) => {

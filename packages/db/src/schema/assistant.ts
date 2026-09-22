@@ -23,11 +23,12 @@ export const assistantSettings = pgTable("assistant_settings", {
     .references(() => school.id, { onDelete: "cascade" }),
   enabled: boolean("enabled").default(false).notNull(),
   /**
-   * Rótulo livre do provedor — "OpenAI", "Azure", "Ollama no servidor".
+   * O provedor escolhido, por id — "openai", "groq", "ollama", "outro".
    *
-   * Texto e não enum de propósito: quem escolhe o provedor é a escola, pelo
-   * endereço que ela põe em `base_url`. Uma lista fechada aqui viraria uma
-   * migration toda vez que aparecesse um provedor novo.
+   * Texto e não enum de propósito: provedor novo não deve exigir migration, e
+   * id desconhecido cai em "outro" na tela em vez de quebrar. Quem de fato
+   * define para onde a requisição vai continua sendo `base_url`; isto aqui é
+   * o que a tela usa para preencher o endereço e sugerir modelos.
    */
   providerLabel: text("provider_label"),
   /** Endpoint compatível com `/chat/completions`. É o que define o provedor. */
