@@ -14,6 +14,7 @@ import type {
   RenewEnrollmentInput,
   UpdateEnrollmentInput,
 } from "./schema";
+import { CURRENT_TERM_VERSION } from "./schema";
 import { enrollmentLinkFor, expiryFrom, generateToken, hashToken, inviteVerdict } from "./token";
 
 /**
@@ -354,6 +355,65 @@ export function createEnrollmentService(repo: EnrollmentRepository, deps: Enroll
       });
 
       return { url, envio };
+    },
+
+    /**
+     * Registra a autorização declarada presencialmente pelo responsável.
+     *
+     * É o caminho da secretaria, pedido explicitamente: nem toda família abre
+     * link, e nem toda tem aparelho. Ele **não** finge que a família usou o
+     * link — a linha nasce com `origin: "presencial"`, com o nome de quem
+     * declarou e o id de quem na escola registrou. Sem essas duas coisas,
+     * "a escola marcou sozinha" e "a mãe declarou no balcão" ficam idênticos
+     * no banco, e uma conferência não consegue separar os dois.
+     *
+     * A responsabilidade muda de lugar, e isso é deliberado: aqui quem
+     * responde pelo registro é a escola, não a posse de um token. O caminho
+     * do link continua existindo e continua sendo o preferível — este é para
+     * quando ele não serve.
+     */
+    async registrarAutorizacaoPresencial(input: {
+      id: string;
+      purpose: "biometria";
+      granted: boolean;
+      declaredBy: string;
+    }) {
+      const row = await getOrThrow(input.id);
+      if (row.status === "cancelada") {
+        throw new ValidationError("Matrícula cancelada não registra autorização.");
+      }
+
+      const declarante = input.declaredBy.trim();
+      if (!declarante) {
+        throw new ValidationError("Informe o nome de quem autorizou.");
+      }
+
+      const now = deps.now();
+      await repo.recordConsent({
+        enrollmentId: input.id,
+        purpose: input.purpose,
+        termVersion: CURRENT_TERM_VERSION,
+        granted: input.granted,
+        grantedAt: now,
+        actorName: declarante,
+        origin: "presencial",
+        registeredByUserId: deps.actor.userId,
+      });
+
+      await repo.appendEvent({
+        enrollmentId: input.id,
+        type: "consentimento_atualizado",
+        actor: "gestao",
+        actorUserId: deps.actor.userId,
+        payload: {
+          finalidade: input.purpose,
+          autorizou: input.granted,
+          declaradoPor: declarante,
+          origem: "presencial",
+        },
+      });
+
+      return { autorizou: input.granted, registradoEm: now };
     },
 
     async resendLink(id: string, expiryDays = 7) {

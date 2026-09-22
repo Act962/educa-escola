@@ -96,6 +96,17 @@ export const enrollmentActor = pgEnum("enrollment_actor", ["gestao", "responsave
  * Reabrir a ficha inteira para marcar uma caixa seria pior: cada
  * reconfirmação é uma chance de sobrescrever dado certo por dado velho.
  */
+/**
+ * Por onde o consentimento chegou.
+ *
+ * `link` é a família respondendo ela mesma, com a posse do token e a
+ * conferência da data de nascimento. `presencial` é a secretaria registrando
+ * que o responsável declarou no balcão — e a distinção precisa estar gravada,
+ * porque as duas têm força probatória diferente. Uma conferência que não
+ * consiga separá-las não consegue auditar nada.
+ */
+export const consentOrigin = pgEnum("consent_origin", ["link", "presencial"]);
+
 export const enrollmentInvitePurpose = pgEnum("enrollment_invite_purpose", ["ficha", "biometria"]);
 
 /**
@@ -284,6 +295,17 @@ export const enrollmentConsent = pgTable(
      * qual ato gerou qual linha.
      */
     inviteId: text("invite_id").references(() => enrollmentInvite.id, { onDelete: "set null" }),
+    origin: consentOrigin("origin").default("link").notNull(),
+    /**
+     * Quem **na escola** registrou, quando a origem é presencial.
+     *
+     * `actorName` é quem declarou — a mãe, o pai. Esta coluna é a outra
+     * metade: a pessoa da secretaria que digitou. Sem as duas, "a escola
+     * marcou sozinha" e "a mãe declarou no balcão" ficam idênticos no banco.
+     */
+    registeredByUserId: text("registered_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
     ipHash: text("ip_hash"),
     userAgent: text("user_agent"),
     createdAt: timestamp("created_at").defaultNow().notNull(),

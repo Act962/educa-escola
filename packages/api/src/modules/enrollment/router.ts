@@ -86,6 +86,24 @@ export const enrollmentRouter = router({
       serviceFor(ctx).emitirAutorizacaoBiometria(input.id, input.expiryDays),
     ),
 
+  /**
+   * Registra a autorização declarada no balcão.
+   *
+   * `enrollment: ["update"]`, como o resto do que a secretaria faz na ficha.
+   * A linha nasce marcada como presencial e guarda quem declarou e quem
+   * registrou — a distinção é o que torna isto auditável em vez de opaco.
+   */
+  registrarAutorizacaoPresencial: permitted({ enrollment: ["update"] })
+    .input(
+      z.object({
+        id: z.string().min(1),
+        purpose: z.literal("biometria"),
+        granted: z.boolean(),
+        declaredBy: z.string().trim().min(1, "Informe quem autorizou").max(120),
+      }),
+    )
+    .mutation(({ ctx, input }) => serviceFor(ctx).registrarAutorizacaoPresencial(input)),
+
   resendLink: permitted({ enrollment: ["update"] })
     .input(
       z.object({ id: z.string().min(1), expiryDays: z.number().int().min(1).max(60).default(7) }),

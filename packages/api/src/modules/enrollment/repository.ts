@@ -399,6 +399,21 @@ function createBaseEnrollmentRepository(db: DbHandle, tenant: TenantContext) {
         .orderBy(asc(enrollmentConsent.purpose));
     },
 
+    /**
+     * Grava um consentimento. Append-only, como o resto da trilha.
+     *
+     * Nunca atualiza a linha anterior: a história do que a família autorizou e
+     * quando é o que prova que a escola agiu certo. O que vale é o aceite mais
+     * recente daquela finalidade, e quem decide isso é quem lê.
+     */
+    async recordConsent(data: Omit<typeof enrollmentConsent.$inferInsert, "schoolId">) {
+      const [row] = await db
+        .insert(enrollmentConsent)
+        .values({ ...data, schoolId: tenant.schoolId })
+        .returning({ id: enrollmentConsent.id });
+      return row as { id: string };
+    },
+
     /** Append-only: não existe update nem delete de evento, de propósito. */
     async appendEvent(data: Omit<typeof enrollmentEvent.$inferInsert, "schoolId">) {
       const [row] = await db

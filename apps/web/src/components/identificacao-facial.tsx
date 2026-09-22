@@ -2,6 +2,7 @@ import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components
 import { Badge } from "@educa-escola/ui/components/badge";
 import { Button } from "@educa-escola/ui/components/button";
 import { Card, CardEyebrow } from "@educa-escola/ui/components/card";
+import { Input } from "@educa-escola/ui/components/input";
 import { Label } from "@educa-escola/ui/components/label";
 import {
   Select,
@@ -12,7 +13,7 @@ import {
 } from "@educa-escola/ui/components/select";
 import { Skeleton } from "@educa-escola/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, CameraOff, IdCard, Lock, Trash2, UserRound } from "lucide-react";
+import { Camera, CameraOff, Check, IdCard, Lock, Trash2, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -42,20 +43,7 @@ type Motivo = (typeof MOTIVOS)[number]["value"];
  * clique vira evento na trilha. Foto de criança não fica aberta na tela de
  * quem só passou por ali.
  */
-export function IdentificacaoFacial({
-  studentId,
-  enrollmentId,
-}: {
-  studentId: string;
-  /**
-   * A matrícula do aluno, quando a tela a conhece.
-   *
-   * Sem ela o painel funciona igual, menos o pedido de autorização: o link
-   * pende da matrícula, não do cadastro do aluno — autorizar em 2026 não
-   * autoriza para sempre.
-   */
-  enrollmentId?: string;
-}) {
+export function IdentificacaoFacial({ studentId }: { studentId: string }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [modo, setModo] = useState<"resumo" | "capturando" | "revogando">("resumo");
@@ -63,6 +51,9 @@ export function IdentificacaoFacial({
   const [gravando, setGravando] = useState(false);
   /** O endereço da autorização, mostrado uma única vez, para copiar. */
   const [linkDaAutorizacao, setLinkDaAutorizacao] = useState<string | null>(null);
+  /** O formulário curto do registro presencial, aberto pelo botão. */
+  const [registrando, setRegistrando] = useState(false);
+  const [quemAutorizou, setQuemAutorizou] = useState("");
 
   const status = useQuery(trpc.photo.status.queryOptions({ studentId }));
 
@@ -153,6 +144,30 @@ export function IdentificacaoFacial({
     }),
   );
 
+  /**
+   * O caminho da secretaria: o responsável declarou no balcão.
+   *
+   * A linha grava `origin: presencial`, o nome de quem declarou e o id de
+   * quem registrou — não finge que a família usou o link. As duas coisas
+   * juntas são o que separa "a mãe declarou aqui" de "a escola marcou
+   * sozinha" numa conferência.
+   */
+  const registrarPresencial = useMutation(
+    trpc.enrollment.registrarAutorizacaoPresencial.mutationOptions({
+      onSuccess: (saida) => {
+        toast.success(
+          saida.autorizou
+            ? "Autorização registrada. A portaria já pode cadastrar o rosto."
+            : "Recusa registrada. O aluno entra pela carteirinha.",
+        );
+        setRegistrando(false);
+        setQuemAutorizou("");
+        queryClient.invalidateQueries();
+      },
+      onError: (erro) => toast.error(erro.message),
+    }),
+  );
+
   const revogar = useMutation(
     trpc.photo.revoke.mutationOptions({
       onSuccess: () => {
@@ -175,6 +190,15 @@ export function IdentificacaoFacial({
   }
 
   const dados = status.data;
+  /*
+   * A matrícula vem do servidor, não de quem renderiza.
+   *
+   * Era uma prop, e a tela de Alunos não a tinha — os dois botões de
+   * autorização nasciam desabilitados justamente onde a secretaria mais os
+   * usa. Consentimento pende da matrícula, e quem sabe qual é ela é quem
+   * respondeu o status.
+   */
+  const enrollmentId = dados.enrollmentId;
 
   if (modo === "capturando") {
     return (
@@ -225,8 +249,8 @@ export function IdentificacaoFacial({
                   : "Falta a autorização do responsável"}
             </AlertTitle>
             <AlertDescription>
-              Dado biométrico de menor exige autorização específica de quem responde por ele. O
-              pedido vai no mesmo link de confirmação da matrícula.
+              Dado biométrico de menor exige autorização específica de quem responde por ele. Mande
+              o link para a família responder, ou registre aqui se ela autorizou presencialmente.
             </AlertDescription>
           </Alert>
           {/*
@@ -235,7 +259,65 @@ export function IdentificacaoFacial({
             está pendente: depois de confirmada não havia como autorizar, e
             família decide depois o tempo todo.
           */}
-          {linkDaAutorizacao ? (
+          {registrando ? (
+            <div className="flex flex-col gap-3 rounded-card bg-muted p-4">
+              <div>
+                <p className="font-bold text-corpo">O responsável autorizou aqui na escola</p>
+                {/*
+                  A frase existe para quem digita saber o que está afirmando.
+                  Registro presencial transfere a responsabilidade para a
+                  escola, e isso precisa estar escrito na tela, não só no banco.
+                */}
+                <p className="mt-1 text-meta text-muted-foreground">
+                  Fica gravado que {quemAutorizou.trim() || "o responsável"} declarou
+                  presencialmente, com a data, a versão do termo e o seu nome como quem registrou.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="quem-autorizou">Quem autorizou</Label>
+                <Input
+                  id="quem-autorizou"
+                  value={quemAutorizou}
+                  onChange={(e) => setQuemAutorizou(e.target.value)}
+                  placeholder="Nome do responsável"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={!quemAutorizou.trim() || registrarPresencial.isPending}
+                  onClick={() =>
+                    registrarPresencial.mutate({
+                      id: enrollmentId as string,
+                      purpose: "biometria",
+                      granted: true,
+                      declaredBy: quemAutorizou.trim(),
+                    })
+                  }
+                >
+                  Registrar autorização
+                </Button>
+                <Button
+                  variant="warning"
+                  disabled={!quemAutorizou.trim() || registrarPresencial.isPending}
+                  onClick={() =>
+                    registrarPresencial.mutate({
+                      id: enrollmentId as string,
+                      purpose: "biometria",
+                      granted: false,
+                      declaredBy: quemAutorizou.trim(),
+                    })
+                  }
+                >
+                  Registrar recusa
+                </Button>
+                <Button variant="ghost" onClick={() => setRegistrando(false)}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : linkDaAutorizacao ? (
             <div className="flex flex-col gap-2 rounded-card bg-info-soft p-4">
               <p className="font-bold text-apoio">Mande este endereço ao responsável</p>
               <p className="break-all font-mono text-meta">{linkDaAutorizacao}</p>
@@ -255,16 +337,43 @@ export function IdentificacaoFacial({
                 Copiar endereço
               </Button>
             </div>
+          ) : !enrollmentId ? (
+            /*
+              Sem matrícula não há a que prender o consentimento: ele pende do
+              vínculo, não do cadastro — autorizar em 2026 não autoriza para
+              sempre. Dois botões desabilitados sem explicação seriam um beco
+              sem saída; a frase diz para onde ir.
+            */
+            <p className="rounded-card bg-muted p-4 text-apoio text-muted-foreground">
+              Este aluno não tem matrícula registrada, e o consentimento pende dela. Cadastre a
+              matrícula em <b>Matrículas</b> para pedir ou registrar a autorização.
+            </p>
           ) : (
-            <Button
-              variant="secondary"
-              className="self-start"
-              disabled={pedirAutorizacao.isPending}
-              onClick={() => pedirAutorizacao.mutate({ id: enrollmentId as string, expiryDays: 7 })}
-            >
-              <IdCard size={18} strokeWidth={1.7} aria-hidden />
-              {pedirAutorizacao.isPending ? "Emitindo…" : "Pedir autorização ao responsável"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {/*
+                Os dois caminhos lado a lado. O link vem primeiro porque é o
+                preferível — ali o ato é da família. O presencial existe para
+                quando ele não serve: família sem aparelho, ou que já está no
+                balcão.
+              */}
+              <Button
+                variant="secondary"
+                disabled={pedirAutorizacao.isPending}
+                onClick={() => pedirAutorizacao.mutate({ id: enrollmentId, expiryDays: 7 })}
+              >
+                <IdCard size={18} strokeWidth={1.7} aria-hidden />
+                {pedirAutorizacao.isPending ? "Emitindo…" : "Mandar link ao responsável"}
+              </Button>
+              <Button
+                onClick={() => {
+                  setQuemAutorizou(dados.guardianName ?? "");
+                  setRegistrando(true);
+                }}
+              >
+                <Check size={18} strokeWidth={1.8} aria-hidden />
+                Autorizar aqui
+              </Button>
+            </div>
           )}
 
           <Carteirinha nome={dados.studentName} registration={dados.registration} />

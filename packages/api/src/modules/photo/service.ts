@@ -46,21 +46,35 @@ export function createPhotoService(
 
     const matricula = await photos.currentEnrollment(studentId);
     const consent = matricula ? await photos.biometricConsent(matricula.id) : null;
+    const responsavel = matricula
+      ? ((await enrollments.listGuardians(matricula.id))[0] ?? null)
+      : null;
     const autorizado = Boolean(consent?.granted && !consent.revokedAt);
 
-    return { aluno, matricula, consent, autorizado };
+    return { aluno, matricula, consent, autorizado, responsavel };
   }
 
   return {
     /** O que a tela precisa saber sem baixar a foto. */
     async status(studentId: string) {
-      const { aluno, consent, autorizado } = await contexto(studentId);
+      const { aluno, consent, autorizado, matricula, responsavel } = await contexto(studentId);
       const photo = await photos.findByStudent(studentId);
 
       return {
         studentId: aluno.id,
         studentName: aluno.name,
         registration: aluno.registration,
+        /**
+         * A matrícula corrente e o responsável, para a tela pedir ou registrar
+         * a autorização sem uma segunda consulta.
+         *
+         * O nome do responsável vem daqui porque é ele que vai preencher o
+         * campo "quem autorizou" no registro presencial: digitar à mão o nome
+         * que o sistema já sabe é onde nascem os erros de grafia que depois
+         * ninguém consegue conferir.
+         */
+        enrollmentId: matricula?.id ?? null,
+        guardianName: responsavel?.name ?? null,
         authorized: autorizado,
         consent: consent
           ? {

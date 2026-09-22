@@ -134,6 +134,13 @@
       "when": 1790101936127,
       "tag": "0018_chief_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790102399701,
+      "tag": "0019_even_vance_astro",
+      "breakpoints": true
     }
   ]
 }
