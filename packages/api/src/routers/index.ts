@@ -10,6 +10,7 @@ import { lessonRouter } from "../modules/lesson/router";
 import { orbitaRouter } from "../modules/orbita/router";
 import { overviewRouter } from "../modules/overview/router";
 import { photoRouter } from "../modules/photo/router";
+import { reportRouter } from "../modules/report/router";
 import { scoreRouter } from "../modules/score/router";
 import { studentRouter } from "../modules/student/router";
 import { teacherRouter } from "../modules/teacher/router";
@@ -46,6 +47,8 @@ export const appRouter = router({
   enrollment: enrollmentRouter,
   /** Fluxo do responsável, sem sessão. Ver o comentário no router. */
   enrollmentLink: enrollmentLinkRouter,
+  /** Relatórios e indicadores (§15). Só agregados, nunca lista de pessoa. */
+  report: reportRouter,
   student: studentRouter,
   /** Corpo docente, para a gestão. Pendências de registro, nunca desempenho. */
   teacher: teacherRouter,
