@@ -8,7 +8,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, ExternalLink, Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { appOrbitaDe } from "@/lib/apps-orbita";
+import { appOrbitaDe } from "@/lib/orbita-apps";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_app/apps/$appKey")({

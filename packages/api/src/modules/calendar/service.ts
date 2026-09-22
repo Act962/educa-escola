@@ -1,8 +1,8 @@
 import { NotFoundError, ValidationError } from "../../errors";
-import { type ContagemDeDiasLetivos, contarDiasLetivos } from "./dias-letivos";
-import { calendarioBrasileiro } from "./feriados";
+import { calendarioBrasileiro } from "./holidays";
 import type { CalendarRepository } from "./repository";
 import type { CreateEventInput, DefineYearInput, EventScope, UpdateEventInput } from "./schema";
+import { type ContagemDeDiasLetivos, contarDiasLetivos } from "./school-days";
 
 type Evento = Awaited<ReturnType<CalendarRepository["listEvents"]>>[number];
 

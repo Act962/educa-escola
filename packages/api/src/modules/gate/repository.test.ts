@@ -11,7 +11,7 @@ import {
   createTestUser,
 } from "../../testing/fixtures";
 import { createGateRepository } from "./repository";
-import { cifrarMolde } from "./segredo";
+import { cifrarMolde } from "./secret";
 
 const CHAVE = Buffer.alloc(32, 9).toString("base64");
 

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Medal, Users } from "lucide-react";
 
-import { EsqueletoDePontos, ExtratoDePontos, ResumoDePontos } from "@/components/painel-de-pontos";
+import { PointsSkeleton, PointsStatement, PointsSummary } from "@/components/points-panel";
 import { inteiro } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
@@ -38,7 +38,7 @@ function MeusPontos() {
       </div>
 
       {painel.isLoading ? (
-        <EsqueletoDePontos />
+        <PointsSkeleton />
       ) : painel.isError || !painel.data ? (
         <Card>
           <ErrorState
@@ -48,7 +48,7 @@ function MeusPontos() {
         </Card>
       ) : (
         <>
-          <ResumoDePontos dados={painel.data} ano={year} />
+          <PointsSummary dados={painel.data} ano={year} />
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <StatCard
@@ -70,7 +70,7 @@ function MeusPontos() {
             </StatCard>
           </div>
 
-          <ExtratoDePontos dados={painel.data} />
+          <PointsStatement dados={painel.data} />
         </>
       )}
     </>

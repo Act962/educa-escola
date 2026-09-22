@@ -14,7 +14,7 @@ import { BookOpen, CalendarDays, IdCard, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import z from "zod";
 
-import { SegurancaDaConta } from "@/components/seguranca-da-conta";
+import { AccountSecurity } from "@/components/account-security";
 import { authClient } from "@/lib/auth-client";
 import { dataDoInstante, inteiro, situacaoMatricula, turno } from "@/lib/format";
 import { roleLabel } from "@/lib/navigation";
@@ -66,7 +66,7 @@ function MeuPerfil() {
         <>
           <Identificacao perfil={perfil.data} />
           <MeuVinculo perfil={perfil.data} />
-          <SegurancaDaConta />
+          <AccountSecurity />
         </>
       )}
     </>

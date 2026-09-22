@@ -21,9 +21,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { LogOut, Settings, UserRound } from "lucide-react";
 
-import { SeletorDeBimestre } from "@/components/seletor-de-bimestre";
-import { appOrbitaDe } from "@/lib/apps-orbita";
+import { TermSelector } from "@/components/term-selector";
 import { navigationFor } from "@/lib/navigation";
+import { appOrbitaDe } from "@/lib/orbita-apps";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -123,7 +123,7 @@ export function AppSidebar({
             </span>
             <span className="font-extrabold text-corpo tabular-nums">{year}</span>
           </span>
-          <SeletorDeBimestre className="w-36 shrink-0 bg-card text-info" />
+          <TermSelector className="w-36 shrink-0 bg-card text-info" />
         </div>
       </SidebarHeader>
 

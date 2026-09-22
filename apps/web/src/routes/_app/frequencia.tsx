@@ -12,7 +12,7 @@ import { EmptyState, ListSkeleton } from "@educa-escola/ui/integra/states";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarX, ClipboardCheck } from "lucide-react";
-import { FrequenciaGestao } from "@/components/frequencia-gestao";
+import { AttendanceManagement } from "@/components/attendance-management";
 import { percentual } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
@@ -52,7 +52,7 @@ function Frequencia() {
             Sobre as chamadas já registradas · mínimo legal de 75%
           </p>
         </div>
-        <FrequenciaGestao />
+        <AttendanceManagement />
       </>
     );
   }

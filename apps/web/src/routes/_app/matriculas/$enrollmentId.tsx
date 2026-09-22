@@ -20,7 +20,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, ChevronLeft, Copy, Pencil, RefreshCw, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { IdentificacaoFacial } from "@/components/identificacao-facial";
+import { FaceIdentification } from "@/components/face-identification";
 import {
   dataCivil,
   dataHora,
@@ -383,7 +383,7 @@ function DetalheMatricula() {
       </Card>
 
       <div className="flex flex-col gap-4">
-        <IdentificacaoFacial studentId={dados.enrollment.studentId} />
+        <FaceIdentification studentId={dados.enrollment.studentId} />
 
         <Card className="flex flex-col gap-4">
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Link de confirmação</h2>

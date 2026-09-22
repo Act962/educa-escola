@@ -1,5 +1,5 @@
 import { ValidationError } from "../../errors";
-import { indicadoresDe } from "./indicadores";
+import { indicadoresDe } from "./indicators";
 import type { LeaderboardLookup, LeaderboardRepository } from "./repository";
 
 /**

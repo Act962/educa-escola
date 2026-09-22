@@ -26,7 +26,7 @@ import { LogIn, LogOut, ScanFace, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { CampoDeData } from "@/components/campo-de-data";
+import { DateField } from "@/components/date-field";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_app/portaria-do-dia")({
@@ -156,7 +156,7 @@ function PortariaDoDia() {
 
       <Card className="gap-4">
         <div className="flex flex-wrap items-end gap-3">
-          <CampoDeData
+          <DateField
             id="dia-da-portaria"
             label="Dia"
             value={dia}

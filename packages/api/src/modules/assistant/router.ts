@@ -2,7 +2,7 @@ import type { DbHandle } from "@educa-escola/db/types";
 import { env } from "@educa-escola/env/server";
 
 import { permitted, router, schoolProcedure } from "../../index";
-import { createClienteCompativel } from "../../integrations/modelo/cliente";
+import { createClienteCompativel } from "../../integrations/model/client";
 import type { Membership, TenantContext } from "../../trpc/tenant";
 import { createAssessmentRepository } from "../assessment/repository";
 import { createLessonRepository } from "../lesson/repository";
@@ -10,7 +10,7 @@ import { createOverviewRepository } from "../overview/repository";
 import { createOverviewService } from "../overview/service";
 import { createStudentRepository } from "../student/repository";
 import { createStudentService } from "../student/service";
-import { fatosDaGestao, fatosDoAluno, fatosDoProfessor } from "./fatos";
+import { fatosDaGestao, fatosDoAluno, fatosDoProfessor } from "./facts";
 import { createAssistantRepository } from "./repository";
 import { askInput, updateSettingsInput } from "./schema";
 import { createAssistantService } from "./service";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { SEM_DADO, taxa } from "./indicadores";
+import { SEM_DADO, taxa } from "./indicators";
 import type { ReportRepository } from "./repository";
 import { createReportService } from "./service";
 

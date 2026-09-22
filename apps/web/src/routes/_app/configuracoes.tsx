@@ -14,9 +14,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Blocks, CalendarDays, GraduationCap, Lock, Users } from "lucide-react";
 import { toast } from "sonner";
 import z from "zod";
-
-import { CampoDeData } from "@/components/campo-de-data";
-import { ConfiguracaoDoAstro } from "@/components/configuracao-do-astro";
+import { AstroSettings } from "@/components/astro-settings";
+import { DateField } from "@/components/date-field";
 import { authClient } from "@/lib/auth-client";
 import { dataDoInstante, inteiro } from "@/lib/format";
 import { roleLabel } from "@/lib/navigation";
@@ -80,7 +79,7 @@ function Configuracoes() {
         <>
           <DadosDaInstituicao visao={visao.data} />
           <AnoLetivo />
-          <ConfiguracaoDoAstro />
+          <AstroSettings />
           <Acessos visao={visao.data} />
           <RegrasEmVigor visao={visao.data} />
         </>
@@ -413,7 +412,7 @@ function FormularioDoAno({
         <form.Field name="startsOn">
           {(field) => (
             <div className="flex flex-col gap-1.5">
-              <CampoDeData
+              <DateField
                 id={field.name}
                 label="Início"
                 value={field.state.value}
@@ -434,7 +433,7 @@ function FormularioDoAno({
         <form.Field name="endsOn">
           {(field) => (
             <div className="flex flex-col gap-1.5">
-              <CampoDeData
+              <DateField
                 id={field.name}
                 label="Término"
                 value={field.state.value}

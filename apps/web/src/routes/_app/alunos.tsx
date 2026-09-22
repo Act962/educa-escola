@@ -28,7 +28,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, ScanFace, Search } from "lucide-react";
 import { useState } from "react";
 
-import { IdentificacaoFacial } from "@/components/identificacao-facial";
+import { FaceIdentification } from "@/components/face-identification";
 import { inteiro, percentualCurto, situacaoMatricula, turno } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
@@ -328,7 +328,7 @@ function Alunos() {
       </Card>
 
       {/*
-        `IdentificacaoFacial` é o mesmo painel da matrícula — consentimento,
+        `FaceIdentification` é o mesmo painel da matrícula — consentimento,
         captura, cadastro do molde e revogação. Ele já é o CRUD do rosto; o que
         faltava era a secretaria alcançá-lo sem passar pela ficha de matrícula,
         que é onde ele nasceu.
@@ -338,7 +338,7 @@ function Alunos() {
           <SheetHeader>
             <SheetTitle>{rosto?.nome}</SheetTitle>
           </SheetHeader>
-          {rosto ? <IdentificacaoFacial studentId={rosto.id} /> : null}
+          {rosto ? <FaceIdentification studentId={rosto.id} /> : null}
         </SheetContent>
       </Sheet>
     </>
