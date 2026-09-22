@@ -37,7 +37,7 @@ import { AlertTriangle, Upload } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { nota, situacaoNota } from "@/lib/format";
+import { gradeSituationBadge, gradeText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -199,7 +199,7 @@ function Notas() {
             {grade.data.pendingCount} lançamento(s) pendente(s) neste bimestre
           </AlertTitle>
           <AlertDescription>
-            O bimestre não pode ser fechado, e a avaliação não pode ser publicada, com nota
+            O bimestre não pode ser fechado, e a avaliação não pode ser publicada, com gradeText
             faltando.
           </AlertDescription>
         </Alert>
@@ -224,7 +224,7 @@ function Notas() {
           <Card size="sm" className="gap-1">
             <CardEyebrow>Média da turma</CardEyebrow>
             <span className="font-extrabold text-2xl tracking-[-0.6px]">
-              {nota(grade.data.classAverage)}
+              {gradeText(grade.data.classAverage)}
             </span>
           </Card>
         </div>
@@ -247,7 +247,7 @@ function Notas() {
               <TabsList>
                 <TabsTrigger value="todos">Todos os alunos</TabsTrigger>
                 <TabsTrigger value="pendentes">
-                  Somente sem nota
+                  Somente sem gradeText
                   {grade.data?.pendingCount ? ` (${linhasPendentes.length})` : ""}
                 </TabsTrigger>
               </TabsList>
@@ -282,7 +282,7 @@ function Notas() {
             </TableHeader>
             <TableBody>
               {visiveis.map((linha) => {
-                const situacao = situacaoNota(linha.situation);
+                const situacao = gradeSituationBadge(linha.situation);
                 const faltando = linha.missing > 0;
 
                 return (
@@ -329,7 +329,7 @@ function Notas() {
                     })}
 
                     <TableCell className="text-center font-extrabold text-sm tabular-nums">
-                      {nota(linha.average)}
+                      {gradeText(linha.average)}
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge variant={situacao.tone}>{situacao.label}</Badge>

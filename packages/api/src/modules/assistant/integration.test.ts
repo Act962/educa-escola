@@ -3,7 +3,7 @@ import { closeTestDb, withRollback } from "@educa-escola/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 
-import type { ModeloDeLinguagem } from "../../integrations/model/client";
+import type { LanguageModel } from "../../integrations/model/client";
 import { createTestSchool, createTestUser } from "../../testing/fixtures";
 import { createAssistantRepository } from "./repository";
 import { createAssistantService } from "./service";
@@ -24,7 +24,7 @@ const SEGREDO = "sk-credencial-de-verdade-9XK2";
  * gravar o IV, ou decide "otimizar" o `upsert` parcial.
  */
 describe("Astro, de ponta a ponta", () => {
-  const modeloQueEcoa = (visto: { sistema?: string }): ModeloDeLinguagem => ({
+  const modeloQueEcoa = (visto: { sistema?: string }): LanguageModel => ({
     responder: async ({ sistema }) => {
       visto.sistema = sistema;
       return { texto: "São 289 alunos ativos.", tokens: 87 };

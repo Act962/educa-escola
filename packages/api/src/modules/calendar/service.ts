@@ -1,16 +1,16 @@
 import { NotFoundError, ValidationError } from "../../errors";
-import { calendarioBrasileiro } from "./holidays";
+import { brazilianCalendar } from "./holidays";
 import type { CalendarRepository } from "./repository";
 import type { CreateEventInput, DefineYearInput, EventScope, UpdateEventInput } from "./schema";
-import { type ContagemDeDiasLetivos, contarDiasLetivos } from "./school-days";
+import { countSchoolDays, type SchoolDayCount } from "./school-days";
 
 type Evento = Awaited<ReturnType<CalendarRepository["listEvents"]>>[number];
 
-export interface VisaoDoAno {
+export interface YearView {
   /** `null` quando o ano letivo ainda não foi definido. */
   ano: { startsOn: string; endsOn: string; minimumSchoolDays: number } | null;
   /** A contagem da **escola**: só o que vale para todo mundo. */
-  contagem: ContagemDeDiasLetivos | null;
+  contagem: SchoolDayCount | null;
   /**
    * A contagem da turma filtrada: institucional mais o que é só dela.
    *
@@ -18,7 +18,7 @@ export interface VisaoDoAno {
    * substituí-la, porque são dois números que a direção precisa ver juntos —
    * o oficial, que a secretaria de educação cobra, e o real daquela turma.
    */
-  contagemDaTurma: ContagemDeDiasLetivos | null;
+  contagemDaTurma: SchoolDayCount | null;
   eventos: Evento[];
 }
 
@@ -64,7 +64,7 @@ export function createCalendarService(repo: CalendarRepository) {
      * obrigação legal é pior que número nenhum — a tela pede a definição em
      * vez de mostrar um total que ninguém pode usar.
      */
-    async year(academicYear: number, classroomId?: string): Promise<VisaoDoAno> {
+    async year(academicYear: number, classroomId?: string): Promise<YearView> {
       const [ano, eventos] = await Promise.all([
         repo.findYear(academicYear),
         repo.listEvents(academicYear, classroomId),
@@ -84,10 +84,10 @@ export function createCalendarService(repo: CalendarRepository) {
           endsOn: ano.endsOn,
           minimumSchoolDays: ano.minimumSchoolDays,
         },
-        contagem: contarDiasLetivos({ ...periodo, eventos: institucionais(eventos) }),
+        contagem: countSchoolDays({ ...periodo, eventos: institucionais(eventos) }),
         // `eventos` já vem recortado pelo repositório: institucional mais o
         // que é da turma. Por isso a conta da turma é sobre a lista inteira.
-        contagemDaTurma: classroomId ? contarDiasLetivos({ ...periodo, eventos }) : null,
+        contagemDaTurma: classroomId ? countSchoolDays({ ...periodo, eventos }) : null,
         eventos,
       };
     },
@@ -136,7 +136,7 @@ export function createCalendarService(repo: CalendarRepository) {
 
       const jaNoSistema = new Set(existentes.map((e) => `${e.startsOn}|${e.title}`));
 
-      return calendarioBrasileiro(academicYear).map((data) => ({
+      return brazilianCalendar(academicYear).map((data) => ({
         ...data,
         jaExiste: jaNoSistema.has(`${data.startsOn}|${data.title}`),
         // Fora do período letivo não entra: 1º de janeiro e o Natal caem

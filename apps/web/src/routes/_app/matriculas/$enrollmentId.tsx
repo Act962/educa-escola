@@ -22,16 +22,16 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { FaceIdentification } from "@/components/face-identification";
 import {
-  dataCivil,
-  dataHora,
-  motivoCancelamento,
-  parentesco,
-  situacaoEnrollment,
-  situacaoLink,
-  telefone,
-  turno,
+  cancelReasonText,
+  civilDateText,
+  dateTimeText,
+  enrollmentStatusBadge,
+  linkStatusBadge,
+  phoneText,
+  relationshipText,
+  shiftText,
 } from "@/lib/format";
-import { dataParaISO, idadeEm, isoParaData, mascararCelular, mascararData } from "@/lib/masks";
+import { dateToISO, idadeEm, isoToDate, maskDate, maskPhone } from "@/lib/masks";
 import type { RouterOutputs } from "@/utils/trpc";
 import { useTRPC } from "@/utils/trpc";
 
@@ -181,7 +181,7 @@ function DetalheMatricula() {
   }
 
   const dados = matricula.data;
-  const situacao = situacaoEnrollment(dados.enrollment.status);
+  const situacao = enrollmentStatusBadge(dados.enrollment.status);
   const pendente = dados.enrollment.status === "pendente";
   const fichaEntregue = dados.invite?.status === "ficha_entregue";
   const turmasDoAno = (turmas.data ?? []).filter(
@@ -211,7 +211,7 @@ function DetalheMatricula() {
                   <span aria-hidden>·</span>
                   <span>{dados.classroomName ?? "Turma a definir"}</span>
                   <span aria-hidden>·</span>
-                  <span>{turno(dados.enrollment.shift)}</span>
+                  <span>{shiftText(dados.enrollment.shift)}</span>
                   {dados.classCode ? (
                     <Badge variant="neutral" title={dados.classLabel}>
                       {dados.classCode}
@@ -228,7 +228,7 @@ function DetalheMatricula() {
           <Alert variant="success">
             <Check size={18} strokeWidth={1.7} aria-hidden />
             <AlertTitle>
-              A família enviou a ficha em {dataHora(dados.invite?.consumedAt)}
+              A família enviou a ficha em {dateTimeText(dados.invite?.consumedAt)}
             </AlertTitle>
             <AlertDescription>
               Falta a confirmação da secretaria para o aluno entrar na turma.
@@ -242,12 +242,12 @@ function DetalheMatricula() {
             <AlertTitle>
               Cancelada
               {dados.enrollment.cancelReason
-                ? ` · ${motivoCancelamento(dados.enrollment.cancelReason)}`
+                ? ` · ${cancelReasonText(dados.enrollment.cancelReason)}`
                 : ""}
             </AlertTitle>
             <AlertDescription>
               {dados.enrollment.cancelledOn
-                ? `Efeito a partir de ${dataCivil(dados.enrollment.cancelledOn)}.`
+                ? `Efeito a partir de ${civilDateText(dados.enrollment.cancelledOn)}.`
                 : "Sem data de efeito registrada."}
             </AlertDescription>
           </Alert>
@@ -258,7 +258,7 @@ function DetalheMatricula() {
         <section className="flex flex-col gap-3">
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Ficha</h2>
           <dl className="grid gap-4 sm:grid-cols-3">
-            <Dado rotulo="Nascimento" valor={dataCivil(dados.birthDate)} />
+            <Dado rotulo="Nascimento" valor={civilDateText(dados.birthDate)} />
             <Dado rotulo="Ano letivo" valor={String(dados.enrollment.academicYear)} />
             <Dado
               rotulo="Tipo"
@@ -276,8 +276,8 @@ function DetalheMatricula() {
               <div key={guardian.id} className="flex flex-wrap items-center justify-between gap-3">
                 <dl className="grid flex-1 gap-4 sm:grid-cols-3">
                   <Dado rotulo="Nome" valor={guardian.name} />
-                  <Dado rotulo="Parentesco" valor={parentesco(guardian.relationship)} />
-                  <Dado rotulo="Celular" valor={telefone(guardian.phoneE164)} />
+                  <Dado rotulo="Parentesco" valor={relationshipText(guardian.relationship)} />
+                  <Dado rotulo="Celular" valor={phoneText(guardian.phoneE164)} />
                 </dl>
                 {guardian.isLegal ? <Badge variant="info">Responsável legal</Badge> : null}
               </div>
@@ -303,7 +303,7 @@ function DetalheMatricula() {
                       {FINALIDADES[consent.purpose] ?? consent.purpose}
                     </div>
                     <div className="text-meta text-muted-foreground">
-                      versão {consent.termVersion} · {dataHora(consent.grantedAt)} ·{" "}
+                      versão {consent.termVersion} · {dateTimeText(consent.grantedAt)} ·{" "}
                       {consent.actorName}
                     </div>
                   </div>
@@ -390,12 +390,12 @@ function DetalheMatricula() {
           {dados.invite ? (
             <dl className="flex flex-col gap-2.5">
               <Linha rotulo="Situação">
-                <Badge variant={situacaoLink(dados.invite.status).tone}>
-                  {situacaoLink(dados.invite.status).label}
+                <Badge variant={linkStatusBadge(dados.invite.status).tone}>
+                  {linkStatusBadge(dados.invite.status).label}
                 </Badge>
               </Linha>
-              <Linha rotulo="Emitido">{dataHora(dados.invite.createdAt)}</Linha>
-              <Linha rotulo="Vence">{dataHora(dados.invite.expiresAt)}</Linha>
+              <Linha rotulo="Emitido">{dateTimeText(dados.invite.createdAt)}</Linha>
+              <Linha rotulo="Vence">{dateTimeText(dados.invite.expiresAt)}</Linha>
               <Linha rotulo="Tentativas">{String(dados.invite.attempts)}</Linha>
             </dl>
           ) : (
@@ -439,7 +439,7 @@ function DetalheMatricula() {
                 <div className="pb-4">
                   <div className="font-bold text-corpo">{EVENTOS[evento.type] ?? evento.type}</div>
                   <div className="text-meta text-muted-foreground">
-                    {dataHora(evento.occurredAt)}
+                    {dateTimeText(evento.occurredAt)}
                     {evento.actor === "responsavel" ? " · responsável" : ""}
                   </div>
                   <Alteracoes payload={evento.payload} />
@@ -731,15 +731,15 @@ function PainelEditar({
   const legal = dados.guardians.find((item) => item.isLegal) ?? dados.guardians[0];
 
   const [nome, setNome] = useState(dados.studentName);
-  const [nascimento, setNascimento] = useState(isoParaData(dados.birthDate));
+  const [nascimento, setNascimento] = useState(isoToDate(dados.birthDate));
   const [turmaId, setTurmaId] = useState(dados.enrollment.classroomId ?? "");
   const [turnoAtual, setTurnoAtual] = useState(dados.enrollment.shift);
   const [respNome, setRespNome] = useState(legal?.name ?? "");
   const [respParentesco, setRespParentesco] = useState(legal?.relationship ?? "responsavel_legal");
-  const [celular, setCelular] = useState(telefone(legal?.phoneE164));
+  const [celular, setCelular] = useState(phoneText(legal?.phoneE164));
   const [email, setEmail] = useState(legal?.email ?? "");
 
-  const nascimentoISO = dataParaISO(nascimento);
+  const nascimentoISO = dateToISO(nascimento);
   const idade = idadeEm(nascimentoISO);
   const dataInvalida = nascimento.replace(/\D/g, "").length === 8 && !nascimentoISO;
 
@@ -765,7 +765,7 @@ function PainelEditar({
               placeholder="dd/mm/aaaa"
               className="pr-20 tabular-nums"
               value={nascimento}
-              onChange={(e) => setNascimento(mascararData(e.target.value))}
+              onChange={(e) => setNascimento(maskDate(e.target.value))}
             />
             {idade !== null ? (
               <span className="absolute top-1/2 right-3 -translate-y-1/2 font-bold text-meta text-muted-foreground">
@@ -854,7 +854,7 @@ function PainelEditar({
                 id="ed-cel"
                 inputMode="numeric"
                 value={celular}
-                onChange={(e) => setCelular(mascararCelular(e.target.value))}
+                onChange={(e) => setCelular(maskPhone(e.target.value))}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -904,7 +904,7 @@ function PainelEditar({
                     name: respNome !== legal.name ? respNome : undefined,
                     relationship:
                       respParentesco !== legal.relationship ? respParentesco : undefined,
-                    phoneE164: celular !== telefone(legal.phoneE164) ? celular : undefined,
+                    phoneE164: celular !== phoneText(legal.phoneE164) ? celular : undefined,
                     email: email !== (legal.email ?? "") ? email || null : undefined,
                   }
                 : undefined,
@@ -923,9 +923,9 @@ const CAMPOS: Record<string, string> = {
   alunoNome: "Nome do aluno",
   nascimento: "Data de nascimento",
   turma: "Turma",
-  turno: "Turno",
+  shiftText: "Turno",
   responsavelNome: "Nome do responsável",
-  parentesco: "Parentesco",
+  relationshipText: "Parentesco",
   celular: "Celular",
   email: "E-mail",
   responsavelCelular: "Celular do responsável",

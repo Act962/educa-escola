@@ -30,7 +30,7 @@ import { Check, Clock, Info } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { percentual } from "@/lib/format";
+import { percentText } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_app/chamada/$lessonId")({
@@ -275,7 +275,7 @@ function FolhaDeChamada() {
 
             <p className="text-corpo text-muted-foreground">
               Frequência da aula:{" "}
-              <strong className="text-foreground">{percentual(frequencia)}</strong> —{" "}
+              <strong className="text-foreground">{percentText(frequencia)}</strong> —{" "}
               {contagem.presente + contagem.atraso} de {totalAlunos}. Atrasos contam como presença.
             </p>
           </Card>

@@ -4,7 +4,7 @@
  * DECISÃO-JOÃO: `@vladmandic/face-api` é a escolha de agora, não a definitiva.
  * Quebra se: for trocada depois de a escola cadastrar rostos — descritor de
  *   extrator diferente não se compara, e todo mundo recadastra. É por isso que
- *   `NOME_DO_EXTRATOR` vai gravado junto de cada molde: a troca fica
+ *   `EXTRACTOR_NAME` vai gravado junto de cada molde: a troca fica
  *   detectável em vez de silenciosa.
  * Fiz assim: entrou para o teste local pedido pelo usuário, com versão fixa no
  *   catálogo e os pesos servidos do próprio pacote — sem CDN, porque portaria
@@ -15,7 +15,7 @@
  */
 
 /** Vai gravado em cada molde. Mude junto com o modelo, sempre. */
-export const NOME_DO_EXTRATOR = "face-api/1.7.15/tiny+resnet";
+export const EXTRACTOR_NAME = "face-api/1.7.15/tiny+resnet";
 
 /** De onde o Vite serve os pesos (ver `pesosDoReconhecimentoFacial`). */
 const CAMINHO_DOS_PESOS = "/modelos-de-rosto";
@@ -51,9 +51,9 @@ const LADO_DO_DETECTOR = 320;
  * nítida, de frente e bem iluminada. Ler do canvas é ler exatamente o quadro
  * que virou a foto, sem depender de nada continuar na tela.
  */
-export type Quadro = HTMLVideoElement | HTMLCanvasElement;
+export type Frame = HTMLVideoElement | HTMLCanvasElement;
 
-export interface ExtratorDeRosto {
+export interface FaceExtractor {
   readonly nome: string;
   readonly disponivel: boolean;
   /** Carrega o modelo. Chamado uma vez, na abertura do quiosque. */
@@ -67,14 +67,14 @@ export interface ExtratorDeRosto {
    * quase o tempo todo — é a diferença entre o tablet esquentando à toa e o
    * tablet esperando quieto.
    */
-  temRosto(quadro: Quadro): Promise<boolean>;
+  temRosto(quadro: Frame): Promise<boolean>;
   /**
    * Os códigos do rosto que estiver no quadro, ou `null` se não houver rosto.
    *
    * `null` é resposta legítima e frequente: a maior parte dos quadros de uma
    * portaria não tem ninguém na frente da câmera.
    */
-  extrair(quadro: Quadro): Promise<number[] | null>;
+  extrair(quadro: Frame): Promise<number[] | null>;
 }
 
 /**
@@ -83,7 +83,7 @@ export interface ExtratorDeRosto {
  * Não lança: a portaria precisa subir e atender pela carteirinha mesmo sem
  * rosto. `disponivel` é o que a tela lê para não prometer o que não tem.
  */
-export const EXTRATOR_AUSENTE: ExtratorDeRosto = {
+export const MISSING_EXTRACTOR: FaceExtractor = {
   nome: "nenhum",
   disponivel: false,
   preparar: async () => undefined,
@@ -164,13 +164,13 @@ async function carregar(): Promise<FaceApi | null> {
  * Vídeo sem quadro ainda devolveria tensor vazio, e a biblioteca estouraria
  * dentro do laço da câmera. Canvas já é um quadro: basta ter tamanho.
  */
-export function quadroPronto(quadro: Quadro): boolean {
+export function frameReady(quadro: Frame): boolean {
   if (quadro instanceof HTMLCanvasElement) return quadro.width > 0 && quadro.height > 0;
   return quadro.readyState >= 2 && quadro.videoWidth > 0;
 }
 
-export const extratorDeRosto: ExtratorDeRosto = {
-  nome: NOME_DO_EXTRATOR,
+export const faceExtractor: FaceExtractor = {
+  nome: EXTRACTOR_NAME,
   disponivel: true,
 
   async preparar() {
@@ -179,7 +179,7 @@ export const extratorDeRosto: ExtratorDeRosto = {
 
   async temRosto(quadro) {
     const api = await carregar();
-    if (!api || !quadroPronto(quadro)) return false;
+    if (!api || !frameReady(quadro)) return false;
 
     const achado = await api.detectSingleFace(
       quadro,
@@ -193,7 +193,7 @@ export const extratorDeRosto: ExtratorDeRosto = {
 
   async extrair(quadro) {
     const api = await carregar();
-    if (!api || !quadroPronto(quadro)) return null;
+    if (!api || !frameReady(quadro)) return null;
 
     const achado = await api
       .detectSingleFace(
@@ -210,4 +210,4 @@ export const extratorDeRosto: ExtratorDeRosto = {
   },
 };
 
-export const rostoDisponivel = (): boolean => extratorDeRosto.disponivel;
+export const faceAvailable = (): boolean => faceExtractor.disponivel;

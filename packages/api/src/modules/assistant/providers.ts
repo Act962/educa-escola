@@ -13,7 +13,7 @@
  * escrito. O que está aqui é o ponto de partida de quem ainda não salvou
  * credencial nenhuma.
  */
-export interface Provedor {
+export interface Provider {
   id: string;
   nome: string;
   /** Vazio quando o endereço é próprio da instalação (Azure, Ollama remoto). */
@@ -22,7 +22,7 @@ export interface Provedor {
   nota?: string;
 }
 
-export const PROVEDORES: Provedor[] = [
+export const PROVIDERS: Provider[] = [
   {
     id: "openai",
     nome: "OpenAI",
@@ -72,9 +72,9 @@ export const PROVEDORES: Provedor[] = [
 ];
 
 /** Cai em "outro" quando a escola gravou um provedor que não está na lista. */
-export function provedorDe(id: string | null | undefined): Provedor {
+export function providerFor(id: string | null | undefined): Provider {
   return (
-    PROVEDORES.find((p) => p.id === id) ?? (PROVEDORES.find((p) => p.id === "outro") as Provedor)
+    PROVIDERS.find((p) => p.id === id) ?? (PROVIDERS.find((p) => p.id === "outro") as Provider)
   );
 }
 
@@ -89,14 +89,14 @@ export function provedorDe(id: string | null | undefined): Provedor {
  *
  * Por isso endereço e modelo são zerados juntos: são do provedor que saiu.
  */
-export function camposAoTrocarProvedor(id: string): {
+export function fieldsOnProviderChange(id: string): {
   providerLabel: string;
   baseUrl: string;
   model: string;
   /** `true` quando não há lista para escolher e o campo vira texto. */
   modeloDigitado: boolean;
 } {
-  const escolhido = provedorDe(id);
+  const escolhido = providerFor(id);
 
   return {
     providerLabel: escolhido.id,

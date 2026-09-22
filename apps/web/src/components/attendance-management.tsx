@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ClipboardCheck, Users } from "lucide-react";
 import { useState } from "react";
 
-import { inteiro, percentual, percentualCurto, turno } from "@/lib/format";
+import { integerText, percentText, shiftText, shortPercentText } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
 const TODOS = "todos";
@@ -94,17 +94,17 @@ export function AttendanceManagement() {
         <StatCard
           icon={ClipboardCheck}
           label="Frequência média"
-          hint={`mínimo de ${percentualCurto(minimo)}`}
+          hint={`mínimo de ${shortPercentText(minimo)}`}
         >
-          {percentual(dados.rate)}
+          {percentText(dados.rate)}
         </StatCard>
         <StatCard
           icon={AlertTriangle}
           label="Abaixo do mínimo"
-          hint={`de ${inteiro(dados.students)} alunos ativos`}
+          hint={`de ${integerText(dados.students)} alunos ativos`}
           tone={dados.belowMinimum > 0 ? "warning" : "neutral"}
         >
-          {inteiro(dados.belowMinimum)}
+          {integerText(dados.belowMinimum)}
         </StatCard>
         <StatCard
           icon={Users}
@@ -112,7 +112,7 @@ export function AttendanceManagement() {
           hint="média da turma abaixo de 85%"
           tone={emAlerta > 0 ? "warning" : "neutral"}
         >
-          {inteiro(emAlerta)}
+          {integerText(emAlerta)}
         </StatCard>
       </div>
 
@@ -167,12 +167,12 @@ export function AttendanceManagement() {
                       : "text-right font-extrabold text-corpo tabular-nums"
                   }
                 >
-                  {percentualCurto(turma.rate)}
+                  {shortPercentText(turma.rate)}
                 </span>
                 <span className="hidden text-right text-meta text-muted-foreground sm:block">
                   {turma.belowMinimum === 0
                     ? "nenhum abaixo"
-                    : `${inteiro(turma.belowMinimum)} ${turma.belowMinimum === 1 ? "aluno" : "alunos"} abaixo`}
+                    : `${integerText(turma.belowMinimum)} ${turma.belowMinimum === 1 ? "aluno" : "alunos"} abaixo`}
                 </span>
               </li>
             ))}
@@ -180,7 +180,7 @@ export function AttendanceManagement() {
         )}
 
         <p className="text-meta text-muted-foreground">
-          A marca na barra é o mínimo de {percentualCurto(minimo)} das aulas dadas — LDB, art. 24,
+          A marca na barra é o mínimo de {shortPercentText(minimo)} das aulas dadas — LDB, art. 24,
           VI. Atraso conta como presença.
         </p>
       </Card>
@@ -195,7 +195,7 @@ export function AttendanceManagement() {
           </div>
           {abaixo.length > VISIVEIS ? (
             <Button variant="secondary" size="sm" onClick={() => setVerTodos((atual) => !atual)}>
-              {verTodos ? "Ver menos" : `Ver todos os ${inteiro(abaixo.length)}`}
+              {verTodos ? "Ver menos" : `Ver todos os ${integerText(abaixo.length)}`}
             </Button>
           ) : null}
         </div>
@@ -220,13 +220,13 @@ export function AttendanceManagement() {
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-corpo">{aluno.studentName}</p>
                   <p className="text-meta text-muted-foreground">
-                    {aluno.classroomName ?? "Sem turma"} · {turno(aluno.shift)} ·{" "}
+                    {aluno.classroomName ?? "Sem turma"} · {shiftText(aluno.shift)} ·{" "}
                     <span className="tabular-nums">{aluno.registration}</span>
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="font-extrabold text-danger text-sm tabular-nums">
-                    {percentualCurto(aluno.rate)}
+                    {shortPercentText(aluno.rate)}
                   </p>
                   <p className="text-meta text-muted-foreground">
                     faltam {Math.ceil((minimo - aluno.rate) * 100)} pontos

@@ -11,13 +11,13 @@ import {
   recordTestAttendance,
 } from "../../testing/fixtures";
 import { createScoreRepository } from "./repository";
-import type { NovoEvento } from "./tally";
+import type { NewEvent } from "./tally";
 
 afterAll(async () => {
   await closeTestDb();
 });
 
-function evento(over: Partial<NovoEvento> = {}): NovoEvento {
+function evento(over: Partial<NewEvent> = {}): NewEvent {
   return {
     subjectKind: "aluno",
     subjectId: "aluno-1",

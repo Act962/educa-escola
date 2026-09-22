@@ -35,7 +35,7 @@ const SALA_ESPECIAL: Record<string, string> = {
  * (1º, 2º, 3º e 4º tempos). Se caísse sempre no mesmo tempo, um professor com
  * três turmas estaria em três salas ao mesmo tempo todo dia.
  */
-export const GRADE_SEMANAL = [
+export const WEEKLY_TIMETABLE = [
   "Matemática",
   "Língua Portuguesa",
   "Ciências",
@@ -58,7 +58,7 @@ export const GRADE_SEMANAL = [
   "Matemática",
 ] as const;
 
-export const DISCIPLINAS = [...new Set<string>(GRADE_SEMANAL)];
+export const SUBJECTS = [...new Set<string>(WEEKLY_TIMETABLE)];
 
 /** Tempos de aula por turno. Quatro por dia, com intervalo entre o 2º e o 3º. */
 const TEMPOS: Record<Shift, { startsAt: string; endsAt: string }[]> = {
@@ -95,10 +95,10 @@ export interface TimetableSlot {
  * é o que permite um professor atender várias turmas sem se duplicar.
  */
 export function timetableOf(classroomIndex: number, shift: Shift, room: string): TimetableSlot[] {
-  const shiftBy = (classroomIndex * 3) % GRADE_SEMANAL.length;
+  const shiftBy = (classroomIndex * 3) % WEEKLY_TIMETABLE.length;
 
-  return GRADE_SEMANAL.map((_, cell) => {
-    const subject = GRADE_SEMANAL[(cell + shiftBy) % GRADE_SEMANAL.length] as string;
+  return WEEKLY_TIMETABLE.map((_, cell) => {
+    const subject = WEEKLY_TIMETABLE[(cell + shiftBy) % WEEKLY_TIMETABLE.length] as string;
     const period = cell % 4;
     const tempo = TEMPOS[shift][period] as { startsAt: string; endsAt: string };
 
@@ -123,13 +123,13 @@ export interface Person {
   role: "owner" | "admin" | "teacher" | "student";
 }
 
-export const DIRETORA: Person = {
+export const PRINCIPAL: Person = {
   name: "Marina Duarte",
   email: "marina.duarte@dompedroii.edu.br",
   role: "owner",
 };
 
-export const SECRETARIA: Person = {
+export const SECRETARY: Person = {
   name: "Vera Lúcia Amorim",
   email: "vera.amorim@dompedroii.edu.br",
   role: "admin",
@@ -140,7 +140,7 @@ export const SECRETARIA: Person = {
  * alocação — **Ricardo Alves vem primeiro em Matemática de propósito**: é o
  * professor da demonstração, e precisa ficar com as turmas do roteiro.
  */
-export const PROFESSORES: (Person & { subject: string })[] = (
+export const TEACHERS: (Person & { subject: string })[] = (
   [
     { name: "Ricardo Alves", subject: "Matemática", email: "ricardo.alves", role: "teacher" },
     { name: "Beatriz Nogueira", subject: "Matemática", email: "beatriz.nogueira", role: "teacher" },
@@ -184,9 +184,9 @@ export const PROFESSORES: (Person & { subject: string })[] = (
 }));
 
 /** O professor que a demonstração usa. */
-export const PROFESSOR_DEMO = PROFESSORES[0] as (typeof PROFESSORES)[number];
+export const DEMO_TEACHER = TEACHERS[0] as (typeof TEACHERS)[number];
 
-export const ALUNA_COM_ACESSO = {
+export const STUDENT_WITH_ACCESS = {
   name: "Ana Clara Souza Lima",
   email: "ana.clara@aluno.dompedroii.edu.br",
 };
@@ -199,7 +199,7 @@ export const ALUNA_COM_ACESSO = {
  * carregado" para o Ricardo perder o 9º B e o roteiro apontar para a pessoa
  * errada.
  */
-export const TURMAS_DO_PROFESSOR_DEMO = ["8º A", "9º B", "7º C"];
+export const DEMO_TEACHER_CLASSROOMS = ["8º A", "9º B", "7º C"];
 
 /**
  * Aloca professor por (turma, disciplina) sem choque de horário.
@@ -222,15 +222,15 @@ export function assignTeachers(
   const keyOf = (shift: Shift, slot: TimetableSlot) => `${shift}-${slot.weekday}-${slot.period}`;
 
   for (const room of classrooms) {
-    for (const subject of DISCIPLINAS) {
+    for (const subject of SUBJECTS) {
       const slots = room.timetable.filter((slot) => slot.subject === subject);
       if (slots.length === 0) continue;
 
-      const pool = PROFESSORES.filter((teacher) => teacher.subject === subject);
+      const pool = TEACHERS.filter((teacher) => teacher.subject === subject);
 
       const fixo =
-        subject === PROFESSOR_DEMO.subject && TURMAS_DO_PROFESSOR_DEMO.includes(room.name)
-          ? PROFESSOR_DEMO
+        subject === DEMO_TEACHER.subject && DEMO_TEACHER_CLASSROOMS.includes(room.name)
+          ? DEMO_TEACHER
           : undefined;
 
       const free = pool.filter((teacher) => {
@@ -250,7 +250,7 @@ export function assignTeachers(
         (free.length > 0 ? free : pool).reduce(
           (least, teacher) =>
             (load.get(teacher.email) ?? 0) < (load.get(least.email) ?? 0) ? teacher : least,
-          (free[0] ?? pool[0]) as (typeof PROFESSORES)[number],
+          (free[0] ?? pool[0]) as (typeof TEACHERS)[number],
         );
       if (!chosen) continue;
 
@@ -658,7 +658,7 @@ function comAptidaoDoRoteiro(turma: DemoClassroom): DemoClassroom {
   return {
     ...turma,
     students: turma.students.map((aluno) => {
-      const escritas = NOTAS_DO_ROTEIRO[aluno.registration];
+      const escritas = SCRIPTED_GRADES[aluno.registration];
       if (!escritas) return aluno;
 
       const lancadas = escritas.filter((nota): nota is number => nota !== null);
@@ -736,7 +736,7 @@ export function buildClassrooms(): DemoClassroom[] {
  * abre. `null` é lançamento faltando, e é ele que faz a publicação ser
  * recusada.
  */
-export const NOTAS_DO_ROTEIRO: Record<string, [number, number, number | null]> = {
+export const SCRIPTED_GRADES: Record<string, [number, number, number | null]> = {
   [`${DEMO_YEAR}-0301`]: [8.5, 9, 7.5],
   [`${DEMO_YEAR}-0305`]: [7, 8, 6.5],
   [`${DEMO_YEAR}-0309`]: [5, 6, null],

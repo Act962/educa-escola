@@ -6,7 +6,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Medal } from "lucide-react";
 
 import { PointsSkeleton, PointsStatement, PointsSummary } from "@/components/points-panel";
-import { inteiro } from "@/lib/format";
+import { integerText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -54,7 +54,9 @@ function PontosDoProfessor() {
             label="Entre os docentes"
             hint={painel.data.posicao ? "posição pelos pontos do ano" : "aparece ao pontuar"}
           >
-            {painel.data.posicao ? `${painel.data.posicao}º de ${inteiro(painel.data.total)}` : "—"}
+            {painel.data.posicao
+              ? `${painel.data.posicao}º de ${integerText(painel.data.total)}`
+              : "—"}
           </StatCard>
 
           <PointsStatement dados={painel.data} />

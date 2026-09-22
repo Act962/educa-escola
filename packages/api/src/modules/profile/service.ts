@@ -10,7 +10,7 @@ import type { ProfileRepository } from "./repository";
  * decidir *o que desenhar* e não *o que esconder*: "turmas: 0" no perfil de um
  * aluno é um campo que nunca deveria existir ali.
  */
-export type Vinculo =
+export type Affiliation =
   | {
       tipo: "aluno";
       matricula: string | null;
@@ -21,7 +21,7 @@ export type Vinculo =
   | { tipo: "professor"; turmas: number; disciplinas: number; aulas: number }
   | { tipo: "gestao" };
 
-export interface Perfil {
+export interface Profile {
   userId: string;
   name: string;
   email: string;
@@ -31,7 +31,7 @@ export interface Perfil {
   schoolName: string;
   naEscolaDesde: Date;
   contaCriadaEm: Date;
-  vinculo: Vinculo;
+  vinculo: Affiliation;
 }
 
 export function createProfileService(repo: ProfileRepository) {
@@ -44,7 +44,7 @@ export function createProfileService(repo: ProfileRepository) {
      * "perfil de qualquer um" aqui seria abrir a mesma porta sem a mesma
      * fechadura.
      */
-    async me(userId: string, role: AppRole, academicYear: number): Promise<Perfil> {
+    async me(userId: string, role: AppRole, academicYear: number): Promise<Profile> {
       const identidade = await repo.identity(userId);
       if (!identidade) {
         throw new NotFoundError("Sua conta não tem vínculo ativo nesta escola.");
@@ -71,7 +71,7 @@ async function vinculoDe(
   userId: string,
   role: AppRole,
   academicYear: number,
-): Promise<Vinculo> {
+): Promise<Affiliation> {
   if (role === "student") {
     const ficha = await repo.studentBond(userId);
     return {

@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { describe, expect, it } from "vitest";
 
 import type { Context } from "./context";
-import { ConflictError, NotFoundError, ValidationError, violaUnico } from "./errors";
+import { ConflictError, NotFoundError, ValidationError, violatesUnique } from "./errors";
 import { publicProcedure, router, t } from "./index";
 
 const testRouter = router({
@@ -70,8 +70,8 @@ describe("violaUnico", () => {
     });
     const doDrizzle = new Error("Failed query: insert into …", { cause: doPostgres });
 
-    expect(violaUnico(doDrizzle, "referral_conversion_enrollment_uidx")).toBe(true);
-    expect(violaUnico(doDrizzle, "outro_uidx")).toBe(false);
+    expect(violatesUnique(doDrizzle, "referral_conversion_enrollment_uidx")).toBe(true);
+    expect(violatesUnique(doDrizzle, "outro_uidx")).toBe(false);
   });
 
   it("não confunde outro erro do banco com violação de único", () => {
@@ -81,16 +81,16 @@ describe("violaUnico", () => {
     });
 
     expect(
-      violaUnico(new Error("x", { cause: naoNulo }), "referral_conversion_enrollment_uidx"),
+      violatesUnique(new Error("x", { cause: naoNulo }), "referral_conversion_enrollment_uidx"),
     ).toBe(false);
   });
 
   it("aguenta erro sem causa, nulo e cadeia circular", () => {
-    expect(violaUnico(new Error("solto"), "qualquer")).toBe(false);
-    expect(violaUnico(null, "qualquer")).toBe(false);
+    expect(violatesUnique(new Error("solto"), "qualquer")).toBe(false);
+    expect(violatesUnique(null, "qualquer")).toBe(false);
 
     const circular: { cause?: unknown } = {};
     circular.cause = circular;
-    expect(violaUnico(circular, "qualquer")).toBe(false);
+    expect(violatesUnique(circular, "qualquer")).toBe(false);
   });
 });

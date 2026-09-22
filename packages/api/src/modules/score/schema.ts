@@ -8,7 +8,7 @@ export const academicYear = z
 
 export const scoreYearInput = z.object({ academicYear });
 
-export const apurarInput = z.object({ academicYear });
+export const tallyInput = z.object({ academicYear });
 
 export type ScoreYearInput = z.infer<typeof scoreYearInput>;
-export type ApurarInput = z.infer<typeof apurarInput>;
+export type TallyInput = z.infer<typeof tallyInput>;

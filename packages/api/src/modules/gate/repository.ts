@@ -13,7 +13,7 @@ import { aliasedTable, and, desc, eq, gte, isNotNull, isNull, lt, sql } from "dr
 import type { TenantContext } from "../../trpc/tenant";
 import { ENROLLED_STATUSES } from "../student/schema";
 
-export interface MoldeGravado {
+export interface StoredTemplate {
   studentId: string;
   cipher: string;
   iv: string;
@@ -44,7 +44,7 @@ export function createGateRepository(db: DbHandle, tenant: TenantContext) {
      * abre portão, e deixá-lo no conjunto de comparação seria manter o rosto
      * de quem saiu da escola em disputa por uma identificação.
      */
-    async listTemplates(): Promise<MoldeGravado[]> {
+    async listTemplates(): Promise<StoredTemplate[]> {
       return db
         .select({
           studentId: studentFaceTemplate.studentId,

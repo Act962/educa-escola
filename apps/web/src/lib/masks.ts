@@ -11,7 +11,7 @@
  */
 
 /** "86998122039" -> "(86) 99812-2039"; 10 dígitos -> "(86) 9812-2039". */
-export function mascararCelular(valor: string): string {
+export function maskPhone(valor: string): string {
   const digitos = valor.replace(/\D/g, "").slice(0, 11);
   if (digitos.length === 0) return "";
   if (digitos.length <= 2) return `(${digitos}`;
@@ -24,7 +24,7 @@ export function mascararCelular(valor: string): string {
 }
 
 /** "14032015" -> "14/03/2015". Aceita entrada parcial enquanto se digita. */
-export function mascararData(valor: string): string {
+export function maskDate(valor: string): string {
   const digitos = valor.replace(/\D/g, "").slice(0, 8);
   if (digitos.length <= 2) return digitos;
   if (digitos.length <= 4) return `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
@@ -37,7 +37,7 @@ export function mascararData(valor: string): string {
  * A checagem de volta (`getDate` etc.) é o que recusa 31/02: o `Date` do
  * JavaScript não reclama, ele rola para 03/03 silenciosamente.
  */
-export function dataParaISO(valor: string): string | null {
+export function dateToISO(valor: string): string | null {
   const digitos = valor.replace(/\D/g, "");
   if (digitos.length !== 8) return null;
 
@@ -59,7 +59,7 @@ export function dataParaISO(valor: string): string | null {
 }
 
 /** "2015-03-14" -> "14/03/2015", para pré-preencher o campo mascarado. */
-export function isoParaData(valor: string | null | undefined): string {
+export function isoToDate(valor: string | null | undefined): string {
   if (!valor) return "";
   const [ano, mes, dia] = valor.split("-");
   if (!ano || !mes || !dia) return "";

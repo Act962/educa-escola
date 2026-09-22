@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  AULAS_PARA_SEQUENCIA,
-  type AulaApurada,
-  type AvaliacaoApurada,
-  anoDe,
-  apurarAulas,
-  apurarAvaliacoes,
-  apurarEvolucao,
-  apurarFrequenciaDoAno,
-  apurarPresencas,
-  MINIMO_DE_AULAS_PARA_MERITO,
-  type PresencaApurada,
+  LESSONS_FOR_STREAK,
+  MINIMUM_LESSONS_FOR_MERIT,
+  type TalliedAssessment,
+  type TalliedAttendance,
+  type TalliedLesson,
+  tallyAssessments,
+  tallyAttendance,
+  tallyImprovement,
+  tallyLessons,
+  tallyYearAttendance,
+  yearOf,
 } from "./tally";
 
-function presenca(over: Partial<PresencaApurada> & { id: string }): PresencaApurada {
+function presenca(over: Partial<TalliedAttendance> & { id: string }): TalliedAttendance {
   return { studentId: "aluno-1", date: "2026-03-02", status: "presente", ...over };
 }
 
-function aula(over: Partial<AulaApurada> & { id: string }): AulaApurada {
+function aula(over: Partial<TalliedLesson> & { id: string }): TalliedLesson {
   return {
     teacherId: "prof-1",
     date: "2026-03-02",
@@ -29,7 +29,7 @@ function aula(over: Partial<AulaApurada> & { id: string }): AulaApurada {
   };
 }
 
-function avaliacao(over: Partial<AvaliacaoApurada> & { id: string }): AvaliacaoApurada {
+function avaliacao(over: Partial<TalliedAssessment> & { id: string }): TalliedAssessment {
   return {
     teacherId: "prof-1",
     term: 1,
@@ -45,7 +45,7 @@ const chaves = (eventos: { ruleKey: string }[]) => eventos.map((e) => e.ruleKey)
 
 describe("apurarPresencas", () => {
   it("dá mais pela presença que pelo atraso, e nada pela falta", () => {
-    const eventos = apurarPresencas([
+    const eventos = tallyAttendance([
       presenca({ id: "a", status: "presente" }),
       presenca({ id: "b", status: "atraso", date: "2026-03-03" }),
       presenca({ id: "c", status: "falta", date: "2026-03-04" }),
@@ -57,7 +57,7 @@ describe("apurarPresencas", () => {
   });
 
   it("carimba o aluno, a origem e o ano da aula", () => {
-    const [evento] = apurarPresencas([presenca({ id: "att-9", studentId: "aluno-7" })]);
+    const [evento] = tallyAttendance([presenca({ id: "att-9", studentId: "aluno-7" })]);
 
     expect(evento).toMatchObject({
       subjectKind: "aluno",
@@ -69,7 +69,7 @@ describe("apurarPresencas", () => {
     });
   });
 
-  function dias(quantidade: number, status: PresencaApurada["status"], inicio = 1) {
+  function dias(quantidade: number, status: TalliedAttendance["status"], inicio = 1) {
     return Array.from({ length: quantidade }, (_, i) =>
       presenca({
         id: `att-${inicio + i}`,
@@ -80,28 +80,28 @@ describe("apurarPresencas", () => {
   }
 
   it("premia a constância só ao fechar a décima aula", () => {
-    const noventa = apurarPresencas(dias(AULAS_PARA_SEQUENCIA - 1, "presente"));
+    const noventa = tallyAttendance(dias(LESSONS_FOR_STREAK - 1, "presente"));
     expect(chaves(noventa)).not.toContain("aluno.sequencia_10");
 
-    const dez = apurarPresencas(dias(AULAS_PARA_SEQUENCIA, "presente"));
+    const dez = tallyAttendance(dias(LESSONS_FOR_STREAK, "presente"));
     expect(chaves(dez).filter((k) => k === "aluno.sequencia_10")).toHaveLength(1);
   });
 
   /** Vinte aulas seguidas valem duas constâncias — não uma, nem uma por aula. */
   it("reinicia a contagem depois de premiar", () => {
-    const eventos = apurarPresencas(dias(AULAS_PARA_SEQUENCIA * 2, "presente"));
+    const eventos = tallyAttendance(dias(LESSONS_FOR_STREAK * 2, "presente"));
     expect(chaves(eventos).filter((k) => k === "aluno.sequencia_10")).toHaveLength(2);
   });
 
   it("a falta quebra a sequência; o atraso não", () => {
-    const comFalta = apurarPresencas([
+    const comFalta = tallyAttendance([
       ...dias(5, "presente"),
       presenca({ id: "att-falta", status: "falta", date: "2026-03-06" }),
       ...dias(5, "presente", 7),
     ]);
     expect(chaves(comFalta)).not.toContain("aluno.sequencia_10");
 
-    const comAtraso = apurarPresencas([
+    const comAtraso = tallyAttendance([
       ...dias(5, "presente"),
       presenca({ id: "att-atraso", status: "atraso", date: "2026-03-06" }),
       ...dias(4, "presente", 7),
@@ -111,12 +111,12 @@ describe("apurarPresencas", () => {
 
   /** A ordem vem daqui, não de um `ORDER BY` longe da regra. */
   it("ordena por data antes de contar a sequência", () => {
-    const embaralhadas = [...dias(AULAS_PARA_SEQUENCIA, "presente")].reverse();
-    expect(chaves(apurarPresencas(embaralhadas))).toContain("aluno.sequencia_10");
+    const embaralhadas = [...dias(LESSONS_FOR_STREAK, "presente")].reverse();
+    expect(chaves(tallyAttendance(embaralhadas))).toContain("aluno.sequencia_10");
   });
 
   it("não mistura a sequência de alunos diferentes", () => {
-    const eventos = apurarPresencas([
+    const eventos = tallyAttendance([
       ...dias(5, "presente").map((p) => ({ ...p, studentId: "aluno-1" })),
       ...dias(5, "presente", 6).map((p) => ({ ...p, studentId: "aluno-2", id: `b-${p.id}` })),
     ]);
@@ -148,13 +148,13 @@ describe("apurarFrequenciaDoAno", () => {
   }
 
   it("premia acima de 90%, e não exatamente 90%", () => {
-    expect(apurarFrequenciaDoAno(frequencia(95, 5), 2026)).toHaveLength(1);
-    expect(apurarFrequenciaDoAno(frequencia(90, 10), 2026)).toHaveLength(0);
+    expect(tallyYearAttendance(frequencia(95, 5), 2026)).toHaveLength(1);
+    expect(tallyYearAttendance(frequencia(90, 10), 2026)).toHaveLength(0);
   });
 
   /** Sem aula a frequência é indefinida, não 100%. */
   it("não premia quem não teve aula nenhuma", () => {
-    expect(apurarFrequenciaDoAno([], 2026)).toHaveLength(0);
+    expect(tallyYearAttendance([], 2026)).toHaveLength(0);
   });
 
   /**
@@ -163,28 +163,26 @@ describe("apurarFrequenciaDoAno", () => {
    * dizer alguma coisa.
    */
   it("exige um mínimo de aulas antes de premiar o percentual", () => {
-    expect(apurarFrequenciaDoAno(frequencia(1, 0), 2026)).toHaveLength(0);
-    expect(
-      apurarFrequenciaDoAno(frequencia(MINIMO_DE_AULAS_PARA_MERITO - 1, 0), 2026),
-    ).toHaveLength(0);
-    expect(apurarFrequenciaDoAno(frequencia(MINIMO_DE_AULAS_PARA_MERITO, 0), 2026)).toHaveLength(1);
+    expect(tallyYearAttendance(frequencia(1, 0), 2026)).toHaveLength(0);
+    expect(tallyYearAttendance(frequencia(MINIMUM_LESSONS_FOR_MERIT - 1, 0), 2026)).toHaveLength(0);
+    expect(tallyYearAttendance(frequencia(MINIMUM_LESSONS_FOR_MERIT, 0), 2026)).toHaveLength(1);
   });
 
   it("ignora aula de outro ano letivo", () => {
-    const eventos = apurarFrequenciaDoAno([presenca({ id: "velha", date: "2025-03-02" })], 2026);
+    const eventos = tallyYearAttendance([presenca({ id: "velha", date: "2025-03-02" })], 2026);
     expect(eventos).toHaveLength(0);
   });
 
   /** A chave é o ano: reapurar em dezembro não pode somar de novo. */
   it("usa o ano como origem, para não duplicar ao reapurar", () => {
-    const [evento] = apurarFrequenciaDoAno(frequencia(95, 5), 2026);
+    const [evento] = tallyYearAttendance(frequencia(95, 5), 2026);
     expect(evento).toMatchObject({ sourceKind: "ano", sourceId: "2026" });
   });
 });
 
 describe("apurarEvolucao", () => {
   it("premia quem subiu, e não quem só está alto", () => {
-    const eventos = apurarEvolucao(
+    const eventos = tallyImprovement(
       [
         { studentId: "subiu", term: 1, media: 4 },
         { studentId: "subiu", term: 2, media: 6 },
@@ -202,7 +200,7 @@ describe("apurarEvolucao", () => {
 
   /** Comparar contra bimestre sem nota inventaria evolução que ninguém fez. */
   it("exige nota publicada nos dois bimestres", () => {
-    const eventos = apurarEvolucao(
+    const eventos = tallyImprovement(
       [
         { studentId: "aluno-1", term: 1, media: null },
         { studentId: "aluno-1", term: 2, media: 8 },
@@ -213,7 +211,7 @@ describe("apurarEvolucao", () => {
   });
 
   it("não compara bimestres salteados", () => {
-    const eventos = apurarEvolucao(
+    const eventos = tallyImprovement(
       [
         { studentId: "aluno-1", term: 1, media: 4 },
         { studentId: "aluno-1", term: 3, media: 9 },
@@ -226,16 +224,16 @@ describe("apurarEvolucao", () => {
 
 describe("apurarAulas", () => {
   it("não pontua aula sem chamada registrada", () => {
-    expect(apurarAulas([aula({ id: "l-1" })])).toHaveLength(0);
+    expect(tallyLessons([aula({ id: "l-1" })])).toHaveLength(0);
   });
 
   it("premia a chamada feita até o fim do dia da aula", () => {
-    const noPrazo = apurarAulas([
+    const noPrazo = tallyLessons([
       aula({ id: "l-1", attendanceRecordedAt: new Date("2026-03-02T23:00:00-03:00") }),
     ]);
     expect(chaves(noPrazo)).toContain("professor.chamada_no_prazo");
 
-    const atrasada = apurarAulas([
+    const atrasada = tallyLessons([
       aula({ id: "l-2", attendanceRecordedAt: new Date("2026-03-03T08:00:00-03:00") }),
     ]);
     expect(chaves(atrasada)).not.toContain("professor.chamada_no_prazo");
@@ -246,7 +244,7 @@ describe("apurarAulas", () => {
    * da aula cairia no dia seguinte e o professor perderia o ponto sem motivo.
    */
   it("corta o prazo no fuso da escola, não no relógio do processo", () => {
-    const eventos = apurarAulas([
+    const eventos = tallyLessons([
       aula({ id: "l-1", attendanceRecordedAt: new Date("2026-03-02T21:00:00-03:00") }),
     ]);
     expect(chaves(eventos)).toContain("professor.chamada_no_prazo");
@@ -255,13 +253,13 @@ describe("apurarAulas", () => {
   it("premia o diário com conteúdo ou com tarefa, e ignora espaço em branco", () => {
     const registrada = { attendanceRecordedAt: new Date("2026-03-02T10:00:00-03:00") };
 
-    expect(chaves(apurarAulas([aula({ id: "a", ...registrada, content: "Frações" })]))).toContain(
+    expect(chaves(tallyLessons([aula({ id: "a", ...registrada, content: "Frações" })]))).toContain(
       "professor.diario_preenchido",
     );
-    expect(chaves(apurarAulas([aula({ id: "b", ...registrada, homework: "Lista 3" })]))).toContain(
+    expect(chaves(tallyLessons([aula({ id: "b", ...registrada, homework: "Lista 3" })]))).toContain(
       "professor.diario_preenchido",
     );
-    expect(chaves(apurarAulas([aula({ id: "c", ...registrada, content: "   " })]))).not.toContain(
+    expect(chaves(tallyLessons([aula({ id: "c", ...registrada, content: "   " })]))).not.toContain(
       "professor.diario_preenchido",
     );
   });
@@ -272,7 +270,7 @@ describe("apurarAulas", () => {
    * mentir na chamada — e a frequência é o dado mais crítico do sistema.
    */
   it("não olha para quem faltou", () => {
-    const eventos = apurarAulas([
+    const eventos = tallyLessons([
       aula({ id: "l-1", attendanceRecordedAt: new Date("2026-03-02T10:00:00-03:00") }),
     ]);
     expect(chaves(eventos)).toEqual(["professor.chamada_no_prazo"]);
@@ -281,21 +279,21 @@ describe("apurarAulas", () => {
 
 describe("apurarAvaliacoes", () => {
   it("ignora rascunho", () => {
-    expect(apurarAvaliacoes([avaliacao({ id: "a-1", status: "rascunho" })])).toHaveLength(0);
+    expect(tallyAssessments([avaliacao({ id: "a-1", status: "rascunho" })])).toHaveLength(0);
   });
 
   /** Publicar com aluno sem lançamento deixa buraco no boletim. */
   it("só premia publicação sem pendência", () => {
-    expect(chaves(apurarAvaliacoes([avaliacao({ id: "a-1" })]))).toContain(
+    expect(chaves(tallyAssessments([avaliacao({ id: "a-1" })]))).toContain(
       "professor.avaliacao_publicada",
     );
-    expect(chaves(apurarAvaliacoes([avaliacao({ id: "a-2", semLancamento: 3 })]))).not.toContain(
+    expect(chaves(tallyAssessments([avaliacao({ id: "a-2", semLancamento: 3 })]))).not.toContain(
       "professor.avaliacao_publicada",
     );
   });
 
   it("premia devolutiva dentro de sete dias da aplicação", () => {
-    const rapida = apurarAvaliacoes([
+    const rapida = tallyAssessments([
       avaliacao({
         id: "a-1",
         appliedOn: "2026-03-02",
@@ -304,7 +302,7 @@ describe("apurarAvaliacoes", () => {
     ]);
     expect(chaves(rapida)).toContain("professor.devolutiva_em_sete_dias");
 
-    const lenta = apurarAvaliacoes([
+    const lenta = tallyAssessments([
       avaliacao({
         id: "a-2",
         appliedOn: "2026-03-02",
@@ -316,19 +314,19 @@ describe("apurarAvaliacoes", () => {
 
   /** Cadastro incompleto não é mérito. */
   it("não chuta devolutiva sem data de aplicação", () => {
-    const eventos = apurarAvaliacoes([avaliacao({ id: "a-1", appliedOn: null })]);
+    const eventos = tallyAssessments([avaliacao({ id: "a-1", appliedOn: null })]);
     expect(chaves(eventos)).not.toContain("professor.devolutiva_em_sete_dias");
   });
 
   it("guarda o bimestre da avaliação", () => {
-    const [evento] = apurarAvaliacoes([avaliacao({ id: "a-1", term: 3 })]);
+    const [evento] = tallyAssessments([avaliacao({ id: "a-1", term: 3 })]);
     expect(evento).toMatchObject({ term: 3, sourceKind: "assessment", sourceId: "a-1" });
   });
 });
 
 describe("anoDe", () => {
   it("lê o ano da data civil da aula", () => {
-    expect(anoDe("2026-01-05")).toBe(2026);
-    expect(anoDe("2025-12-31")).toBe(2025);
+    expect(yearOf("2026-01-05")).toBe(2026);
+    expect(yearOf("2025-12-31")).toBe(2025);
   });
 });

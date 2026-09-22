@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarX, ClipboardCheck } from "lucide-react";
 import { AttendanceManagement } from "@/components/attendance-management";
-import { percentual } from "@/lib/format";
+import { percentText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -98,7 +98,7 @@ function MinhaFrequencia() {
               hint="mínimo de 75% das aulas dadas"
               tone={frequencia.belowMinimum ? "danger" : "success"}
             >
-              {percentual(frequencia.rate)}
+              {percentText(frequencia.rate)}
             </StatCard>
             <StatCard icon={CalendarX} label="Faltas registradas" tone="neutral">
               {frequencia.absences}
@@ -118,7 +118,7 @@ function MinhaFrequencia() {
             <Progress value={(frequencia.rate ?? 0) * 100} max={100}>
               <ProgressLabel>Aulas assistidas no ano</ProgressLabel>
               <ProgressValue className={frequencia.belowMinimum ? "text-danger" : "text-success"}>
-                {() => percentual(frequencia.rate)}
+                {() => percentText(frequencia.rate)}
               </ProgressValue>
             </Progress>
 

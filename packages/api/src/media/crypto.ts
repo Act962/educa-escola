@@ -17,7 +17,7 @@ const ALGORITHM = "aes-256-gcm";
 const IV_SIZE = 12; // 96 bits, o recomendado para GCM
 const KEY_SIZE = 32; // 256 bits
 
-export interface Cifrado {
+export interface Encrypted {
   cipher: string;
   iv: string;
   authTag: string;
@@ -49,7 +49,7 @@ export function parseKey(raw: string | undefined): Buffer {
 }
 
 /** IV novo a cada chamada: reusar IV com a mesma chave quebra o GCM. */
-export function encrypt(plaintext: Buffer, key: Buffer): Cifrado {
+export function encrypt(plaintext: Buffer, key: Buffer): Encrypted {
   const iv = randomBytes(IV_SIZE);
   const cipher = createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
@@ -62,7 +62,7 @@ export function encrypt(plaintext: Buffer, key: Buffer): Cifrado {
 }
 
 /** Lança se a etiqueta não bater — isto é, se alguém mexeu no texto cifrado. */
-export function decrypt(data: Cifrado, key: Buffer): Buffer {
+export function decrypt(data: Encrypted, key: Buffer): Buffer {
   const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(data.iv, "base64"));
   decipher.setAuthTag(Buffer.from(data.authTag, "base64"));
   return Buffer.concat([decipher.update(Buffer.from(data.cipher, "base64")), decipher.final()]);

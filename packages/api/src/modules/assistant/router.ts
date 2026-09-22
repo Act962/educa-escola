@@ -2,7 +2,7 @@ import type { DbHandle } from "@educa-escola/db/types";
 import { env } from "@educa-escola/env/server";
 
 import { permitted, router, schoolProcedure } from "../../index";
-import { createClienteCompativel } from "../../integrations/model/client";
+import { createCompatibleClient } from "../../integrations/model/client";
 import type { Membership, TenantContext } from "../../trpc/tenant";
 import { createAssessmentRepository } from "../assessment/repository";
 import { createLessonRepository } from "../lesson/repository";
@@ -10,7 +10,7 @@ import { createOverviewRepository } from "../overview/repository";
 import { createOverviewService } from "../overview/service";
 import { createStudentRepository } from "../student/repository";
 import { createStudentService } from "../student/service";
-import { fatosDaGestao, fatosDoAluno, fatosDoProfessor } from "./facts";
+import { managementFacts, studentFacts, teacherFacts } from "./facts";
 import { createAssistantRepository } from "./repository";
 import { askInput, updateSettingsInput } from "./schema";
 import { createAssistantService } from "./service";
@@ -21,7 +21,7 @@ function serviceFor(ctx: Ctx) {
   return createAssistantService(createAssistantRepository(ctx.db, ctx.tenant), {
     now: () => new Date(),
     chave: env.ASSISTANT_ENCRYPTION_KEY,
-    modelo: createClienteCompativel,
+    modelo: createCompatibleClient,
   });
 }
 
@@ -52,16 +52,16 @@ async function fatosDe(ctx: Ctx) {
   const { role, userId } = ctx.membership;
 
   if (role === "owner" || role === "admin") {
-    return fatosDaGestao(overview, BIMESTRE, new Date());
+    return managementFacts(overview, BIMESTRE, new Date());
   }
 
   if (role === "teacher") {
-    return fatosDoProfessor(overview, userId, BIMESTRE);
+    return teacherFacts(overview, userId, BIMESTRE);
   }
 
   const students = createStudentService(createStudentRepository(ctx.db, ctx.tenant));
   const eu = await students.byUserId(userId);
-  return fatosDoAluno(overview, {
+  return studentFacts(overview, {
     studentId: eu.id,
     classroomId: eu.classroomId,
     term: BIMESTRE,

@@ -1,13 +1,13 @@
 import { weightedAverage } from "../assessment/service";
 import type { ScoreRepository } from "./repository";
-import { type Nivel, nivelDe, proximoNivel, regraDe, type SubjectKind } from "./rules";
-import type { MediaDoBimestre, NovoEvento } from "./tally";
+import { type Level, levelOf, nextLevel, ruleFor, type SubjectKind } from "./rules";
+import type { NewEvent, TermAverage } from "./tally";
 import {
-  apurarAulas,
-  apurarAvaliacoes,
-  apurarEvolucao,
-  apurarFrequenciaDoAno,
-  apurarPresencas,
+  tallyAssessments,
+  tallyAttendance,
+  tallyImprovement,
+  tallyLessons,
+  tallyYearAttendance,
 } from "./tally";
 
 export interface PosicaoNoPlacar {
@@ -17,10 +17,10 @@ export interface PosicaoNoPlacar {
   total: number;
 }
 
-export interface PainelDePontos {
+export interface ScorePanel {
   pontos: number;
-  nivel: Nivel;
-  proximo: ReturnType<typeof proximoNivel>;
+  nivel: Level;
+  proximo: ReturnType<typeof nextLevel>;
   extrato: {
     id: string;
     ruleKey: string;
@@ -54,7 +54,7 @@ export function posicaoEm(
 }
 
 /** Média de pontos de um grupo. `null` com grupo vazio — não é zero. */
-export function mediaDePontos(valores: number[]): number | null {
+export function averagePoints(valores: number[]): number | null {
   if (valores.length === 0) return null;
   return Math.round(valores.reduce((soma, valor) => soma + valor, 0) / valores.length);
 }
@@ -66,7 +66,7 @@ export function createScoreService(repo: ScoreRepository) {
       // Regra removida do catálogo continua tendo eventos gravados: o fato
       // aconteceu. Mostrar a chave crua é feio, mas é honesto — melhor que
       // sumir com pontos que a pessoa já viu somados no total.
-      label: regraDe(evento.ruleKey)?.label ?? evento.ruleKey,
+      label: ruleFor(evento.ruleKey)?.label ?? evento.ruleKey,
     }));
   }
 
@@ -74,7 +74,7 @@ export function createScoreService(repo: ScoreRepository) {
     subjectKind: SubjectKind,
     subjectId: string,
     academicYear: number,
-  ): Promise<PainelDePontos> {
+  ): Promise<ScorePanel> {
     const [saldo, eventos] = await Promise.all([
       repo.balance({ subjectKind, subjectId, academicYear }),
       repo.listEvents({ subjectKind, subjectId, academicYear, limit: TAMANHO_DO_EXTRATO }),
@@ -83,8 +83,8 @@ export function createScoreService(repo: ScoreRepository) {
     const pontos = saldo?.points ?? 0;
     return {
       pontos,
-      nivel: nivelDe(pontos),
-      proximo: proximoNivel(pontos),
+      nivel: levelOf(pontos),
+      proximo: nextLevel(pontos),
       extrato: comRotulo(eventos),
     };
   }
@@ -105,14 +105,14 @@ export function createScoreService(repo: ScoreRepository) {
         repo.lancamentosPublicadosDoAno(academicYear),
       ]);
 
-      const medias = mediasPorBimestre(lancamentos);
+      const medias = averagesByTerm(lancamentos);
 
-      const eventos: NovoEvento[] = [
-        ...apurarPresencas(presencas),
-        ...apurarFrequenciaDoAno(presencas, academicYear),
-        ...apurarEvolucao(medias, academicYear),
-        ...apurarAulas(aulas),
-        ...apurarAvaliacoes(avaliacoes),
+      const eventos: NewEvent[] = [
+        ...tallyAttendance(presencas),
+        ...tallyYearAttendance(presencas, academicYear),
+        ...tallyImprovement(medias, academicYear),
+        ...tallyLessons(aulas),
+        ...tallyAssessments(avaliacoes),
       ];
 
       const novos = await repo.appendEvents(eventos);
@@ -150,7 +150,7 @@ export function createScoreService(repo: ScoreRepository) {
         // O denominador é a turma inteira, não só quem pontuou: "3º de 12"
         // numa turma de 28 faria o aluno achar que metade sumiu.
         totalNaTurma: colegas.length,
-        mediaDaTurma: mediaDePontos(
+        mediaDaTurma: averagePoints(
           colegas.map((id) => placarDaTurma.find((linha) => linha.subjectId === id)?.points ?? 0),
         ),
       };
@@ -183,7 +183,7 @@ export function createScoreService(repo: ScoreRepository) {
         nome: porId.get(linha.subjectId)?.name ?? "Aluno removido",
         classroomId: porId.get(linha.subjectId)?.classroomId ?? null,
         pontos: linha.points,
-        nivel: nivelDe(linha.points),
+        nivel: levelOf(linha.points),
       }));
     },
 
@@ -200,7 +200,7 @@ export function createScoreService(repo: ScoreRepository) {
         // tela precisa de um rótulo para a linha em vez de um id cru.
         nome: porId.get(linha.subjectId) ?? "Sem vínculo atual",
         pontos: linha.points,
-        nivel: nivelDe(linha.points),
+        nivel: levelOf(linha.points),
       }));
     },
   };
@@ -213,9 +213,9 @@ export function createScoreService(repo: ScoreRepository) {
  * divergissem, o ponto de evolução e o boletim contariam histórias diferentes
  * sobre o mesmo aluno.
  */
-export function mediasPorBimestre(
+export function averagesByTerm(
   lancamentos: { studentId: string; term: number; score: number; weight: number }[],
-): MediaDoBimestre[] {
+): TermAverage[] {
   const agrupado = new Map<string, { score: number; weight: number }[]>();
 
   for (const linha of lancamentos) {

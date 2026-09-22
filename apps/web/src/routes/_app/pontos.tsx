@@ -6,7 +6,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Medal, Users } from "lucide-react";
 
 import { PointsSkeleton, PointsStatement, PointsSummary } from "@/components/points-panel";
-import { inteiro } from "@/lib/format";
+import { integerText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -61,12 +61,12 @@ function MeusPontos() {
               }
             >
               {painel.data.posicao
-                ? `${painel.data.posicao}º de ${inteiro(painel.data.totalNaTurma)}`
+                ? `${painel.data.posicao}º de ${integerText(painel.data.totalNaTurma)}`
                 : "—"}
             </StatCard>
 
             <StatCard icon={Users} label="Média da turma" hint="comparação anônima, sem nomes">
-              {painel.data.mediaDaTurma === null ? "—" : inteiro(painel.data.mediaDaTurma)}
+              {painel.data.mediaDaTurma === null ? "—" : integerText(painel.data.mediaDaTurma)}
             </StatCard>
           </div>
 

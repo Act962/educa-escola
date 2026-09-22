@@ -10,8 +10,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plug, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { inteiro } from "@/lib/format";
-import { APPS_ORBITA, type AppOrbita } from "@/lib/orbita-apps";
+import { integerText } from "@/lib/format";
+import { ORBITA_APPS, type OrbitaApp } from "@/lib/orbita-apps";
 import type { RouterOutputs } from "@/utils/trpc";
 import { useTRPC } from "@/utils/trpc";
 
@@ -116,8 +116,8 @@ function Apps() {
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Apps</h1>
           <p className="text-corpo text-muted-foreground">
             {dados.installedCount === 0
-              ? `${APPS_ORBITA.length} apps disponíveis para a escola`
-              : `${inteiro(dados.installedCount)} instalados · ${inteiro(APPS_ORBITA.length - dados.installedCount)} disponíveis`}
+              ? `${ORBITA_APPS.length} apps disponíveis para a escola`
+              : `${integerText(dados.installedCount)} instalados · ${integerText(ORBITA_APPS.length - dados.installedCount)} disponíveis`}
           </p>
         </div>
         <Saldo balance={dados.balance} />
@@ -141,7 +141,7 @@ function Apps() {
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {APPS_ORBITA.map((app) => (
+        {ORBITA_APPS.map((app) => (
           <CardApp
             key={app.key}
             app={app}
@@ -181,7 +181,7 @@ function Saldo({ balance }: { balance: Panorama["balance"] }) {
       <div>
         <CardEyebrow>Saldo da escola</CardEyebrow>
         <p className="mt-1 font-extrabold text-2xl tabular-nums tracking-[-0.6px]">
-          {inteiro(balance.balance)} <span className="text-warning">★</span>
+          {integerText(balance.balance)} <span className="text-warning">★</span>
         </p>
       </div>
       {/* Bônus separado: há ação no Órbita que não aceita saldo de bônus, e um
@@ -189,7 +189,7 @@ function Saldo({ balance }: { balance: Panorama["balance"] }) {
       <div className="border-border border-l pl-5">
         <CardEyebrow>Bônus</CardEyebrow>
         <p className="mt-1 font-extrabold text-base text-muted-foreground tabular-nums">
-          {inteiro(balance.bonusBalance)} ★
+          {integerText(balance.bonusBalance)} ★
         </p>
       </div>
     </div>
@@ -271,11 +271,11 @@ function CardApp({
   aoRemover,
   removendo,
 }: {
-  app: AppOrbita;
+  app: OrbitaApp;
   estado: AppState | undefined;
   conectada: boolean;
   onInstalar: (estado: AppState) => void;
-  aoRemover?: (appKey: AppOrbita["key"]) => void;
+  aoRemover?: (appKey: OrbitaApp["key"]) => void;
   removendo?: boolean;
 }) {
   const Icone = app.icon;
@@ -412,7 +412,7 @@ function Confirmacao({
   onFechar: () => void;
   onInstalar: () => void;
 }) {
-  const app = APPS_ORBITA.find((item) => item.key === estado.appKey);
+  const app = ORBITA_APPS.find((item) => item.key === estado.appKey);
   const setupCost = estado.cost?.setupCost ?? 0;
 
   /*
@@ -444,13 +444,13 @@ function Confirmacao({
         {saldoDepois !== null ? (
           <Linha rotulo="Saldo depois da ativação">
             <span className={saldoDepois < 0 ? "text-danger" : "text-success"}>
-              {inteiro(saldoDepois)} ★
+              {integerText(saldoDepois)} ★
             </span>
           </Linha>
         ) : null}
         {gastoDoBonus > 0 && bonusDepois !== null ? (
           <Linha rotulo="Sai do bônus">
-            {inteiro(gastoDoBonus)} ★ · restam {inteiro(bonusDepois)} ★
+            {integerText(gastoDoBonus)} ★ · restam {integerText(bonusDepois)} ★
           </Linha>
         ) : null}
       </dl>

@@ -25,7 +25,7 @@ import {
  * A `key` é a mesma do `appSlug` no catálogo do Órbita: é por ela que o preço
  * é resolvido.
  */
-export interface AppOrbita {
+export interface OrbitaApp {
   /**
    * A mesma chave do `appSlug` no catálogo do Órbita.
    *
@@ -41,7 +41,7 @@ export interface AppOrbita {
   icon: LucideIcon;
 }
 
-export const APPS_ORBITA: AppOrbita[] = [
+export const ORBITA_APPS: OrbitaApp[] = [
   {
     key: "crm-tracking",
     nome: "CRM Tracking",
@@ -154,6 +154,6 @@ export const APPS_ORBITA: AppOrbita[] = [
  */
 
 /** Busca por chave. Devolve `null` para app que o servidor conheça e a tela não. */
-export function appOrbitaDe(key: string): AppOrbita | null {
-  return APPS_ORBITA.find((app) => app.key === key) ?? null;
+export function orbitaAppFor(key: string): OrbitaApp | null {
+  return ORBITA_APPS.find((app) => app.key === key) ?? null;
 }

@@ -13,7 +13,7 @@ import type { DayEffect, EventType } from "./schema";
  * projeto e de aula, não folga.
  */
 
-export interface DataDoCalendario {
+export interface CalendarDate {
   title: string;
   /** "2026-09-07" */
   startsOn: string;
@@ -31,7 +31,7 @@ export interface DataDoCalendario {
  * É daqui que saem Carnaval, Sexta-feira Santa e Corpus Christi. Vale de 1583
  * a 4099, o que cobre qualquer ano letivo que este sistema vá ver.
  */
-export function domingoDePascoa(ano: number): string {
+export function easterSunday(ano: number): string {
   const a = ano % 19;
   const b = Math.floor(ano / 100);
   const c = ano % 100;
@@ -55,7 +55,7 @@ function iso(ano: number, mes: number, dia: number): string {
 }
 
 /** Soma dias a uma data civil. Meio-dia UTC: o dia nunca vira por fuso. */
-export function somarDias(data: string, dias: number): string {
+export function addDays(data: string, dias: number): string {
   const [ano, mes, dia] = data.split("-").map(Number);
   const d = new Date(Date.UTC(ano ?? 1970, (mes ?? 1) - 1, dia ?? 1, 12));
   d.setUTCDate(d.getUTCDate() + dias);
@@ -68,7 +68,7 @@ const umDia = (
   type: EventType,
   dayEffect: DayEffect,
   fonte: string,
-): DataDoCalendario => ({ title, startsOn, endsOn: startsOn, type, dayEffect, fonte });
+): CalendarDate => ({ title, startsOn, endsOn: startsOn, type, dayEffect, fonte });
 
 /**
  * Feriados nacionais — os que a lei federal manda fechar.
@@ -77,10 +77,10 @@ const umDia = (
  * Consciência Negra feriado nacional. Muitos calendários ainda o trazem como
  * facultativo, e é o erro mais comum desta lista.
  */
-export function feriadosNacionais(ano: number): DataDoCalendario[] {
-  const pascoa = domingoDePascoa(ano);
+export function nationalHolidays(ano: number): CalendarDate[] {
+  const pascoa = easterSunday(ano);
 
-  const fixos: DataDoCalendario[] = [
+  const fixos: CalendarDate[] = [
     umDia("Confraternização Universal", iso(ano, 1, 1), "feriado", "nao_letivo", "Lei 662/1949"),
     umDia("Tiradentes", iso(ano, 4, 21), "feriado", "nao_letivo", "Lei 662/1949"),
     umDia("Dia do Trabalho", iso(ano, 5, 1), "feriado", "nao_letivo", "Lei 662/1949"),
@@ -100,7 +100,7 @@ export function feriadosNacionais(ano: number): DataDoCalendario[] {
 
   const movel = umDia(
     "Sexta-feira Santa",
-    somarDias(pascoa, -2),
+    addDays(pascoa, -2),
     "feriado",
     "nao_letivo",
     "Lei 9.093/1995 — móvel, deriva da Páscoa",
@@ -116,28 +116,28 @@ export function feriadosNacionais(ano: number): DataDoCalendario[] {
  * escola brasileira não tem aula neles, então entram como dia não letivo e a
  * origem diz o que são. Escola que der aula na quarta de cinzas apaga a linha.
  */
-export function pontosFacultativos(ano: number): DataDoCalendario[] {
-  const pascoa = domingoDePascoa(ano);
+export function optionalHolidays(ano: number): CalendarDate[] {
+  const pascoa = easterSunday(ano);
 
   return [
     {
       title: "Carnaval",
-      startsOn: somarDias(pascoa, -48),
-      endsOn: somarDias(pascoa, -47),
+      startsOn: addDays(pascoa, -48),
+      endsOn: addDays(pascoa, -47),
       type: "recesso",
       dayEffect: "nao_letivo",
       fonte: "Ponto facultativo — móvel, deriva da Páscoa",
     },
     umDia(
       "Quarta-feira de Cinzas",
-      somarDias(pascoa, -46),
+      addDays(pascoa, -46),
       "recesso",
       "nao_letivo",
       "Ponto facultativo até as 14h — móvel",
     ),
     umDia(
       "Corpus Christi",
-      somarDias(pascoa, 60),
+      addDays(pascoa, 60),
       "recesso",
       "nao_letivo",
       "Ponto facultativo — móvel, deriva da Páscoa",
@@ -156,7 +156,7 @@ export function pontosFacultativos(ano: number): DataDoCalendario[] {
  * substituiu "Dia do Índio". O termo anterior é pejorativo e a lei é recente
  * o bastante para muita agenda ainda trazer o antigo.
  */
-export function datasComemorativas(ano: number): DataDoCalendario[] {
+export function commemorativeDates(ano: number): CalendarDate[] {
   const comemorativa = (title: string, mes: number, dia: number, fonte: string) =>
     umDia(title, iso(ano, mes, dia), "evento", "nenhum", fonte);
 
@@ -192,14 +192,14 @@ export function datasComemorativas(ano: number): DataDoCalendario[] {
  * mas **cada rede define o seu** — por isso vem como sugestão editável e não
  * como verdade. Começa na primeira segunda-feira de julho.
  */
-export function recessoDeJulho(ano: number): DataDoCalendario {
+export function julyBreak(ano: number): CalendarDate {
   let dia = iso(ano, 7, 1);
-  while (new Date(`${dia}T12:00:00Z`).getUTCDay() !== 1) dia = somarDias(dia, 1);
+  while (new Date(`${dia}T12:00:00Z`).getUTCDay() !== 1) dia = addDays(dia, 1);
 
   return {
     title: "Recesso escolar de julho",
     startsOn: dia,
-    endsOn: somarDias(dia, 11),
+    endsOn: addDays(dia, 11),
     type: "recesso",
     dayEffect: "nao_letivo",
     fonte: "Sugestão — cada rede define o próprio recesso",
@@ -207,11 +207,11 @@ export function recessoDeJulho(ano: number): DataDoCalendario {
 }
 
 /** Tudo que o sistema sabe sugerir para um ano letivo. */
-export function calendarioBrasileiro(ano: number): DataDoCalendario[] {
+export function brazilianCalendar(ano: number): CalendarDate[] {
   return [
-    ...feriadosNacionais(ano),
-    ...pontosFacultativos(ano),
-    ...datasComemorativas(ano),
-    recessoDeJulho(ano),
+    ...nationalHolidays(ano),
+    ...optionalHolidays(ano),
+    ...commemorativeDates(ano),
+    julyBreak(ano),
   ].sort((a, b) => a.startsOn.localeCompare(b.startsOn));
 }

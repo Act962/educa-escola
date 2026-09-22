@@ -15,7 +15,7 @@
  * Quem precisar de vírgula está exportando para outro sistema, não para a
  * secretaria.
  */
-export const SEPARADOR = ";";
+export const SEPARATOR = ";";
 
 /**
  * Marca de ordem de byte no começo do arquivo.
@@ -32,11 +32,11 @@ const BOM = "﻿";
  * separador, aspas ou quebra de linha — nome de aluno com vírgula e endereço
  * com quebra existem, e sem isso deslocam todas as colunas seguintes.
  */
-export function celula(valor: unknown): string {
+export function cell(valor: unknown): string {
   if (valor === null || valor === undefined) return "";
 
   const texto = String(valor);
-  if (!texto.includes(SEPARADOR) && !texto.includes('"') && !/[\r\n]/.test(texto)) {
+  if (!texto.includes(SEPARATOR) && !texto.includes('"') && !/[\r\n]/.test(texto)) {
     return texto;
   }
   return `"${texto.replaceAll('"', '""')}"`;
@@ -48,26 +48,26 @@ export function celula(valor: unknown): string {
  * `8.5` escrito assim é lido como data ou como texto pelo Excel em pt-BR. Com
  * vírgula, ele vira número e soma.
  */
-export function numero(valor: number | null | undefined, casas = 1): string {
+export function numberCell(valor: number | null | undefined, casas = 1): string {
   if (valor === null || valor === undefined || Number.isNaN(valor)) return "";
   return valor.toFixed(casas).replace(".", ",");
 }
 
 /** Percentual de 0 a 1 vira "93,7%". `null` vira vazio, nunca "0%". */
-export function percentual(taxa: number | null | undefined, casas = 1): string {
+export function percentCell(taxa: number | null | undefined, casas = 1): string {
   if (taxa === null || taxa === undefined) return "";
-  return `${numero(taxa * 100, casas)}%`;
+  return `${numberCell(taxa * 100, casas)}%`;
 }
 
-export interface Coluna<T> {
+export interface Column<T> {
   titulo: string;
   valor: (linha: T) => unknown;
 }
 
-export function gerarCsv<T>(colunas: Coluna<T>[], linhas: T[]): string {
-  const cabecalho = colunas.map((coluna) => celula(coluna.titulo)).join(SEPARADOR);
+export function generateCsv<T>(colunas: Column<T>[], linhas: T[]): string {
+  const cabecalho = colunas.map((coluna) => cell(coluna.titulo)).join(SEPARATOR);
   const corpo = linhas.map((linha) =>
-    colunas.map((coluna) => celula(coluna.valor(linha))).join(SEPARADOR),
+    colunas.map((coluna) => cell(coluna.valor(linha))).join(SEPARATOR),
   );
 
   // `\r\n` é o que o Excel espera; `\n` sozinho funciona no LibreOffice e
@@ -76,7 +76,7 @@ export function gerarCsv<T>(colunas: Coluna<T>[], linhas: T[]): string {
 }
 
 /** Nome de arquivo seguro: sem acento, sem espaço, com data. */
-export function nomeDoArquivo(base: string, ano: number, hoje: string): string {
+export function fileName(base: string, ano: number, hoje: string): string {
   const limpo = base
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")

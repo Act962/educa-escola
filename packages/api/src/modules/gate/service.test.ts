@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ConflictError, ValidationError } from "../../errors";
 import type { GateRepository } from "./repository";
-import { cifrarMolde } from "./secret";
+import { encryptTemplate } from "./secret";
 import { createGateService } from "./service";
 
 /** 32 bytes em base64, só para o teste. Não é segredo de lugar nenhum. */
@@ -52,7 +52,7 @@ const servico = (opcoes: { repo?: Partial<GateRepository>; semChave?: boolean } 
 
 /** Um molde gravado de verdade: cifrado, como sai do banco. */
 function moldeDe(studentId: string, descritor: number[], extractor = "ext-a") {
-  const c = cifrarMolde(descritor, CHAVE);
+  const c = encryptTemplate(descritor, CHAVE);
   return {
     studentId,
     cipher: c.cipher,

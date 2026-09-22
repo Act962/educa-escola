@@ -19,7 +19,7 @@ import { Link } from "@tanstack/react-router";
 import { BookOpen, CalendarCheck, ClipboardCheck, Layers } from "lucide-react";
 
 import type { CurrentUser } from "@/components/app-shell";
-import { nota, percentualCurto, primeiroNome, saudacao } from "@/lib/format";
+import { firstName, gradeText, greeting, shortPercentText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -50,7 +50,7 @@ export function StudentDashboard({ me }: { me: CurrentUser }) {
           </Avatar>
           <div className="flex flex-col gap-2">
             <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
-              {saudacao()}, {primeiroNome(me.name)}
+              {greeting()}, {firstName(me.name)}
             </h1>
             <p className="max-w-xl text-corpo text-muted-foreground">
               {ficha.data
@@ -72,10 +72,10 @@ export function StudentDashboard({ me }: { me: CurrentUser }) {
             label="Frequência no bimestre"
             tone={painel.data?.attendance?.belowMinimum ? "danger" : "success"}
           >
-            {percentualCurto(painel.data?.attendance?.rate)}
+            {shortPercentText(painel.data?.attendance?.rate)}
           </StatCard>
           <StatCard icon={BookOpen} label="Média geral" tone="info">
-            {nota(boletim.data?.overall)}
+            {gradeText(boletim.data?.overall)}
           </StatCard>
           <StatCard icon={CalendarCheck} label="Faltas registradas" tone="neutral">
             {painel.data?.attendance?.absences ?? 0}
@@ -166,7 +166,7 @@ export function StudentDashboard({ me }: { me: CurrentUser }) {
                         linha.score < 6 ? "text-danger" : "text-foreground",
                       )}
                     >
-                      {nota(linha.score)}
+                      {gradeText(linha.score)}
                     </span>
                   </li>
                 ))}

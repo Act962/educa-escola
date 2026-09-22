@@ -25,7 +25,7 @@ const nota = (valor: number | null | undefined) =>
 /** Quantos professores da fila entram no texto. A lista inteira estoura o contexto. */
 const PENDENTES_NO_TEXTO = 8;
 
-export async function fatosDaGestao(overview: OverviewService, term: number, agora: Date) {
+export async function managementFacts(overview: OverviewService, term: number, agora: Date) {
   const painel = await overview.gestao(term, agora);
 
   const fila = painel.pending
@@ -47,7 +47,7 @@ export async function fatosDaGestao(overview: OverviewService, term: number, ago
   ].join("\n");
 }
 
-export async function fatosDoProfessor(overview: OverviewService, teacherId: string, term: number) {
+export async function teacherFacts(overview: OverviewService, teacherId: string, term: number) {
   const painel = await overview.professor(teacherId, term);
 
   const turmas = painel.classroomAverages.map(
@@ -70,7 +70,7 @@ export async function fatosDoProfessor(overview: OverviewService, teacherId: str
   ].join("\n");
 }
 
-export async function fatosDoAluno(
+export async function studentFacts(
   overview: OverviewService,
   input: { studentId: string; classroomId: string | null; term: number },
 ) {

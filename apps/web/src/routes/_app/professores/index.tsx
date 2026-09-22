@@ -19,7 +19,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClipboardList, Search, TriangleAlert, Users } from "lucide-react";
 import { useState } from "react";
 
-import { inteiro } from "@/lib/format";
+import { integerText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -79,7 +79,7 @@ function Professores() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <StatCard icon={Users} label="No corpo docente" hint={`vínculo ativo em ${year}`}>
-          {resumo ? inteiro(resumo.total) : "—"}
+          {resumo ? integerText(resumo.total) : "—"}
         </StatCard>
         <StatCard
           icon={TriangleAlert}
@@ -87,10 +87,10 @@ function Professores() {
           hint="chamada ou nota em aberto"
           tone={resumo && resumo.comPendencia > 0 ? "warning" : undefined}
         >
-          {resumo ? inteiro(resumo.comPendencia) : "—"}
+          {resumo ? integerText(resumo.comPendencia) : "—"}
         </StatCard>
         <StatCard icon={ClipboardList} label="Chamadas em aberto" hint="aulas já encerradas">
-          {resumo ? inteiro(resumo.chamadasPendentes) : "—"}
+          {resumo ? integerText(resumo.chamadasPendentes) : "—"}
         </StatCard>
       </div>
 
@@ -176,9 +176,9 @@ function Professores() {
                         </div>
                       </Link>
                     </TableCell>
-                    <TableCell>{inteiro(docente.turmas)}</TableCell>
-                    <TableCell>{inteiro(docente.disciplinas)}</TableCell>
-                    <TableCell>{inteiro(docente.aulas)}</TableCell>
+                    <TableCell>{integerText(docente.turmas)}</TableCell>
+                    <TableCell>{integerText(docente.disciplinas)}</TableCell>
+                    <TableCell>{integerText(docente.aulas)}</TableCell>
                     <TableCell>
                       {pendencias === 0 ? (
                         <span className="text-muted-foreground">—</span>
@@ -187,11 +187,11 @@ function Professores() {
                         // e um número só não diz à coordenação o que pedir.
                         <span className="text-meta">
                           {docente.chamadasPendentes > 0
-                            ? `${inteiro(docente.chamadasPendentes)} chamada${docente.chamadasPendentes > 1 ? "s" : ""}`
+                            ? `${integerText(docente.chamadasPendentes)} chamada${docente.chamadasPendentes > 1 ? "s" : ""}`
                             : null}
                           {docente.chamadasPendentes > 0 && docente.notasPendentes > 0 ? " · " : ""}
                           {docente.notasPendentes > 0
-                            ? `${inteiro(docente.notasPendentes)} nota${docente.notasPendentes > 1 ? "s" : ""}`
+                            ? `${integerText(docente.notasPendentes)} nota${docente.notasPendentes > 1 ? "s" : ""}`
                             : null}
                         </span>
                       )}

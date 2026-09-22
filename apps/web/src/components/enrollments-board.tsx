@@ -8,7 +8,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { dataHora, inteiro, prazo, situacaoLink } from "@/lib/format";
+import { dateTimeText, deadlineText, integerText, linkStatusBadge } from "@/lib/format";
 import type { RouterOutputs } from "@/utils/trpc";
 import { useTRPC } from "@/utils/trpc";
 
@@ -231,7 +231,7 @@ export function EnrollmentsBoard({ filtros }: { filtros: Filtros }) {
         <header className="flex items-center justify-between px-1">
           <h3 className="font-extrabold text-xs">Confirmadas</h3>
           <span className="rounded-full bg-card px-2.5 py-0.5 font-extrabold text-meta text-muted-foreground">
-            {inteiro(totalConfirmadas)}
+            {integerText(totalConfirmadas)}
           </span>
         </header>
 
@@ -278,7 +278,7 @@ export function EnrollmentsBoard({ filtros }: { filtros: Filtros }) {
         {totalConfirmadas > confirmadas.length ? (
           <p className="px-1 py-1 text-center text-meta text-muted-foreground">
             {/* Carregar 286 cartões seria um quadro que ninguém lê. */}+{" "}
-            {inteiro(totalConfirmadas - confirmadas.length)} confirmadas · veja na lista
+            {integerText(totalConfirmadas - confirmadas.length)} confirmadas · veja na lista
           </p>
         ) : null}
       </section>
@@ -309,8 +309,8 @@ function Cartao({
   onArrastar?: (item: Item) => void;
   onSoltarCartao?: () => void;
 }) {
-  const link = situacaoLink(item.linkStatus);
-  const restante = prazo(item.expiresAt);
+  const link = linkStatusBadge(item.linkStatus);
+  const restante = deadlineText(item.expiresAt);
   const urgente = !confirmada && (restante === "vence hoje" || restante === "vencido");
 
   return (
@@ -347,7 +347,7 @@ function Cartao({
         className={urgente ? "font-bold text-danger text-meta" : "text-meta text-muted-foreground"}
       >
         {confirmada
-          ? `Confirmada em ${dataHora(item.confirmedAt)}`
+          ? `Confirmada em ${dateTimeText(item.confirmedAt)}`
           : urgente
             ? `Prazo ${restante}`
             : item.guardianName

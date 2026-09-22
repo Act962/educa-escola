@@ -55,7 +55,7 @@ export const EVENT_TYPE_LABEL: Record<EventType, string> = {
  * ciências pode ou não tomar o dia. A tela usa isto para preencher o campo, e
  * quem cria pode mudar.
  */
-export const EFEITO_SUGERIDO: Record<EventType, DayEffect> = {
+export const SUGGESTED_EFFECT: Record<EventType, DayEffect> = {
   feriado: "nao_letivo",
   recesso: "nao_letivo",
   ferias: "nao_letivo",

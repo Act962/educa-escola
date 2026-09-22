@@ -13,7 +13,7 @@
  * vazar aluno nem professor.
  */
 
-export interface ContagensDaEscola {
+export interface SchoolCounts {
   /** Aulas cuja chamada foi registrada, e quantas dessas ficaram no prazo. */
   aulasComChamada: number;
   aulasNoPrazo: number;
@@ -25,7 +25,7 @@ export interface ContagensDaEscola {
   registrosDeChamada: number;
 }
 
-export interface IndicadoresDaEscola {
+export interface SchoolIndicators {
   chamadaNoPrazo: number;
   notasSemPendencia: number;
   frequenciaMedia: number;
@@ -33,7 +33,7 @@ export interface IndicadoresDaEscola {
 }
 
 /** Quanto vale cada indicador. Três de cem: o total é legível sem tabela. */
-export const PONTOS_POR_INDICADOR = 100;
+export const POINTS_PER_INDICATOR = 100;
 
 /**
  * Proporção em escala de 0 a 100.
@@ -42,18 +42,15 @@ export const PONTOS_POR_INDICADOR = 100;
  * nenhuma chamada não tem 100% de chamadas no prazo — ela não tem chamada. O
  * contrário premiaria justamente quem não usa o sistema.
  */
-export function proporcao(parte: number, total: number): number {
+export function ratio(parte: number, total: number): number {
   if (total <= 0) return 0;
-  return Math.round((Math.min(parte, total) / total) * PONTOS_POR_INDICADOR);
+  return Math.round((Math.min(parte, total) / total) * POINTS_PER_INDICATOR);
 }
 
-export function indicadoresDe(contagens: ContagensDaEscola): IndicadoresDaEscola {
-  const chamadaNoPrazo = proporcao(contagens.aulasNoPrazo, contagens.aulasComChamada);
-  const notasSemPendencia = proporcao(
-    contagens.avaliacoesSemPendencia,
-    contagens.avaliacoesPublicadas,
-  );
-  const frequenciaMedia = proporcao(contagens.comparecimentos, contagens.registrosDeChamada);
+export function indicatorsFor(contagens: SchoolCounts): SchoolIndicators {
+  const chamadaNoPrazo = ratio(contagens.aulasNoPrazo, contagens.aulasComChamada);
+  const notasSemPendencia = ratio(contagens.avaliacoesSemPendencia, contagens.avaliacoesPublicadas);
+  const frequenciaMedia = ratio(contagens.comparecimentos, contagens.registrosDeChamada);
 
   return {
     chamadaNoPrazo,
@@ -63,4 +60,4 @@ export function indicadoresDe(contagens: ContagensDaEscola): IndicadoresDaEscola
   };
 }
 
-export const PONTUACAO_MAXIMA = PONTOS_POR_INDICADOR * 3;
+export const MAXIMUM_SCORE = POINTS_PER_INDICATOR * 3;

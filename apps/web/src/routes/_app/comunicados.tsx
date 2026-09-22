@@ -26,7 +26,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Megaphone, PenLine, Send, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
 
-import { inteiro, percentualCurto } from "@/lib/format";
+import { integerText, shortPercentText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -216,7 +216,7 @@ function Comunicados() {
         <p className="text-meta text-muted-foreground">
           {alcance.data === undefined
             ? "Calculando o público…"
-            : `Alcança ${inteiro(alcance.data)} pessoa${alcance.data === 1 ? "" : "s"} nesta escola.`}
+            : `Alcança ${integerText(alcance.data)} pessoa${alcance.data === 1 ? "" : "s"} nesta escola.`}
         </p>
 
         {criar.isError || retificar.isError ? (
@@ -262,10 +262,10 @@ function Comunicados() {
                   <p className="text-meta text-muted-foreground">
                     {AUDIENCE_LABEL[comunicado.audience as Audience]}
                     {comunicado.publico !== null
-                      ? ` · ${inteiro(comunicado.publico)} destinatários`
+                      ? ` · ${integerText(comunicado.publico)} destinatários`
                       : null}
                     {comunicado.taxaDeLeitura !== null
-                      ? ` · ${percentualCurto(comunicado.taxaDeLeitura)} leram`
+                      ? ` · ${shortPercentText(comunicado.taxaDeLeitura)} leram`
                       : null}
                   </p>
                 </div>

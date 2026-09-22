@@ -14,7 +14,7 @@ import { and, asc, count, desc, eq, inArray, sql, sum } from "drizzle-orm";
 
 import type { TenantContext } from "../../trpc/tenant";
 import type { SubjectKind } from "./rules";
-import type { AulaApurada, AvaliacaoApurada, NovoEvento, PresencaApurada } from "./tally";
+import type { NewEvent, TalliedAssessment, TalliedAttendance, TalliedLesson } from "./tally";
 
 /**
  * Quantos eventos por `insert`.
@@ -50,7 +50,7 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
      * isso não aparece — com uma escola de verdade, aparece no primeiro
      * clique.
      */
-    async appendEvents(eventos: NovoEvento[]) {
+    async appendEvents(eventos: NewEvent[]) {
       if (eventos.length === 0) return 0;
 
       let gravados = 0;
@@ -172,7 +172,7 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
     },
 
     /** Presenças do ano, com a data da aula — é dela que sai a ordem e o ano. */
-    async presencasDoAno(academicYear: number): Promise<PresencaApurada[]> {
+    async presencasDoAno(academicYear: number): Promise<TalliedAttendance[]> {
       return db
         .select({
           id: attendance.id,
@@ -191,7 +191,7 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
         .orderBy(asc(lesson.date));
     },
 
-    async aulasDoAno(academicYear: number): Promise<AulaApurada[]> {
+    async aulasDoAno(academicYear: number): Promise<TalliedLesson[]> {
       return db
         .select({
           id: lesson.id,
@@ -216,7 +216,7 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
      * A contagem é do roteiro da turma menos quem tem nota — é a mesma leitura
      * que a publicação faz, então o ponto e a regra não podem discordar.
      */
-    async avaliacoesDoAno(academicYear: number): Promise<AvaliacaoApurada[]> {
+    async avaliacoesDoAno(academicYear: number): Promise<TalliedAssessment[]> {
       const publicadas = await db
         .select({
           id: assessment.id,

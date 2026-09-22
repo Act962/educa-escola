@@ -2,11 +2,11 @@
 // letivo — duplicá-la aqui abriria a porta para as duas divergirem.
 import { longDate } from "@educa-escola/api/dates";
 import {
-  EFEITO_SUGERIDO,
   EVENT_TYPE_LABEL,
   EVENT_TYPES,
   type EventScope,
   type EventType,
+  SUGGESTED_EFFECT,
 } from "@educa-escola/api/modules/calendar/schema";
 import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components/alert";
 import { Badge } from "@educa-escola/ui/components/badge";
@@ -41,7 +41,7 @@ import { CollapsibleSection, useCollapsibleSections } from "@/components/collaps
 import { DateField } from "@/components/date-field";
 import { DayPanel } from "@/components/day-panel";
 import { MonthCalendar } from "@/components/month-calendar";
-import { alvoDe, TargetField, type Turma } from "@/components/target-field";
+import { type ClassroomOption, TargetField, targetOf } from "@/components/target-field";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -91,7 +91,7 @@ function Calendario() {
    * evento de 2026 daria um evento que nenhuma turma em aula enxerga.
    */
   const turmas = useQuery(trpc.classroom.list.queryOptions());
-  const turmasDoAno: Turma[] = (turmas.data ?? [])
+  const turmasDoAno: ClassroomOption[] = (turmas.data ?? [])
     .filter((turma) => turma.academicYear === year)
     .map((turma) => ({ id: turma.id, name: turma.name }));
 
@@ -433,7 +433,7 @@ function FiltroDeTurma({
   valor,
   aoMudar,
 }: {
-  turmas: Turma[];
+  turmas: ClassroomOption[];
   valor: string;
   aoMudar: (valor: string) => void;
 }) {
@@ -539,7 +539,7 @@ function NovoEvento({
 }: {
   ano: number;
   periodo: { startsOn: string; endsOn: string } | null;
-  turmas: Turma[];
+  turmas: ClassroomOption[];
   aoCriar: (dados: {
     type: EventType;
     dayEffect: "nenhum" | "nao_letivo" | "letivo_extra";
@@ -620,11 +620,11 @@ function NovoEvento({
               type: tipo,
               // O efeito vem do tipo como sugestão. Feriado em sábado não tira
               // dia letivo, e a contagem já sabe disso.
-              dayEffect: EFEITO_SUGERIDO[tipo],
+              dayEffect: SUGGESTED_EFFECT[tipo],
               title: titulo,
               startsOn: inicio,
               endsOn: fim || undefined,
-              ...alvoDe(turmaId),
+              ...targetOf(turmaId),
             })
           }
           disabled={criando || titulo.trim().length < 2}
@@ -635,7 +635,7 @@ function NovoEvento({
       </div>
 
       <p className="text-meta text-muted-foreground">
-        {EVENT_TYPE_LABEL[tipo]} entra como “{EFEITO_LABEL[EFEITO_SUGERIDO[tipo]].toLowerCase()}”
+        {EVENT_TYPE_LABEL[tipo]} entra como “{EFEITO_LABEL[SUGGESTED_EFFECT[tipo]].toLowerCase()}”
         {turmaId
           ? ", e só conta os dias letivos da turma escolhida."
           : ", valendo para a escola inteira."}

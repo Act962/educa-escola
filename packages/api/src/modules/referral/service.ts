@@ -1,5 +1,5 @@
-import { ConflictError, NotFoundError, ValidationError, violaUnico } from "../../errors";
-import { gerarCodigo, normalizarCodigo } from "./code";
+import { ConflictError, NotFoundError, ValidationError, violatesUnique } from "../../errors";
+import { generateCode, normalizeCode } from "./code";
 import type { ReferralRepository } from "./repository";
 import type { RegisterConversionInput, RewardKind, UpdateProgramInput } from "./schema";
 
@@ -12,7 +12,7 @@ import type { RegisterConversionInput, RewardKind, UpdateProgramInput } from "./
  * põe a escola na frente da Resolução 163/2014 do CONANDA sem ninguém ter
  * escolhido isso.
  */
-export const PROGRAMA_PADRAO = {
+export const DEFAULT_PROGRAM = {
   enabled: false,
   headline: "Indique e ganhe desconto",
   description: null,
@@ -32,23 +32,23 @@ export const PROGRAMA_PADRAO = {
  * sistema perdeu a indicação, quando na verdade ela chegou depois do limite
  * que a própria escola definiu.
  */
-export type SituacaoDaIndicacao = "pendente" | "confirmada" | "acima_do_teto" | "sem_efeito";
+export type ReferralSituation = "pendente" | "confirmada" | "acima_do_teto" | "sem_efeito";
 
 const CONFIRMA_O_PREMIO = new Set(["ativa", "concluida"]);
 const AINDA_PODE = new Set(["pendente", "suspensa"]);
 
-export function situacaoDe(
+export function situationOf(
   enrollmentStatus: string,
   jaConfirmadasAntes: number,
   teto: number,
-): SituacaoDaIndicacao {
+): ReferralSituation {
   if (CONFIRMA_O_PREMIO.has(enrollmentStatus)) {
     return jaConfirmadasAntes < teto ? "confirmada" : "acima_do_teto";
   }
   return AINDA_PODE.has(enrollmentStatus) ? "pendente" : "sem_efeito";
 }
 
-export interface IndicacaoApurada {
+export interface TalliedReferral {
   id: string;
   linkId: string;
   codigo: string;
@@ -60,7 +60,7 @@ export interface IndicacaoApurada {
   rewardValue: number;
   note: string | null;
   createdAt: Date;
-  situacao: SituacaoDaIndicacao;
+  situacao: ReferralSituation;
 }
 
 type LinhaDeConversao = Awaited<ReturnType<ReferralRepository["listConversions"]>>[number];
@@ -72,14 +72,14 @@ type LinhaDeConversao = Awaited<ReturnType<ReferralRepository["listConversions"]
  * a família consiga conferir sozinha olhando as datas. Qualquer outro vira
  * discussão no balcão da secretaria.
  */
-export function apurar(linhas: LinhaDeConversao[], teto: number): IndicacaoApurada[] {
+export function tally(linhas: LinhaDeConversao[], teto: number): TalliedReferral[] {
   const confirmadasPorLink = new Map<string, number>();
 
   return [...linhas]
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
     .map((linha) => {
       const antes = confirmadasPorLink.get(linha.linkId) ?? 0;
-      const situacao = situacaoDe(linha.enrollmentStatus, antes, teto);
+      const situacao = situationOf(linha.enrollmentStatus, antes, teto);
       if (situacao === "confirmada") confirmadasPorLink.set(linha.linkId, antes + 1);
 
       return {
@@ -106,7 +106,7 @@ export function apurar(linhas: LinhaDeConversao[], teto: number): IndicacaoApura
  * separados. Misturar os dois num número só daria um total que não significa
  * nada, e é justamente o número que alguém levaria para o boleto.
  */
-export function totalizar(indicacoes: IndicacaoApurada[]) {
+export function summarize(indicacoes: TalliedReferral[]) {
   const confirmadas = indicacoes.filter((i) => i.situacao === "confirmada");
 
   return {
@@ -133,7 +133,7 @@ export function createReferralService(
 ) {
   async function programaOuPadrao() {
     const salvo = await repo.findProgram();
-    return salvo ?? { ...PROGRAMA_PADRAO, schoolId: "", updatedAt: options.now() };
+    return salvo ?? { ...DEFAULT_PROGRAM, schoolId: "", updatedAt: options.now() };
   }
 
   return {
@@ -151,13 +151,13 @@ export function createReferralService(
         repo.countLinks(),
       ]);
 
-      const indicacoes = apurar(linhas, programa.rewardCapPerYear);
+      const indicacoes = tally(linhas, programa.rewardCapPerYear);
 
       return {
         programa,
         familias,
         indicacoes,
-        resumo: totalizar(indicacoes),
+        resumo: summarize(indicacoes),
       };
     },
 
@@ -180,7 +180,7 @@ export function createReferralService(
       const existente = await repo.findLinkByStudent(studentIdAlvo);
       if (existente) return { link: existente, aluno };
 
-      const codigo = gerarCodigo(aluno.name, await repo.codesInUse(), options.aleatorio);
+      const codigo = generateCode(aluno.name, await repo.codesInUse(), options.aleatorio);
 
       const expiresAt =
         programa.linkExpiresInDays > 0
@@ -208,13 +208,13 @@ export function createReferralService(
 
       const link = await repo.findLinkByStudent(aluno.id);
       const indicacoes = link
-        ? apurar(
+        ? tally(
             await repo.listConversionsByStudent(aluno.id, academicYear),
             programa.rewardCapPerYear,
           )
         : [];
 
-      return { programa, aluno, link, indicacoes, resumo: totalizar(indicacoes) };
+      return { programa, aluno, link, indicacoes, resumo: summarize(indicacoes) };
     },
 
     /**
@@ -229,7 +229,7 @@ export function createReferralService(
         throw new ValidationError("O programa de indicações está desligado.");
       }
 
-      const codigo = normalizarCodigo(input.code);
+      const codigo = normalizeCode(input.code);
       const link = await repo.findLinkByCode(codigo);
       if (!link) throw new NotFoundError(`Não existe o código de indicação ${codigo}.`);
 
@@ -262,7 +262,7 @@ export function createReferralService(
         // O único em (escola, matrícula) é quem garante que uma matrícula
         // premia uma indicação só. Traduzir aqui evita um 500 numa ação que a
         // secretaria lê como "já registrei isso".
-        if (violaUnico(erro, "referral_conversion_enrollment_uidx")) {
+        if (violatesUnique(erro, "referral_conversion_enrollment_uidx")) {
           throw new ConflictError("Esta matrícula já está ligada a uma indicação.");
         }
         throw erro;

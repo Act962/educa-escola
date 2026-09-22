@@ -1,4 +1,4 @@
-import { type Cifrado, decrypt, encrypt, parseKey } from "../../media/crypto";
+import { decrypt, type Encrypted, encrypt, parseKey } from "../../media/crypto";
 
 /**
  * O molde facial, cifrado com a mesma máquina da foto do aluno.
@@ -8,7 +8,7 @@ import { type Cifrado, decrypt, encrypt, parseKey } from "../../media/crypto";
  * separadas dariam a impressão de que dá para girar uma sem a outra — e girar
  * só a da foto deixaria o molde abrindo, que é o vazamento que importa.
  */
-export function chaveDosMoldes(raw: string | undefined): Buffer {
+export function templateKey(raw: string | undefined): Buffer {
   if (!raw) {
     throw new Error(
       "MEDIA_ENCRYPTION_KEY não está no ambiente. O molde facial não é gravado sem ela.",
@@ -24,12 +24,12 @@ export function chaveDosMoldes(raw: string | undefined): Buffer {
  * vez e lido em lote, então os bytes a mais não pesam, e um formato que se lê
  * num dump é um formato que alguém consegue auditar.
  */
-export function cifrarMolde(descritor: readonly number[], raw: string | undefined): Cifrado {
-  return encrypt(Buffer.from(JSON.stringify(descritor), "utf8"), chaveDosMoldes(raw));
+export function encryptTemplate(descritor: readonly number[], raw: string | undefined): Encrypted {
+  return encrypt(Buffer.from(JSON.stringify(descritor), "utf8"), templateKey(raw));
 }
 
-export function decifrarMolde(dados: Cifrado, raw: string | undefined): number[] {
-  const texto = decrypt(dados, chaveDosMoldes(raw)).toString("utf8");
+export function decryptTemplate(dados: Encrypted, raw: string | undefined): number[] {
+  const texto = decrypt(dados, templateKey(raw)).toString("utf8");
   const valor: unknown = JSON.parse(texto);
 
   // Um molde que não é vetor de números viraria `NaN` na distância, e `NaN`

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../errors";
-import { ErroDoModelo, type ModeloDeLinguagem } from "../../integrations/model/client";
+import { type LanguageModel, ModelError } from "../../integrations/model/client";
 import type { AssistantRepository } from "./repository";
-import { cifrarCredencial } from "./secret";
-import { CONFIGURACAO_PADRAO, createAssistantService, montarInstrucao } from "./service";
+import { encryptCredential } from "./secret";
+import { buildInstruction, createAssistantService, DEFAULT_SETTINGS } from "./service";
 
 /** 32 bytes em base64, só para o teste. Não é segredo de lugar nenhum. */
 const CHAVE = Buffer.alloc(32, 7).toString("base64");
@@ -19,7 +19,7 @@ type Linha = NonNullable<Awaited<ReturnType<AssistantRepository["find"]>>>;
  * vector" — e o teste que deveria provar a tradução de erro do modelo passava
  * a provar que o fixture estava errado.
  */
-const CREDENCIAL = cifrarCredencial("sk-de-teste-7Z9K", CHAVE);
+const CREDENCIAL = encryptCredential("sk-de-teste-7Z9K", CHAVE);
 
 const configurada = (over: Partial<Linha> = {}): Linha =>
   ({
@@ -52,7 +52,7 @@ function fakeRepo(over: Partial<AssistantRepository> = {}): AssistantRepository 
   };
 }
 
-const modeloQueResponde = (texto = "Resposta."): ModeloDeLinguagem => ({
+const modeloQueResponde = (texto = "Resposta."): LanguageModel => ({
   responder: async () => ({ texto, tokens: 42 }),
   listarModelos: async () => ["modelo-x", "modelo-y"],
 });
@@ -67,7 +67,7 @@ const modeloQueResponde = (texto = "Resposta."): ModeloDeLinguagem => ({
 const servico = (
   opcoes: {
     repo?: Partial<AssistantRepository>;
-    modelo?: ModeloDeLinguagem;
+    modelo?: LanguageModel;
     semChaveDoServidor?: boolean;
   } = {},
 ) =>
@@ -96,8 +96,8 @@ describe("padrões", () => {
    * modelo é chave de gasto.
    */
   it("nasce desligado e sem o aluno", () => {
-    expect(CONFIGURACAO_PADRAO.enabled).toBe(false);
-    expect(CONFIGURACAO_PADRAO.allowStudents).toBe(false);
+    expect(DEFAULT_SETTINGS.enabled).toBe(false);
+    expect(DEFAULT_SETTINGS.allowStudents).toBe(false);
   });
 });
 
@@ -357,9 +357,9 @@ describe("perguntar", () => {
 
   /** Falha de provedor precisa sair como 4xx legível, não 500 com pilha. */
   it("traduz erro do modelo em erro de domínio", async () => {
-    const quebrado: ModeloDeLinguagem = {
+    const quebrado: LanguageModel = {
       responder: async () => {
-        throw new ErroDoModelo("O modelo recusou a credencial.", true);
+        throw new ModelError("O modelo recusou a credencial.", true);
       },
       listarModelos: async () => [],
     };
@@ -372,9 +372,9 @@ describe("perguntar", () => {
 
   it("não registra uso quando o modelo falha", async () => {
     let registrou = false;
-    const quebrado: ModeloDeLinguagem = {
+    const quebrado: LanguageModel = {
       responder: async () => {
-        throw new ErroDoModelo("caiu", true);
+        throw new ModelError("caiu", true);
       },
       listarModelos: async () => [],
     };
@@ -395,7 +395,7 @@ describe("perguntar", () => {
 
   /** A credencial decifrada não pode escapar para a resposta nem para o log. */
   it("a resposta não carrega a credencial", async () => {
-    const ecoa: ModeloDeLinguagem = {
+    const ecoa: LanguageModel = {
       responder: async ({ sistema }) => ({ texto: sistema, tokens: null }),
       listarModelos: async () => [],
     };
@@ -416,7 +416,7 @@ describe("montarInstrucao", () => {
    * de criança é pior que "não sei".
    */
   it("leva os fatos e proíbe completar o que não está neles", () => {
-    const texto = montarInstrucao({
+    const texto = buildInstruction({
       escola: "Dom Pedro II",
       papel: "student",
       nome: "Ana",
@@ -429,10 +429,10 @@ describe("montarInstrucao", () => {
   });
 
   it("diz ao modelo o que cada papel enxerga", () => {
-    expect(montarInstrucao({ escola: "E", papel: "teacher", nome: "R", fatos: "" })).toContain(
+    expect(buildInstruction({ escola: "E", papel: "teacher", nome: "R", fatos: "" })).toContain(
       "apenas as próprias turmas",
     );
-    expect(montarInstrucao({ escola: "E", papel: "student", nome: "A", fatos: "" })).toContain(
+    expect(buildInstruction({ escola: "E", papel: "student", nome: "A", fatos: "" })).toContain(
       "apenas o que é dele",
     );
   });
@@ -462,7 +462,7 @@ describe("modelosDisponiveis", () => {
       modelo: {
         responder: async () => ({ texto: "", tokens: null }),
         listarModelos: async () => {
-          throw new ErroDoModelo("O modelo recusou a credencial.", true);
+          throw new ModelError("O modelo recusou a credencial.", true);
         },
       },
     });
@@ -568,7 +568,7 @@ describe("chave de cifragem girada", () => {
   const comChaveAntiga = () => ({
     find: async () =>
       configurada({
-        apiKeyCipher: cifrarCredencial("sk-antiga", Buffer.alloc(32, 1).toString("base64")).cipher,
+        apiKeyCipher: encryptCredential("sk-antiga", Buffer.alloc(32, 1).toString("base64")).cipher,
       }),
   });
 
@@ -576,13 +576,13 @@ describe("chave de cifragem girada", () => {
     const visao = await servico({ repo: comChaveAntiga() }).configuracao();
 
     expect(visao.credencialGravada).toBe(true);
-    expect(visao.credencialAbre).toBe(false);
+    expect(visao.credentialOpens).toBe(false);
   });
 
   it("credencial que abre é reportada como tal", async () => {
     const visao = await servico({ repo: comConfiguracao() }).configuracao();
 
-    expect(visao.credencialAbre).toBe(true);
+    expect(visao.credentialOpens).toBe(true);
   });
 
   /**
@@ -676,7 +676,7 @@ describe("orçamento de tokens", () => {
 
     expect(await s.uso()).toEqual({
       ligado: false,
-      perguntas: { usadas: 0, teto: CONFIGURACAO_PADRAO.dailyLimit, nivel: "ok" },
+      perguntas: { usadas: 0, teto: DEFAULT_SETTINGS.dailyLimit, nivel: "ok" },
       tokens: { usados: 0, teto: null, nivel: "ok", semContagem: 0 },
       nivel: "ok",
     });

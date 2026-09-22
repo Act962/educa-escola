@@ -2,7 +2,7 @@ import { Input } from "@educa-escola/ui/components/input";
 import { Label } from "@educa-escola/ui/components/label";
 import { useEffect, useState } from "react";
 
-import { dataParaISO, idadeEm, isoParaData, mascararData } from "@/lib/masks";
+import { dateToISO, idadeEm, isoToDate, maskDate } from "@/lib/masks";
 
 /**
  * Campo de data mascarado, em texto — não o seletor nativo.
@@ -48,18 +48,18 @@ export function DateField({
   min?: string;
   max?: string;
 }) {
-  const [texto, setTexto] = useState(() => isoParaData(value));
+  const [texto, setTexto] = useState(() => isoToDate(value));
 
   // Sincroniza quando o valor muda por fora (carregou do servidor, foi
   // limpo). Só quando diverge do que está na tela, para não atropelar a
   // digitação em andamento.
   useEffect(() => {
-    const doPai = isoParaData(value);
-    setTexto((atual) => (dataParaISO(atual) === (value || null) ? atual : doPai));
+    const doPai = isoToDate(value);
+    setTexto((atual) => (dateToISO(atual) === (value || null) ? atual : doPai));
   }, [value]);
 
   const completo = texto.replace(/\D/g, "").length === 8;
-  const iso = dataParaISO(texto);
+  const iso = dateToISO(texto);
   const idade = mostrarIdade ? idadeEm(iso) : null;
 
   const foraDoIntervalo =
@@ -77,9 +77,9 @@ export function DateField({
           className={idade !== null ? "pr-20 tabular-nums" : "tabular-nums"}
           value={texto}
           onChange={(evento) => {
-            const mascarado = mascararData(evento.target.value);
+            const mascarado = maskDate(evento.target.value);
             setTexto(mascarado);
-            onChange(dataParaISO(mascarado));
+            onChange(dateToISO(mascarado));
           }}
         />
         {idade !== null ? (
@@ -99,7 +99,7 @@ export function DateField({
         <p className="text-danger text-meta">Esta data não existe no calendário.</p>
       ) : foraDoIntervalo ? (
         <p className="text-danger text-meta">
-          Use uma data entre {isoParaData(min ?? "")} e {isoParaData(max ?? "")}.
+          Use uma data entre {isoToDate(min ?? "")} e {isoToDate(max ?? "")}.
         </p>
       ) : hint ? (
         <span className="text-meta text-muted-foreground">{hint}</span>

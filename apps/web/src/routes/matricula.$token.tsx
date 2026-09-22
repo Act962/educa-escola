@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@educa-escola/ui/components/select";
 import { Skeleton } from "@educa-escola/ui/components/skeleton";
-import { OrbitaMarca } from "@educa-escola/ui/integra/orbita";
+import { OrbitaBrand } from "@educa-escola/ui/integra/orbita";
 import { Passos } from "@educa-escola/ui/integra/steps";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -20,7 +20,7 @@ import { Check, Clock, Lock, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { dataHora, telefone } from "@/lib/format";
+import { dateTimeText, phoneText } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/matricula/$token")({
@@ -106,7 +106,7 @@ function ConfirmacaoMatricula() {
             tom="info"
             icone={<Check size={22} strokeWidth={1.8} aria-hidden />}
             titulo="Você já enviou esta ficha"
-            descricao={`Recebemos os dados em ${dataHora(abertura.data.submittedAt)}. A secretaria está conferindo.`}
+            descricao={`Recebemos os dados em ${dateTimeText(abertura.data.submittedAt)}. A secretaria está conferindo.`}
           />
           <div className="rounded-card bg-muted p-4 text-center">
             <CardEyebrow>Protocolo</CardEyebrow>
@@ -346,7 +346,7 @@ function Formulario({
   );
   // Mostrado no formato que a pessoa usa; o servidor normaliza de volta
   // para E.164 ao receber.
-  const [celular, setCelular] = useState(telefone(ficha.guardian?.phoneE164) ?? "");
+  const [celular, setCelular] = useState(phoneText(ficha.guardian?.phoneE164) ?? "");
   const [email, setEmail] = useState(ficha.guardian?.email ?? "");
   const [aceitoPor, setAceitoPor] = useState(ficha.guardian?.name ?? "");
   const [termos, setTermos] = useState(false);
@@ -537,7 +537,7 @@ function Comprovante({
         <div className="rounded-card bg-muted p-4 text-center">
           <CardEyebrow>Protocolo</CardEyebrow>
           <p className="mt-1 font-extrabold text-lg tabular-nums tracking-[0.5px]">{protocolo}</p>
-          <p className="mt-1 text-meta text-muted-foreground">{dataHora(quando)}</p>
+          <p className="mt-1 text-meta text-muted-foreground">{dateTimeText(quando)}</p>
         </div>
         <p className="text-center text-meta text-muted-foreground">
           Guarde este número. Ele identifica seu envio se precisar falar com a escola.
@@ -669,7 +669,7 @@ function Casca({ children, escola }: { children: React.ReactNode; escola?: strin
     <div className="grid min-h-svh place-items-center bg-background p-6">
       <div className="flex w-full max-w-md flex-col items-center gap-4">
         <div className="flex flex-col items-center gap-1.5 text-center">
-          <OrbitaMarca titulo="Órbita Edu" className="w-36 text-primary" />
+          <OrbitaBrand titulo="Órbita Edu" className="w-36 text-primary" />
           {escola ? <span className="text-meta text-muted-foreground">{escola}</span> : null}
         </div>
         {children}

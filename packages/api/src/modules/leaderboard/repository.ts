@@ -11,7 +11,7 @@ import type { DbHandle } from "@educa-escola/db/types";
 import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 
 import type { TenantContext } from "../../trpc/tenant";
-import type { ContagensDaEscola } from "./indicators";
+import type { SchoolCounts } from "./indicators";
 
 /**
  * O repositório da própria escola. Tudo aqui é filtrado por `tenant.schoolId`.
@@ -92,7 +92,7 @@ export function createLeaderboardRepository(db: DbHandle, tenant: TenantContext)
      * que o módulo de pontuação já usa — é o ano civil da aula, que é o que a
      * escola reconhece como ano letivo.
      */
-    async contagens(academicYear: number): Promise<ContagensDaEscola> {
+    async contagens(academicYear: number): Promise<SchoolCounts> {
       const doAno = sql`date_part('year', ${lesson.date}) = ${academicYear}`;
 
       const [aulas] = await db

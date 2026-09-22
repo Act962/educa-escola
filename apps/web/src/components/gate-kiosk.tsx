@@ -1,10 +1,10 @@
-import { identificar } from "@educa-escola/api/modules/gate/recognition";
+import { identify } from "@educa-escola/api/modules/gate/recognition";
 import { cn } from "@educa-escola/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CameraOff, Check, ScanFace, TriangleAlert, UserRound, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { extratorDeRosto, rostoDisponivel } from "@/lib/face-extractor";
-import { detectorDeVivacidade, vivacidadeDisponivel } from "@/lib/liveness-detector";
+import { faceAvailable, faceExtractor } from "@/lib/face-extractor";
+import { livenessAvailable, livenessDetector } from "@/lib/liveness-detector";
 import { useTRPC } from "@/utils/trpc";
 
 /** O cartão que a tela mostra. Só identidade — nunca nota nem frequência. */
@@ -132,7 +132,7 @@ export function GateKiosk({
   const lote = useQuery({
     ...trpc.gate.lote.queryOptions(),
     refetchInterval: 5 * 60_000,
-    enabled: rostoDisponivel(),
+    enabled: faceAvailable(),
   });
 
   const registrar = useMutation(
@@ -188,8 +188,8 @@ export function GateKiosk({
    * portaria travada justo na hora de usar.
    */
   useEffect(() => {
-    if (rostoDisponivel()) void extratorDeRosto.preparar();
-    if (vivacidadeDisponivel()) void detectorDeVivacidade.preparar();
+    if (faceAvailable()) void faceExtractor.preparar();
+    if (livenessAvailable()) void livenessDetector.preparar();
   }, []);
 
   /** Volta a hibernar sozinha: ninguém aperta "ok" numa catraca. */
@@ -238,7 +238,7 @@ export function GateKiosk({
 
   const moldes = lote.data?.alunos ?? [];
   const loteVencido = lote.data ? new Date(lote.data.validoAte) < agora : false;
-  const rostoLigado = rostoDisponivel() && !erroDaCamera && moldes.length > 0 && !loteVencido;
+  const rostoLigado = faceAvailable() && !erroDaCamera && moldes.length > 0 && !loteVencido;
 
   /**
    * Por que o rosto está desligado — nomeado, não deduzido.
@@ -248,7 +248,7 @@ export function GateKiosk({
    * saber se libera a permissão, se chama a secretaria para cadastrar, ou se é
    * defeito de verdade — são três ações diferentes.
    */
-  const motivoDoRostoDesligado = !rostoDisponivel()
+  const motivoDoRostoDesligado = !faceAvailable()
     ? "O reconhecimento facial não está instalado neste tablet."
     : erroDaCamera
       ? "A câmera não abriu. Autorize o uso da câmera no navegador — em rede, o tablet precisa estar em HTTPS."
@@ -278,7 +278,7 @@ export function GateKiosk({
       if (!vivo || ocupado || !videoRef.current) return;
       ocupado = true;
       try {
-        const tem = await extratorDeRosto.temRosto(videoRef.current);
+        const tem = await faceExtractor.temRosto(videoRef.current);
         if (!vivo) return;
 
         // Quadro vazio destrava: é a prova de que a pessoa anterior saiu.
@@ -315,7 +315,7 @@ export function GateKiosk({
   /**
    * A leitura, com alguém já na frente da câmera.
    *
-   * A comparação usa `identificar`, a **mesma** função do servidor. Duas
+   * A comparação usa `identify`, a **mesma** função do servidor. Duas
    * implementações do mesmo limiar divergiriam, e a divergência apareceria
    * como "no tablet abre, no servidor não".
    */
@@ -330,12 +330,12 @@ export function GateKiosk({
       ocupado = true;
       try {
         const comecou = performance.now();
-        const descritor = await extratorDeRosto.extrair(videoRef.current);
+        const descritor = await faceExtractor.extrair(videoRef.current);
         if (!vivo) return;
         setMsDaLeitura(Math.round(performance.now() - comecou));
 
         if (descritor) {
-          const veredito = identificar(descritor, moldes);
+          const veredito = identify(descritor, moldes);
           if (veredito.tipo === "reconhecido") {
             // Só volta a ler quando o quadro esvaziar.
             esperandoSairRef.current = true;
@@ -350,7 +350,7 @@ export function GateKiosk({
              * custa quando alguém foi de fato reconhecido — quadro de corredor
              * vazio não paga por ela.
              */
-            const vida = await detectorDeVivacidade.avaliar(videoRef.current);
+            const vida = await livenessDetector.avaliar(videoRef.current);
             if (!vivo) return;
             setVivacidade(vida ? { real: vida.real, vivo: vida.vivo } : null);
 
@@ -456,7 +456,7 @@ export function GateKiosk({
           <span className="text-apoio tabular-nums">
             {vivacidade
               ? `vivacidade ${vivacidade.real.toFixed(2)} · ${vivacidade.vivo.toFixed(2)}`
-              : vivacidadeDisponivel()
+              : livenessAvailable()
                 ? "vivacidade: sem leitura ainda"
                 : "vivacidade: indisponível"}
           </span>

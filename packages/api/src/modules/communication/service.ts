@@ -18,7 +18,7 @@ export function audiencesDoPapel(role: string): Audience[] {
   return ["toda_a_escola", "professores", "alunos"];
 }
 
-export interface ComunicadoNaLista {
+export interface CommunicationListItem {
   id: string;
   title: string;
   status: string;
@@ -36,7 +36,7 @@ export interface ComunicadoNaLista {
 export function createCommunicationService(repo: CommunicationRepository) {
   return {
     /** O painel da gestão: rascunhos, publicados e quem leu. */
-    async list(academicYear: number): Promise<ComunicadoNaLista[]> {
+    async list(academicYear: number): Promise<CommunicationListItem[]> {
       const comunicados = await repo.list(academicYear);
       const publicados = comunicados.filter((c) => c.status !== "rascunho");
       const recibos = await repo.receiptCounts(publicados.map((c) => c.id));

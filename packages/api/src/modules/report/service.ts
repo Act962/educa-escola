@@ -1,20 +1,20 @@
 import { toSchoolDate } from "../../dates";
 import { ENROLLED_STATUSES } from "../student/schema";
 import { MINIMUM_ATTENDANCE_RATE } from "../student/service";
-import { type Coluna, gerarCsv, nomeDoArquivo, numero, percentual } from "./csv";
-import { type Indicador, montarIndicadores, taxa } from "./indicators";
+import { type Column, fileName, generateCsv, numberCell, percentCell } from "./csv";
+import { buildIndicators, type Indicator, rate } from "./indicators";
 import type { ReportRepository } from "./repository";
 
-export type ChaveDeRelatorio = "alunos-por-turma" | "frequencia-por-turma" | "carga-dos-docentes";
+export type ReportKey = "alunos-por-turma" | "frequencia-por-turma" | "carga-dos-docentes";
 
-export interface RelatorioDisponivel {
-  chave: ChaveDeRelatorio;
+export interface AvailableReport {
+  chave: ReportKey;
   titulo: string;
   descricao: string;
 }
 
 /** O catálogo do §15.1 e §15.2 no recorte que os dados de hoje sustentam. */
-export const RELATORIOS: RelatorioDisponivel[] = [
+export const REPORTS: AvailableReport[] = [
   {
     chave: "alunos-por-turma",
     titulo: "Alunos por turma",
@@ -33,7 +33,7 @@ export const RELATORIOS: RelatorioDisponivel[] = [
 ];
 
 export function createReportService(repo: ReportRepository) {
-  async function indicadores(academicYear: number, now: Date): Promise<Indicador[]> {
+  async function indicadores(academicYear: number, now: Date): Promise<Indicator[]> {
     const hoje = toSchoolDate(now);
 
     const [situacoes, frequenciaTurmas, porAluno, docentes] = await Promise.all([
@@ -54,9 +54,9 @@ export function createReportService(repo: ReportRepository) {
       .filter((linha) => ENROLLED_STATUSES.includes(linha.status as never))
       .reduce((soma, linha) => soma + linha.total, 0);
 
-    return montarIndicadores({
+    return buildIndicators({
       alunosNaSala: naSala,
-      frequenciaGeral: taxa(comparecimentos, registros),
+      frequenciaGeral: rate(comparecimentos, registros),
       // Aluno sem aula registrada não está em risco: está sem aula. É a mesma
       // leitura que `attendanceRate` faz devolvendo `null` em vez de 0%.
       alunosEmRisco: porAluno.filter(
@@ -70,7 +70,7 @@ export function createReportService(repo: ReportRepository) {
   return {
     indicadores,
 
-    catalogo: () => RELATORIOS,
+    catalogo: () => REPORTS,
 
     /**
      * Gera o CSV de um relatório.
@@ -79,13 +79,13 @@ export function createReportService(repo: ReportRepository) {
      * de ser os mesmos da tela, e reimplementá-los no cliente seria criar duas
      * versões da verdade que divergem na primeira mudança.
      */
-    async exportar(chave: ChaveDeRelatorio, academicYear: number, now: Date) {
+    async exportar(chave: ReportKey, academicYear: number, now: Date) {
       const hoje = toSchoolDate(now);
 
       if (chave === "alunos-por-turma") {
         const linhas = await repo.alunosPorTurma(academicYear);
         type Linha = (typeof linhas)[number];
-        const colunas: Coluna<Linha>[] = [
+        const colunas: Column<Linha>[] = [
           { titulo: "Turma", valor: (l) => l.classroomName },
           { titulo: "Série", valor: (l) => l.gradeLevel ?? "" },
           { titulo: "Total", valor: (l) => l.total },
@@ -96,27 +96,27 @@ export function createReportService(repo: ReportRepository) {
           { titulo: "Noite", valor: (l) => l.noite },
         ];
         return {
-          nome: nomeDoArquivo("Alunos por turma", academicYear, hoje),
-          conteudo: gerarCsv(colunas, linhas),
+          nome: fileName("Alunos por turma", academicYear, hoje),
+          conteudo: generateCsv(colunas, linhas),
         };
       }
 
       if (chave === "frequencia-por-turma") {
         const linhas = await repo.frequenciaPorTurma(academicYear);
         type Linha = (typeof linhas)[number];
-        const colunas: Coluna<Linha>[] = [
+        const colunas: Column<Linha>[] = [
           { titulo: "Turma", valor: (l) => l.classroomName },
           { titulo: "Alunos com registro", valor: (l) => l.alunos },
           { titulo: "Registros de chamada", valor: (l) => l.registros },
           { titulo: "Comparecimentos", valor: (l) => l.comparecimentos },
           {
             titulo: "Frequência",
-            valor: (l) => percentual(taxa(l.comparecimentos, l.registros)),
+            valor: (l) => percentCell(rate(l.comparecimentos, l.registros)),
           },
           {
             titulo: "Abaixo do mínimo",
             valor: (l) => {
-              const t = taxa(l.comparecimentos, l.registros);
+              const t = rate(l.comparecimentos, l.registros);
               // Vazio, e não "Não", quando não há aula: a turma não está
               // acima nem abaixo do mínimo — ela não tem frequência.
               return t === null ? "" : t < MINIMUM_ATTENDANCE_RATE ? "Sim" : "Não";
@@ -124,26 +124,26 @@ export function createReportService(repo: ReportRepository) {
           },
         ];
         return {
-          nome: nomeDoArquivo("Frequência por turma", academicYear, hoje),
-          conteudo: gerarCsv(colunas, linhas),
+          nome: fileName("Frequência por turma", academicYear, hoje),
+          conteudo: generateCsv(colunas, linhas),
         };
       }
 
       const linhas = await repo.cargaPorDocente(academicYear, hoje);
       type Linha = (typeof linhas)[number];
-      const colunas: Coluna<Linha>[] = [
+      const colunas: Column<Linha>[] = [
         { titulo: "Professor", valor: (l) => l.teacherName },
         { titulo: "Turmas", valor: (l) => l.turmas },
         { titulo: "Aulas no ano", valor: (l) => l.aulas },
         { titulo: "Chamadas em aberto", valor: (l) => l.semChamada },
         {
           titulo: "Média de aulas por turma",
-          valor: (l) => numero(l.turmas > 0 ? l.aulas / l.turmas : null),
+          valor: (l) => numberCell(l.turmas > 0 ? l.aulas / l.turmas : null),
         },
       ];
       return {
-        nome: nomeDoArquivo("Carga dos docentes", academicYear, hoje),
-        conteudo: gerarCsv(colunas, linhas),
+        nome: fileName("Carga dos docentes", academicYear, hoje),
+        conteudo: generateCsv(colunas, linhas),
       };
     },
 
@@ -154,7 +154,7 @@ export function createReportService(repo: ReportRepository) {
         .map((linha) => ({
           classroomId: linha.classroomId,
           nome: linha.classroomName,
-          frequencia: taxa(linha.comparecimentos, linha.registros),
+          frequencia: rate(linha.comparecimentos, linha.registros),
           alunos: linha.alunos,
         }))
         .filter((linha) => linha.frequencia !== null && linha.frequencia < MINIMUM_ATTENDANCE_RATE);

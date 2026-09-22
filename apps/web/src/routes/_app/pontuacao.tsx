@@ -15,7 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { RefreshCw, TriangleAlert } from "lucide-react";
 
-import { inteiro } from "@/lib/format";
+import { integerText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -91,8 +91,8 @@ function Pontuacao() {
         <Alert variant="success">
           <AlertTitle>Apuração concluída</AlertTitle>
           <AlertDescription>
-            {inteiro(apurar.data.novos)} pontuações novas de {inteiro(apurar.data.apurados)} fatos
-            conferidos.
+            {integerText(apurar.data.novos)} pontuações novas de {integerText(apurar.data.apurados)}{" "}
+            fatos conferidos.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -129,7 +129,9 @@ function Pontuacao() {
                   <TableCell>
                     <Badge variant="info">{linha.nivel.nome}</Badge>
                   </TableCell>
-                  <TableCell className="text-right font-bold">{inteiro(linha.pontos)}</TableCell>
+                  <TableCell className="text-right font-bold">
+                    {integerText(linha.pontos)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -160,7 +162,9 @@ function Pontuacao() {
                 <TableRow key={linha.subjectId}>
                   <TableCell className="text-muted-foreground">{linha.posicao}</TableCell>
                   <TableCell className="font-bold">{linha.nome}</TableCell>
-                  <TableCell className="text-right font-bold">{inteiro(linha.pontos)}</TableCell>
+                  <TableCell className="text-right font-bold">
+                    {integerText(linha.pontos)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

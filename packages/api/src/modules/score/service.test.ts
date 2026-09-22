@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { ScoreRepository } from "./repository";
-import { createScoreService, mediaDePontos, mediasPorBimestre, posicaoEm } from "./service";
-import type { AulaApurada, AvaliacaoApurada, PresencaApurada } from "./tally";
+import { averagePoints, averagesByTerm, createScoreService, posicaoEm } from "./service";
+import type { TalliedAssessment, TalliedAttendance, TalliedLesson } from "./tally";
 
 interface EstadoDoDuble {
   saldos?: { subjectKind: string; subjectId: string; points: number }[];
-  presencas?: PresencaApurada[];
-  aulas?: AulaApurada[];
-  avaliacoes?: AvaliacaoApurada[];
+  presencas?: TalliedAttendance[];
+  aulas?: TalliedLesson[];
+  avaliacoes?: TalliedAssessment[];
   lancamentos?: { studentId: string; term: number; score: number; weight: number }[];
   turma?: string[];
   alunos?: { id: string; name: string; classroomId: string | null }[];
@@ -78,14 +78,14 @@ describe("posicaoEm", () => {
 
 describe("mediaDePontos", () => {
   it("é nula com grupo vazio, e não zero", () => {
-    expect(mediaDePontos([])).toBeNull();
-    expect(mediaDePontos([10, 20, 31])).toBe(20);
+    expect(averagePoints([])).toBeNull();
+    expect(averagePoints([10, 20, 31])).toBe(20);
   });
 });
 
 describe("mediasPorBimestre", () => {
   it("pondera pelo peso da avaliação", () => {
-    const medias = mediasPorBimestre([
+    const medias = averagesByTerm([
       { studentId: "aluno-1", term: 1, score: 10, weight: 3 },
       { studentId: "aluno-1", term: 1, score: 6, weight: 1 },
     ]);
@@ -93,7 +93,7 @@ describe("mediasPorBimestre", () => {
   });
 
   it("separa aluno e bimestre", () => {
-    const medias = mediasPorBimestre([
+    const medias = averagesByTerm([
       { studentId: "a", term: 1, score: 8, weight: 1 },
       { studentId: "a", term: 2, score: 6, weight: 1 },
       { studentId: "b", term: 1, score: 5, weight: 1 },

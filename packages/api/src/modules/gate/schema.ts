@@ -9,17 +9,17 @@ import { z } from "zod";
  */
 export const descritor = z.array(z.number().finite()).min(64).max(1024);
 
-export const identificarInput = z.object({
+export const identifyInput = z.object({
   descritor,
   extractor: z.string().trim().min(1).max(60),
 });
 
 /** O que a carteirinha entrega: o número de matrícula lido do QR. */
-export const porMatriculaInput = z.object({
+export const byRegistrationInput = z.object({
   registration: z.string().trim().min(1).max(40),
 });
 
-export const registrarInput = z.object({
+export const recordEntryInput = z.object({
   studentId: z.string().min(1),
   /**
    * Ausente quando o portão não declara sentido.
@@ -34,16 +34,16 @@ export const registrarInput = z.object({
   deviceLabel: z.string().trim().max(60).nullable().optional(),
 });
 
-export const cadastrarMoldeInput = z.object({
+export const enrollTemplateInput = z.object({
   studentId: z.string().min(1),
   descritor,
   extractor: z.string().trim().min(1).max(60),
 });
 
-export type IdentificarInput = z.infer<typeof identificarInput>;
-export type PorMatriculaInput = z.infer<typeof porMatriculaInput>;
-export type RegistrarInput = z.infer<typeof registrarInput>;
-export type CadastrarMoldeInput = z.infer<typeof cadastrarMoldeInput>;
+export type IdentifyInput = z.infer<typeof identifyInput>;
+export type ByRegistrationInput = z.infer<typeof byRegistrationInput>;
+export type RecordEntryInput = z.infer<typeof recordEntryInput>;
+export type EnrollTemplateInput = z.infer<typeof enrollTemplateInput>;
 
 /**
  * O recorte da tela de passagens.
@@ -51,7 +51,7 @@ export type CadastrarMoldeInput = z.infer<typeof cadastrarMoldeInput>;
  * `dia` é data civil, não instante: "22/09" é o dia da escola, e mandar um
  * `Date` faria o fuso do tablet decidir de que dia é a lista.
  */
-export const passagensInput = z.object({
+export const entriesInput = z.object({
   dia: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Use o formato AAAA-MM-DD")
@@ -60,7 +60,7 @@ export const passagensInput = z.object({
   excluidas: z.boolean().optional(),
 });
 
-export const excluirPassagemInput = z.object({ id: z.string().min(1) });
+export const deleteEntryInput = z.object({ id: z.string().min(1) });
 
-export type PassagensInput = z.infer<typeof passagensInput>;
-export type ExcluirPassagemInput = z.infer<typeof excluirPassagemInput>;
+export type EntriesInput = z.infer<typeof entriesInput>;
+export type DeleteEntryInput = z.infer<typeof deleteEntryInput>;

@@ -44,7 +44,7 @@ function sorteia(tamanho: number, aleatorio: () => number): string {
  * sorteia o código inteiro — com a escola cheia de "MA", o prefixo é
  * justamente o que aperta o espaço.
  */
-export function gerarCodigo(
+export function generateCode(
   nome: string,
   emUso: ReadonlySet<string>,
   aleatorio: () => number = Math.random,
@@ -65,7 +65,7 @@ export function gerarCodigo(
 }
 
 /** "  ma-4k2z " -> "MA4K2Z". O código chega copiado, com o que vier junto. */
-export function normalizarCodigo(bruto: string): string {
+export function normalizeCode(bruto: string): string {
   return bruto
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "")

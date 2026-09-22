@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BookOpen, ChevronLeft, ClipboardList, Sparkles, Users } from "lucide-react";
 
-import { inteiro, percentualCurto } from "@/lib/format";
+import { integerText, shortPercentText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -105,14 +105,14 @@ function FichaDoProfessor() {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard icon={Users} label="Alunos alcançados" hint={`em ${year}`}>
-          {inteiro(docente.alunos)}
+          {integerText(docente.alunos)}
         </StatCard>
         <StatCard
           icon={BookOpen}
           label="Aulas no ano"
-          hint={`${inteiro(docente.aulasRegistradas)} com chamada`}
+          hint={`${integerText(docente.aulasRegistradas)} com chamada`}
         >
-          {inteiro(docente.aulas)}
+          {integerText(docente.aulas)}
         </StatCard>
         <StatCard
           icon={ClipboardList}
@@ -120,14 +120,14 @@ function FichaDoProfessor() {
           hint="chamada e nota em aberto"
           tone={docente.chamadasPendentes + docente.notasPendentes > 0 ? "warning" : undefined}
         >
-          {inteiro(docente.chamadasPendentes + docente.notasPendentes)}
+          {integerText(docente.chamadasPendentes + docente.notasPendentes)}
         </StatCard>
         <StatCard
           icon={Sparkles}
           label="Pontos"
           hint={pontos ? `${pontos.posicao}º entre os docentes` : "ainda sem apuração"}
         >
-          {pontos ? inteiro(pontos.pontos) : "—"}
+          {pontos ? integerText(pontos.pontos) : "—"}
         </StatCard>
       </div>
 
@@ -160,7 +160,7 @@ function FichaDoProfessor() {
         <p className="font-extrabold text-2xl">
           {docente.frequenciaDasTurmas === null
             ? "—"
-            : percentualCurto(docente.frequenciaDasTurmas)}
+            : shortPercentText(docente.frequenciaDasTurmas)}
         </p>
         <p className="text-meta text-muted-foreground">
           {docente.frequenciaDasTurmas === null

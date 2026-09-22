@@ -19,8 +19,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
-import { dataHora } from "@/lib/format";
-import { dataParaISO, idadeEm, mascararCelular, mascararData } from "@/lib/masks";
+import { dateTimeText } from "@/lib/format";
+import { dateToISO, idadeEm, maskDate, maskPhone } from "@/lib/masks";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_app/matriculas/nova")({
@@ -51,7 +51,7 @@ const esquemas = [
     nome: z.string().trim().min(1, "Informe o nome do aluno"),
     nascimento: z
       .string()
-      .refine((valor) => dataParaISO(valor) !== null, "Informe uma data de nascimento válida"),
+      .refine((valor) => dateToISO(valor) !== null, "Informe uma data de nascimento válida"),
   }),
   z.object({
     responsavelNome: z.string().trim().min(1, "Informe o nome do responsável"),
@@ -112,7 +112,7 @@ function NovaMatricula() {
         student: {
           name: value.nome,
           // Sem `registration`: quem numera é o servidor, em sequência.
-          birthDate: dataParaISO(value.nascimento) ?? "",
+          birthDate: dateToISO(value.nascimento) ?? "",
           shift: value.turno,
         },
         guardian: {
@@ -267,7 +267,7 @@ function NovaMatricula() {
                     label="Celular com WhatsApp"
                     inputMode="numeric"
                     placeholder="(86) 99999-9999"
-                    mascara={mascararCelular}
+                    mascara={maskPhone}
                     hint="É para este número que o link será enviado."
                   />
                 )}
@@ -417,7 +417,7 @@ function LinkCriado({ id, url, detalhe }: { id: string; url: string; detalhe: st
         </Button>
       </div>
 
-      <p className="text-meta text-muted-foreground">Criado em {dataHora(new Date())}.</p>
+      <p className="text-meta text-muted-foreground">Criado em {dateTimeText(new Date())}.</p>
     </Card>
   );
 }
@@ -472,7 +472,7 @@ function Campo({
  */
 function CampoData({ field, label, hint }: { field: AnyFieldApi; label: string; hint?: string }) {
   const valor = field.state.value as string;
-  const iso = dataParaISO(valor);
+  const iso = dateToISO(valor);
   const idade = idadeEm(iso);
   const completo = valor.replace(/\D/g, "").length === 8;
 
@@ -490,7 +490,7 @@ function CampoData({ field, label, hint }: { field: AnyFieldApi; label: string; 
           className="pr-20 tabular-nums"
           value={valor}
           onBlur={field.handleBlur}
-          onChange={(event) => field.handleChange(mascararData(event.target.value))}
+          onChange={(event) => field.handleChange(maskDate(event.target.value))}
         />
         {idade !== null ? (
           <span

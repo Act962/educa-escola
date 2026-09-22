@@ -5,7 +5,7 @@
  * conhece provedor nenhum, conhece esta forma. Trocar de fornecedor é outra
  * implementação, não uma mudança no domínio.
  */
-export interface ModeloDeLinguagem {
+export interface LanguageModel {
   responder(input: {
     sistema: string;
     pergunta: string;
@@ -21,7 +21,7 @@ export interface ModeloDeLinguagem {
   listarModelos(): Promise<string[]>;
 }
 
-export class ErroDoModelo extends Error {
+export class ModelError extends Error {
   constructor(
     message: string,
     /** `true` quando o problema é a configuração da escola, não uma falha nossa. */
@@ -51,13 +51,13 @@ const PRAZO_MS = 30_000;
  *   uma camada tipo Vercel AI SDK ou LiteLLM, que normaliza os formatos e
  *   custa uma dependência a mais.
  */
-export function createClienteCompativel(config: {
+export function createCompatibleClient(config: {
   baseUrl: string;
   apiKey: string;
   model: string;
   /** `org-…` da OpenAI. Vira o cabeçalho `OpenAI-Organization`. */
   organizationId?: string | null;
-}): ModeloDeLinguagem {
+}): LanguageModel {
   // Tolera o endereço com e sem barra no fim: os dois aparecem na
   // documentação dos provedores, e quem digita não deve pagar por isso.
   const endereco = `${config.baseUrl.replace(/\/+$/, "")}/chat/completions`;
@@ -93,7 +93,7 @@ export function createClienteCompativel(config: {
         // Endereço errado, DNS, servidor fora, prazo estourado: tudo isso é
         // configuração da escola, e a mensagem precisa dizer isso para a
         // direção saber que é com ela.
-        throw new ErroDoModelo(
+        throw new ModelError(
           erro instanceof Error && erro.name === "TimeoutError"
             ? "O modelo não respondeu em 30 segundos."
             : "Não foi possível falar com o modelo. Confira o endereço nas configurações.",
@@ -102,7 +102,7 @@ export function createClienteCompativel(config: {
       }
 
       if (!resposta.ok) {
-        throw new ErroDoModelo(
+        throw new ModelError(
           mensagemDoStatus(resposta.status, await codigoDoProvedor(resposta)),
           resposta.status < 500,
         );
@@ -115,7 +115,7 @@ export function createClienteCompativel(config: {
 
       const texto = dados?.choices?.[0]?.message?.content?.trim();
       if (!texto) {
-        throw new ErroDoModelo("O modelo respondeu num formato que não reconheço.", true);
+        throw new ModelError("O modelo respondeu num formato que não reconheço.", true);
       }
 
       return { texto, tokens: dados?.usage?.total_tokens ?? null };
@@ -134,14 +134,14 @@ export function createClienteCompativel(config: {
           signal: AbortSignal.timeout(PRAZO_MS),
         });
       } catch {
-        throw new ErroDoModelo(
+        throw new ModelError(
           "Não foi possível falar com o modelo. Confira o endereço nas configurações.",
           true,
         );
       }
 
       if (!resposta.ok) {
-        throw new ErroDoModelo(
+        throw new ModelError(
           mensagemDoStatus(resposta.status, await codigoDoProvedor(resposta)),
           resposta.status < 500,
         );
@@ -158,7 +158,7 @@ export function createClienteCompativel(config: {
       if (ids.length === 0) {
         // Endpoint que existe mas devolve vazio (ou noutro formato) não é
         // falha nossa: a escola digita o nome e segue.
-        throw new ErroDoModelo(
+        throw new ModelError(
           "O provedor não devolveu nenhum modelo. Digite o nome do modelo à mão.",
           true,
         );
