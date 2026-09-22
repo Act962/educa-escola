@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   absencesFor,
   assignTeachers,
+  birthDateOf,
   buildClassrooms,
   type DemoClassroom,
   DISCIPLINAS,
@@ -271,5 +272,31 @@ describe("notas geradas", () => {
   it("deixa exatamente dois alunos do 8º A sem a Prova 2", () => {
     const semNota = Object.values(NOTAS_DO_ROTEIRO).filter((notas) => notas[2] === null);
     expect(semNota).toHaveLength(2);
+  });
+});
+
+describe("birthDateOf", () => {
+  it("dá a idade que a série pede", () => {
+    // 6º ano tem 11 anos em 2026; 9º tem 14.
+    expect(birthDateOf("2026-1041", "6º B", 2026).slice(0, 4)).toBe("2015");
+    expect(birthDateOf("2026-1257", "9º C", 2026).slice(0, 4)).toBe("2012");
+  });
+
+  it("é estável entre execuções", () => {
+    expect(birthDateOf("2026-1113", "7º A", 2026)).toBe(birthDateOf("2026-1113", "7º A", 2026));
+  });
+
+  it("produz data civil válida e espalhada pelos meses", () => {
+    const meses = new Set<string>();
+
+    for (let seq = 1000; seq < 1060; seq += 1) {
+      const data = birthDateOf(`2026-${seq}`, "8º A", 2026);
+      expect(data).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(Number.isNaN(Date.parse(data))).toBe(false);
+      meses.add(data.slice(5, 7));
+    }
+
+    // Passo coprimo com 12: sem ele a turma inteira cairia no mesmo mês.
+    expect(meses.size).toBe(12);
   });
 });

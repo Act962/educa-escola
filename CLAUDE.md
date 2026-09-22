@@ -59,7 +59,17 @@ Desalinhamentos ainda abertos:
   ativa é definida no login (ver `databaseHooks.session.create` em
   `packages/auth/src/index.ts`) e trocar exige sair e entrar.
 - **Turma rasa.** `classroom` é nome + ano letivo. O requisito amarra turma a
-  série, disciplinas, grade horária e professores alocados.
+  série, disciplinas, grade horária e professores alocados. A matrícula
+  valida o que dá — só o ano letivo da turma; série, unidade e vaga (RN-041 e
+  RN-042) ficam sem validação até a turma ser aprofundada.
+- **Matrícula projeta sobre o aluno.** `enrollment` é dono do vínculo datado e
+  do histórico por ano; `student.classroomId` e `student.status` continuam
+  sendo o que a chamada e a grade de notas leem, escritos na confirmação e no
+  cancelamento dentro de uma transação. A migração futura é `listByClassroom`
+  passar a ler `enrollment`, com backfill, quando todo aluno tiver matrícula
+  do ano corrente. Até lá, `student.status` tem duas origens — matrícula e
+  edição direta da secretaria — e tela que edite status livremente faz as duas
+  divergirem.
 
 ## Comandos
 
@@ -214,6 +224,9 @@ O mesmo teste exige que todo módulo tenha `repository.ts`, `service.ts` e
 | Módulo | O que resolve |
 | --- | --- |
 | `classroom` | Turma. O módulo mais simples — use como referência de forma |
+| `enrollment` | Matrícula: ciclo de vida, responsável, convite, consentimento e trilha |
+| `enrollment-link` | O fluxo do responsável pelo link público, sem sessão |
+| `photo` | Foto do aluno para a catraca: consentimento, cifragem e revogação |
 | `student` | Aluno, matrícula, frequência derivada e o recorte "em risco" |
 | `lesson` | Aula, chamada, diário e prazo de registro |
 | `assessment` | Avaliação, grade de notas, média ponderada e publicação |
@@ -243,6 +256,69 @@ Três regras de negócio atravessam quase tudo e vivem num lugar só:
   a grade de notas listava os dois e a checagem de publicação contava só
   `ativo`: o aluno aparecia como "Sem nota" na tela e a publicação passava
   assim mesmo, deixando no boletim exatamente o buraco que a regra proíbe.
+
+**O link de confirmação é a única exceção ao RBAC.** O responsável não tem
+conta — o requisito só lhe dá portal pós-MVP —, então a autorização dele é a
+posse de um token de 256 bits mais a conferência da data de nascimento do
+aluno. Três coisas seguram isso:
+
+1. **Só o hash do token vai ao banco.** Dump de banco não produz link que
+   funcione. `enrollment_invite` guarda uso único (`consumedAt`), revogação
+   (`revokedAt`), prazo e um contador de tentativas que mata o convite na
+   quinta.
+2. **`createInviteLookup` é a única consulta do sistema sem filtro de escola.**
+   Não há sessão de onde tirar o tenant; o `schoolId` da linha encontrada é o
+   que vira o `TenantContext` de todo o resto. O comentário está no ponto exato
+   em que a exceção existe, porque `architecture.test.ts` não a pega — o
+   factory com tenant no mesmo arquivo satisfaz a regra mecânica.
+3. **Nenhum endpoint anônimo escreve em `student`.** `aceitar` grava a ficha
+   como evento, registra consentimento e consome o convite; a matrícula segue
+   pendente até a gestão confirmar com `enrollment: ["update"]`.
+
+Token desconhecido responde 404 uniforme, para não deixar enumerar. Token
+conhecido porém vencido, consumido ou revogado responde `EXPIRED` — quem chega
+ali já possui aquele token, e precisa ler "peça um novo" em vez de "não
+encontrado".
+
+**O número de matrícula é sequencial e estável; o agrupamento é derivado.**
+`2026-0042` continua por escola e por ano, e a busca do último casa só o
+formato canônico (`LIKE '2026-____'`) — número herdado de outro sistema não
+empurra a sequência. O código de turma `6M` (série + turno) vive em
+`modules/enrollment/codes.ts` e é **calculado, nunca guardado**: dentro do
+número de matrícula ou numa coluna, ele passaria a mentir no dia em que o
+aluno avançasse de série. É a chave de leitura do disparo em massa — mas quem
+filtra de fato consulta `classroomId` e `shift`, que a `list` já aceita.
+
+A série sai do texto do nome da turma, porque `classroom` não a guarda como
+campo. Turma sem número no nome devolve código nulo em vez de inventar. Some
+quando a turma ganhar série de verdade.
+
+**A foto do aluno é cifrada na aplicação, não só no provedor.** A ameaça
+realista não é invadirem o datacenter da Neon — é a `DATABASE_URL` vazar, e ela
+vive num arquivo `.env`. Por isso a foto vai como AES-256-GCM em
+`packages/api/src/media/crypto.ts`, com a chave em `MEDIA_ENCRYPTION_KEY`, fora
+do banco: um dump sem a chave devolve ruído. GCM e não CBC porque a etiqueta
+detecta adulteração — trocar a foto de uma criança pela de outra seria
+silencioso num modo sem autenticação.
+
+Três regras a não relaxar: **sem consentimento de `biometria` não grava** (é
+uma finalidade própria — autorizar foto no mural não é autorizar
+reconhecimento facial na entrada); **cada leitura vira evento `foto_aberta`**
+(§13.3 pede registro de leitura em documento sensível); e **revogar apaga**,
+mantendo só o registro de que houve consentimento e de que ele foi revogado.
+
+**O molde facial não mora aqui.** Ele é proprietário do algoritmo que o gerou e
+não é portátil entre fornecedores, então guardá-lo seria custodiar biometria de
+menor sem ganhar nada. A foto é o que permite recadastrar em outra catraca sem
+trazer criança de volta. Quem não autoriza a face entra pela carteirinha com o
+QR do número de matrícula — recusar não pode barrar criança na porta da escola,
+e é isso que faz o consentimento ser opcional de verdade.
+
+**A entrega do link é manual por enquanto.** `packages/api/src/messaging/messenger.ts`
+é a costura: hoje `createManualMessenger` registra e não envia, e o endereço
+aparece uma única vez, na criação, com botão de copiar. Quando o WhatsApp
+oficial entrar, é outra implementação atrás da mesma interface — e aí o
+endereço deixa de precisar aparecer.
 
 `overview` importa esses limiares dos outros services em vez de repeti-los; do
 contrário o painel e o boletim discordariam sobre quem está aprovado.

@@ -12,7 +12,7 @@ import { EmptyState, ListSkeleton } from "@educa-escola/ui/integra/states";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarX, ClipboardCheck } from "lucide-react";
-
+import { FrequenciaGestao } from "@/components/frequencia-gestao";
 import { percentual } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
@@ -22,7 +22,45 @@ export const Route = createFileRoute("/_app/frequencia")({
 });
 
 /** Frequência do aluno, com o mínimo legal explicitado na própria tela. */
+/**
+ * Mesma rota, duas telas.
+ *
+ * O aluno vê a própria frequência; a direção e a secretaria veem o panorama da
+ * escola. O papel vem do servidor (`me`), nunca do que o navegador acha que é
+ * — esconder conteúdo pelo papel do cliente seria a única barreira, e barreira
+ * de cliente não é barreira.
+ */
 function Frequencia() {
+  const trpc = useTRPC();
+  const me = useQuery(trpc.me.queryOptions());
+
+  if (me.isLoading) {
+    return (
+      <Card>
+        <ListSkeleton rows={4} />
+      </Card>
+    );
+  }
+
+  if (me.data?.role === "owner" || me.data?.role === "admin") {
+    return (
+      <>
+        <div className="flex flex-col gap-1">
+          <CardEyebrow>Direção</CardEyebrow>
+          <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Frequência</h1>
+          <p className="text-[13px] text-muted-foreground">
+            Sobre as chamadas já registradas · mínimo legal de 75%
+          </p>
+        </div>
+        <FrequenciaGestao />
+      </>
+    );
+  }
+
+  return <MinhaFrequencia />;
+}
+
+function MinhaFrequencia() {
   const trpc = useTRPC();
   const { term } = useSchoolContext();
   const painel = useQuery(trpc.overview.aluno.queryOptions({ term }));

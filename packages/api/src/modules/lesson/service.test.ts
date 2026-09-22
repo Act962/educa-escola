@@ -70,6 +70,8 @@ function repositories(roster: { id: string; name: string }[]) {
         absentCount: 0,
       })),
     create: async () => ({}) as never,
+    /** Não usado aqui; mantém o dublê fiel à interface real. */
+    presenceByStudent: async () => [],
   } satisfies StudentRepository;
 
   return { lessons, students, gravado };

@@ -1,8 +1,11 @@
 import { protectedProcedure, publicProcedure, router, schoolProcedure } from "../index";
 import { assessmentRouter } from "../modules/assessment/router";
 import { classroomRouter } from "../modules/classroom/router";
+import { enrollmentRouter } from "../modules/enrollment/router";
+import { enrollmentLinkRouter } from "../modules/enrollment-link/router";
 import { lessonRouter } from "../modules/lesson/router";
 import { overviewRouter } from "../modules/overview/router";
+import { photoRouter } from "../modules/photo/router";
 import { studentRouter } from "../modules/student/router";
 
 export const appRouter = router({
@@ -31,7 +34,12 @@ export const appRouter = router({
     schoolName: ctx.membership.schoolName,
   })),
   classroom: classroomRouter,
+  enrollment: enrollmentRouter,
+  /** Fluxo do responsável, sem sessão. Ver o comentário no router. */
+  enrollmentLink: enrollmentLinkRouter,
   student: studentRouter,
+  /** Foto do aluno. Ver o comentário no router: leitura também é restrita. */
+  photo: photoRouter,
   lesson: lessonRouter,
   assessment: assessmentRouter,
   overview: overviewRouter,

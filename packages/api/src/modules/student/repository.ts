@@ -130,6 +130,33 @@ export function createStudentRepository(db: DbHandle, tenant: TenantContext) {
      * documentação pendente **continua**, porque está assistindo à aula e
      * tirá-lo daqui produziria falta silenciosa no histórico.
      */
+    /**
+     * Presença de cada aluno matriculado, com a turma junto.
+     *
+     * Uma consulta só para a tela de frequência da gestão: a média da turma e
+     * a lista de quem está abaixo do mínimo saem do mesmo conjunto, então
+     * separá-las em duas consultas daria dois números que podem discordar.
+     */
+    async presenceByStudent() {
+      return db
+        .select({
+          studentId: student.id,
+          studentName: student.name,
+          registration: student.registration,
+          shift: student.shift,
+          classroomId: classroom.id,
+          classroomName: classroom.name,
+          academicYear: classroom.academicYear,
+          ...presenceCounts,
+        })
+        .from(student)
+        .leftJoin(attendance, eq(attendance.studentId, student.id))
+        .leftJoin(classroom, eq(classroom.id, student.classroomId))
+        .where(and(withinSchool, inArray(student.status, ENROLLED_STATUSES)))
+        .groupBy(student.id, classroom.id)
+        .orderBy(asc(classroom.name), asc(student.name));
+    },
+
     async listByClassroom(classroomId: string) {
       return db
         .select({

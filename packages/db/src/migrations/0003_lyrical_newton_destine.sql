@@ -1,0 +1,1 @@
+ALTER TYPE "public"."enrollment_event_type" ADD VALUE 'editada' BEFORE 'link_gerado';
