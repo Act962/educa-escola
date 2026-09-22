@@ -108,6 +108,9 @@ importers:
       '@educa-escola/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@educa-escola/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@educa-escola/env':
         specifier: workspace:*
         version: link:../../packages/env
@@ -321,6 +324,9 @@ importers:
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
+      jiti:
+        specifier: ^2.7.0
+        version: 2.7.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

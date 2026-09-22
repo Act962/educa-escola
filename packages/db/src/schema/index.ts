@@ -6,6 +6,7 @@ export * from "./communication";
 export * from "./enrollment";
 export * from "./gate";
 export * from "./leaderboard";
+export * from "./login-throttle";
 export * from "./orbita";
 export * from "./referral";
 export * from "./school";
