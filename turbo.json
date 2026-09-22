@@ -22,6 +22,7 @@
         "BETTER_AUTH_URL",
         "MEDIA_ENCRYPTION_KEY",
         "ORBITA_BASE_URL",
+        "ASSISTANT_ENCRYPTION_KEY",
         "NODE_ENV"
       ]
     },
@@ -35,6 +36,7 @@
         "BETTER_AUTH_URL",
         "MEDIA_ENCRYPTION_KEY",
         "ORBITA_BASE_URL",
+        "ASSISTANT_ENCRYPTION_KEY",
         "NODE_ENV"
       ]
     },

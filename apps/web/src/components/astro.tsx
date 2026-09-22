@@ -1,51 +1,42 @@
 import { Button } from "@educa-escola/ui/components/button";
+import { Input } from "@educa-escola/ui/components/input";
 import { OrbitaAstro } from "@educa-escola/ui/integra/orbita";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { SendHorizontal, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { useTRPC } from "@/utils/trpc";
 
+interface Fala {
+  de: "pessoa" | "astro";
+  texto: string;
+}
+
 /**
- * O Astro: a porta do assistente, no canto da tela.
+ * O Astro, assistente da escola.
  *
- * **Isto é a porta, não o assistente.** O Astro é um app do ecossistema
- * Órbita, e quem responde é ele — aqui mora o botão que leva até lá, com o
- * rosto da marca. Enquanto a escola não instalar o app, o botão diz o que o
- * assistente fará em vez de abrir uma tela que não existe: botão que promete
- * conversa e entrega erro é pior que botão nenhum.
+ * **Nativo**: a pergunta vai para o nosso servidor, que monta os fatos do
+ * papel de quem perguntou e conversa com o modelo que a escola configurou.
+ * Nenhum dado sai daqui por conta própria — e o modelo só enxerga o texto que
+ * o servidor põe no contexto, que é o mesmo painel que a pessoa já abre.
  *
- * Fica à esquerda da borda e acima do rodapé, e não colado no canto: o
- * VLibras se posiciona sozinho no meio da borda direita, e os dois disputando
- * o mesmo pixel deixariam a pessoa surda sem tradutor para ganhar um
- * assistente.
+ * **A conversa não é guardada.** Ela vive nesta tela e some ao recarregar.
+ * Persistir o que um aluno pergunta ao assistente é guardar conteúdo de
+ * criança: outra finalidade, outro consentimento, outra conversa com a escola.
+ * O que fica no banco é contagem, para o teto diário e para a escola saber o
+ * que está gastando.
  *
- * DECISÃO-JOÃO: de onde virão as respostas do assistente.
- * Quebra se: o Astro do Órbita responde a partir do dado que a **organização
- *   dele** enxerga, e aqui quem pergunta tem papel — aluno, professor,
- *   secretaria. Se a pergunta atravessar sem o papel junto, um aluno pergunta
- *   "qual a média da turma" e recebe a nota dos colegas. É o mesmo §7.5 que o
- *   placar respeita, e não dá para garanti-lo do lado de cá.
- * Fiz assim: o botão abre o app pela mesma porta dos outros doze
- *   (`/apps/astro`), que já carrega a identidade e a escola ativa. Nenhuma
- *   pergunta sai do Integra por conta própria.
- * Alternativas: o Órbita receber o papel no token de entrada e recortar lá ·
- *   um endpoint nosso que responda com o dado já filtrado, e o Astro só
- *   conversar — mais trabalho, e o recorte fica onde a regra mora.
+ * Fica no canto inferior direito. O VLibras se posiciona sozinho no meio da
+ * borda direita, então os dois não disputam o mesmo pixel — e deixar a pessoa
+ * surda sem tradutor para ganhar um assistente seria uma troca ruim.
  */
 export function Astro() {
   const trpc = useTRPC();
   const [aberto, setAberto] = useState(false);
 
-  const assistente = useQuery({
-    ...trpc.orbita.assistente.queryOptions(),
-    // Sem escola ativa a procedure recusa; o botão simplesmente não aparece.
-    retry: false,
-  });
+  const situacao = useQuery({ ...trpc.assistant.situacao.queryOptions(), retry: false });
 
-  // Fechar com Esc é o que a pessoa tenta primeiro, e o cartão não é um
-  // diálogo modal — então o atalho precisa ser nosso.
   useEffect(() => {
     if (!aberto) return;
     const aoTeclar = (evento: KeyboardEvent) => {
@@ -55,20 +46,23 @@ export function Astro() {
     return () => window.removeEventListener("keydown", aoTeclar);
   }, [aberto]);
 
-  if (assistente.isError) return null;
-
-  const disponivel = assistente.data?.disponivel ?? false;
+  if (situacao.isError) return null;
 
   return (
     <div className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-3">
-      {aberto ? <CartaoDoAstro disponivel={disponivel} aoFechar={() => setAberto(false)} /> : null}
+      {aberto ? (
+        <Painel
+          disponivel={situacao.data?.disponivel ?? false}
+          ligado={situacao.data?.ligado ?? false}
+        />
+      ) : null}
 
       <button
         type="button"
         onClick={() => setAberto((estado) => !estado)}
         aria-expanded={aberto}
         aria-label={aberto ? "Fechar o Astro" : "Abrir o Astro, assistente da escola"}
-        className="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+        className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
       >
         {aberto ? (
           <X size={22} strokeWidth={2} aria-hidden />
@@ -82,55 +76,161 @@ export function Astro() {
   );
 }
 
-function CartaoDoAstro({ disponivel, aoFechar }: { disponivel: boolean; aoFechar: () => void }) {
+function Painel({ disponivel, ligado }: { disponivel: boolean; ligado: boolean }) {
+  const trpc = useTRPC();
+  const [falas, setFalas] = useState<Fala[]>([]);
+  const [pergunta, setPergunta] = useState("");
+  const [restantes, setRestantes] = useState<number | null>(null);
+  const fim = useRef<HTMLDivElement>(null);
+  const campo = useRef<HTMLInputElement>(null);
+
+  const perguntar = useMutation(
+    trpc.assistant.perguntar.mutationOptions({
+      onSuccess: (saida) => {
+        setFalas((atuais) => [...atuais, { de: "astro", texto: saida.texto }]);
+        setRestantes(saida.restantesHoje);
+      },
+      // O erro entra na conversa em vez de virar um aviso solto: é resposta a
+      // uma pergunta, e some do contexto se aparecer noutro canto da tela.
+      onError: (erro) => setFalas((atuais) => [...atuais, { de: "astro", texto: erro.message }]),
+    }),
+  );
+
+  useEffect(() => {
+    fim.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, []);
+
+  useEffect(() => {
+    if (disponivel) campo.current?.focus();
+  }, [disponivel]);
+
+  const enviar = () => {
+    const texto = pergunta.trim();
+    if (texto.length < 3 || perguntar.isPending) return;
+
+    setFalas((atuais) => [...atuais, { de: "pessoa", texto }]);
+    setPergunta("");
+    perguntar.mutate({ pergunta: texto });
+  };
+
   return (
-    <div className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-card bg-card p-5 shadow-overlay">
+    <div className="flex h-[30rem] w-88 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-card bg-card p-5 shadow-overlay">
       <div className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-control bg-info-soft text-info">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-control bg-info-soft text-info">
           <OrbitaAstro className="w-6" />
         </span>
         <div className="min-w-0">
           <p className="font-extrabold text-card tracking-[-0.2px]">Astro</p>
-          <p className="text-meta text-muted-foreground">Assistente do Órbita Edu</p>
+          <p className="text-meta text-muted-foreground">
+            {restantes === null
+              ? "Assistente da escola"
+              : `${restantes} pergunta(s) restante(s) hoje`}
+          </p>
         </div>
       </div>
 
-      <p className="text-corpo text-muted-foreground">
-        Pergunte sobre a escola em linguagem comum — frequência, notas, prazos, o que estiver
-        pendente.
-      </p>
-
-      {/*
-        A regra de permissão dita na porta, não escondida no contrato. É o que
-        separa um assistente de um vazamento: o aluno perguntando "como está a
-        minha turma" não pode receber a nota dos colegas.
-      */}
-      <p className="rounded-control bg-muted px-3 py-2.5 text-meta text-muted-foreground">
-        O Astro responde dentro do que você já pode ver. Aluno enxerga o que é dele; professor, as
-        turmas dele; a secretaria, a escola.
-      </p>
-
-      {disponivel ? (
-        <Button
-          nativeButton={false}
-          render={<Link to="/apps/$appKey" params={{ appKey: "astro" }} />}
-        >
-          Conversar com o Astro
-        </Button>
+      {!ligado ? (
+        <Aviso
+          titulo="O Astro ainda não foi ligado"
+          texto="A direção configura o modelo em Configurações. Sem isso ele não tem com quem conversar."
+          acao={
+            <Button
+              variant="secondary"
+              size="sm"
+              nativeButton={false}
+              render={<Link to="/configuracoes" />}
+            >
+              Abrir Configurações
+            </Button>
+          }
+        />
+      ) : !disponivel ? (
+        <Aviso
+          titulo="Seu perfil não tem acesso"
+          texto="A escola escolhe quais perfis podem perguntar ao Astro. Fale com a secretaria."
+        />
       ) : (
         <>
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+            {falas.length === 0 ? (
+              <div className="flex flex-col gap-2 rounded-control bg-muted px-3 py-2.5">
+                <p className="text-corpo text-muted-foreground">
+                  Pergunte sobre a escola em linguagem comum.
+                </p>
+                {/*
+                  A regra de permissão dita na porta, não escondida no
+                  contrato. É o que separa um assistente de um vazamento.
+                */}
+                <p className="text-meta text-muted-foreground">
+                  O Astro responde dentro do que você já pode ver, e diz quando não tem o dado em
+                  vez de estimar.
+                </p>
+              </div>
+            ) : (
+              falas.map((fala, indice) => (
+                <div
+                  // A conversa é só desta sessão e nunca reordena, então o
+                  // índice basta e não há id para inventar.
+                  // biome-ignore lint/suspicious/noArrayIndexKey: lista só cresce no fim
+                  key={indice}
+                  className={
+                    fala.de === "pessoa"
+                      ? "self-end rounded-control bg-primary px-3 py-2 text-corpo text-primary-foreground"
+                      : "self-start whitespace-pre-wrap rounded-control bg-muted px-3 py-2 text-corpo"
+                  }
+                >
+                  {fala.texto}
+                </div>
+              ))
+            )}
+
+            {perguntar.isPending ? (
+              <p className="self-start px-3 text-meta text-muted-foreground">O Astro está lendo…</p>
+            ) : null}
+            <div ref={fim} />
+          </div>
+
+          <form
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              enviar();
+            }}
+            className="flex items-center gap-2"
+          >
+            <Input
+              ref={campo}
+              value={pergunta}
+              onChange={(evento) => setPergunta(evento.target.value)}
+              placeholder="Quantos alunos estão em risco?"
+              aria-label="Sua pergunta ao Astro"
+              maxLength={500}
+              disabled={perguntar.isPending}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              aria-label="Enviar pergunta"
+              disabled={perguntar.isPending || pergunta.trim().length < 3}
+            >
+              <SendHorizontal size={18} strokeWidth={1.8} aria-hidden />
+            </Button>
+          </form>
+
           <p className="text-meta text-muted-foreground">
-            A escola ainda não ativou o Astro. Quem contrata é a direção, na aba Apps.
+            A conversa não fica guardada: some ao fechar a página.
           </p>
-          <Button variant="secondary" nativeButton={false} render={<Link to="/apps" />}>
-            Ver na aba Apps
-          </Button>
         </>
       )}
+    </div>
+  );
+}
 
-      <Button variant="ghost" size="sm" className="self-start" onClick={aoFechar}>
-        Fechar
-      </Button>
+function Aviso({ titulo, texto, acao }: { titulo: string; texto: string; acao?: React.ReactNode }) {
+  return (
+    <div className="flex flex-1 flex-col justify-center gap-2">
+      <p className="font-bold text-corpo">{titulo}</p>
+      <p className="text-corpo text-muted-foreground">{texto}</p>
+      {acao}
     </div>
   );
 }

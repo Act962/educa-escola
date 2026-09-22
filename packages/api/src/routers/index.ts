@@ -1,6 +1,7 @@
 import { protectedProcedure, publicProcedure, router, schoolProcedure } from "../index";
 import { academicRouter } from "../modules/academic/router";
 import { assessmentRouter } from "../modules/assessment/router";
+import { assistantRouter } from "../modules/assistant/router";
 import { calendarRouter } from "../modules/calendar/router";
 import { classroomRouter } from "../modules/classroom/router";
 import { communicationRouter } from "../modules/communication/router";
@@ -73,6 +74,8 @@ export const appRouter = router({
   profile: profileRouter,
   /** Configurações da instituição. Fechado atrás de `organization: update`. */
   settings: settingsRouter,
+  /** O Astro. A credencial do modelo nunca volta para a tela. */
+  assistant: assistantRouter,
   /**
    * Programa de indicações. A visão da gestão é nominal e fica atrás de
    * `referral: read`; a de quem divulga resolve por identidade.

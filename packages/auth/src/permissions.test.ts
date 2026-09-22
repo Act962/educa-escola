@@ -209,6 +209,26 @@ describe("configurações da instituição", () => {
   });
 });
 
+describe("Astro", () => {
+  /** A credencial do modelo é chave de gasto: quem assina responde pela escola. */
+  it("só a gestão configura o modelo", () => {
+    for (const role of APP_ROLES) {
+      const esperado = role === "owner" || role === "admin";
+      expect(can(role, { assistant: ["manage"] })).toBe(esperado);
+    }
+  });
+
+  /**
+   * Não existe ação de "usar" no RBAC de propósito: quem pode perguntar é
+   * decidido na configuração da escola, porque ela precisa abrir para o aluno
+   * sem mexer em papel.
+   */
+  it("professor e aluno não têm nada de `assistant`", () => {
+    expect(can("teacher", { assistant: ["manage"] })).toBe(false);
+    expect(can("student", { assistant: ["manage"] })).toBe(false);
+  });
+});
+
 describe("programa de indicações", () => {
   /** Desenhar a regra de desconto é decisão comercial da direção. */
   it("só a gestão configura e enxerga quem indicou quem", () => {
