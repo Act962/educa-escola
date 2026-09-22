@@ -260,11 +260,140 @@ describe("createGateRepository", () => {
         const c = await cenario(tx);
         await passar(c, "entrada", 10);
 
-        const [linha] = await c.repo.listEntries(new Date(Date.now() - 86_400_000), 10);
+        const [linha] = await c.repo.listEntries({
+          desde: new Date(Date.now() - 86_400_000),
+          ate: new Date(Date.now() + 86_400_000),
+          limite: 10,
+        });
         expect(linha?.name).toBe("Weydson Lima");
         expect(linha?.classroomName).toBe("9º C");
         expect(linha?.method).toBe("rosto");
       });
+    });
+  });
+});
+
+describe("exclusão de passagem", () => {
+  const janela = () => ({
+    desde: new Date(Date.now() - 86_400_000),
+    ate: new Date(Date.now() + 86_400_000),
+    limite: 20,
+  });
+
+  const passar = (c: Awaited<ReturnType<typeof cenario>>) =>
+    c.repo.recordEntry({
+      studentId: c.aluno.id,
+      direction: "entrada",
+      method: "rosto",
+      operatorUserId: c.operador.id,
+      deviceLabel: "Portaria 1",
+      occurredAt: new Date(),
+    });
+
+  /**
+   * Marca, não apaga. A passagem diz a que horas uma criança entrou na escola:
+   * apagar a linha destruiria a resposta e o rastro de quem a destruiu.
+   */
+  it("a passagem sai da lista e continua no banco, com autor e instante", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenario(tx);
+      const passagem = await passar(c);
+
+      const removida = await c.repo.softDelete(passagem.id, c.operador.id, new Date());
+      expect(removida?.id).toBe(passagem.id);
+
+      expect(await c.repo.listEntries(janela())).toHaveLength(0);
+
+      const [excluida] = await c.repo.listEntries({ ...janela(), excluidas: true });
+      expect(excluida?.id).toBe(passagem.id);
+      expect(excluida?.deletedAt).toBeInstanceOf(Date);
+      expect(excluida?.deletedByName).toBeTruthy();
+    });
+  });
+
+  /** Excluir de novo não troca o autor da primeira — é o que a trilha guarda. */
+  it("excluir duas vezes não reescreve quem excluiu", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenario(tx);
+      const passagem = await passar(c);
+      const outro = await createTestUser(tx);
+
+      await c.repo.softDelete(passagem.id, c.operador.id, new Date());
+      // A segunda tentativa não encontra linha: já estava excluída.
+      expect(await c.repo.softDelete(passagem.id, outro.id, new Date())).toBeNull();
+
+      const [antes] = await c.repo.listEntries({ ...janela(), excluidas: true });
+      const quandoExcluiu = antes?.deletedAt;
+      expect(quandoExcluiu).toBeInstanceOf(Date);
+      expect(antes?.deletedByName).toBeTruthy();
+    });
+  });
+
+  /**
+   * Se a excluída contasse, excluir um registro errado deixaria o número de
+   * quem está dentro errado do mesmo jeito.
+   */
+  it("passagem excluída não conta para quem está na escola", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenario(tx);
+      const passagem = await passar(c);
+      const inicio = new Date(Date.now() - 86_400_000);
+
+      expect(await c.repo.presentCount(inicio)).toBe(1);
+      await c.repo.softDelete(passagem.id, c.operador.id, new Date());
+      expect(await c.repo.presentCount(inicio)).toBe(0);
+    });
+  });
+
+  it("uma escola não exclui a passagem da outra", async () => {
+    await withRollback(async (tx) => {
+      const a = await cenario(tx, "Escola A");
+      const b = await cenario(tx, "Escola B");
+      const passagem = await passar(a);
+
+      expect(await b.repo.softDelete(passagem.id, b.operador.id, new Date())).toBeNull();
+      expect(await a.repo.listEntries(janela())).toHaveLength(1);
+    });
+  });
+
+  it("filtra por aluno", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenario(tx);
+      const outro = await createTestStudent(tx, { schoolId: c.escola.id, name: "Outro Aluno" });
+      await passar(c);
+      await c.repo.recordEntry({
+        studentId: outro.id,
+        direction: "entrada",
+        method: "carteirinha",
+        operatorUserId: c.operador.id,
+        deviceLabel: null,
+        occurredAt: new Date(),
+      });
+
+      expect(await c.repo.listEntries(janela())).toHaveLength(2);
+      const so = await c.repo.listEntries({ ...janela(), studentId: outro.id });
+      expect(so.map((l) => l.name)).toEqual(["Outro Aluno"]);
+    });
+  });
+
+  /** A janela é do dia civil: passagem de ontem não entra na lista de hoje. */
+  it("filtra pela janela do dia", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenario(tx);
+      await c.repo.recordEntry({
+        studentId: c.aluno.id,
+        direction: "entrada",
+        method: "rosto",
+        operatorUserId: c.operador.id,
+        deviceLabel: null,
+        occurredAt: new Date(Date.now() - 3 * 86_400_000),
+      });
+
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const amanha = new Date(hoje.getTime() + 86_400_000);
+
+      expect(await c.repo.listEntries({ desde: hoje, ate: amanha, limite: 20 })).toHaveLength(0);
     });
   });
 });

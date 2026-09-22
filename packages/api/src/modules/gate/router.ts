@@ -4,7 +4,14 @@ import { env } from "@educa-escola/env/server";
 import { permitted, router } from "../../index";
 import type { Membership, TenantContext } from "../../trpc/tenant";
 import { createGateRepository } from "./repository";
-import { cadastrarMoldeInput, identificarInput, porMatriculaInput, registrarInput } from "./schema";
+import {
+  cadastrarMoldeInput,
+  excluirPassagemInput,
+  identificarInput,
+  passagensInput,
+  porMatriculaInput,
+  registrarInput,
+} from "./schema";
 import { createGateService } from "./service";
 
 type Ctx = { db: DbHandle; tenant: TenantContext; membership: Membership };
@@ -53,4 +60,20 @@ export const gateRouter = router({
     .mutation(({ ctx, input }) => serviceFor(ctx).cadastrarMolde(input)),
 
   situacao: permitted({ gate: ["read"] }).query(({ ctx }) => serviceFor(ctx).situacao()),
+
+  /** As passagens de um dia, com filtro por aluno e a lista de excluídas. */
+  passagens: permitted({ gate: ["read"] })
+    .input(passagensInput)
+    .query(({ ctx, input }) => serviceFor(ctx).passagens(input)),
+
+  /**
+   * Exclui uma passagem, marcando.
+   *
+   * `delete_entry` e não `operate`: o quiosque fica horas aberto num tablet de
+   * corredor, e quem passa por ali não deve poder apagar o registro de uma
+   * criança.
+   */
+  excluirPassagem: permitted({ gate: ["delete_entry"] })
+    .input(excluirPassagemInput)
+    .mutation(({ ctx, input }) => serviceFor(ctx).excluir(input)),
 });

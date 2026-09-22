@@ -81,7 +81,7 @@ export const statement = {
    * conferido e não se desfaz sozinho. `read` é a lista de quem entrou — o
    * professor a enxerga, porque é ela que responde "o aluno chegou?" na aula.
    */
-  gate: ["read", "operate", "enroll_face"],
+  gate: ["read", "operate", "enroll_face", "delete_entry"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -112,7 +112,7 @@ export const owner = ac.newRole({
   // escolas — com o aval do João, não por herança de papel.
   ranking: ["read", "opt_in"],
   assistant: ["manage"],
-  gate: ["read", "operate", "enroll_face"],
+  gate: ["read", "operate", "enroll_face", "delete_entry"],
 });
 
 /** Secretaria / administrativo: opera a escola inteira, menos excluí-la. */
@@ -125,7 +125,7 @@ export const admin = ac.newRole({
   /** A secretaria configura o Astro; ela é quem opera o dia a dia da escola. */
   assistant: ["manage"],
   /** A recepção é a secretaria: ela abre o quiosque e cadastra o molde. */
-  gate: ["read", "operate", "enroll_face"],
+  gate: ["read", "operate", "enroll_face", "delete_entry"],
 });
 
 /**

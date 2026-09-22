@@ -54,6 +54,16 @@ export const schoolEntry = pgTable(
     operatorUserId: text("operator_user_id").references(() => user.id, { onDelete: "set null" }),
     /** Identificador do tablet, digitado na abertura do quiosque. */
     deviceLabel: text("device_label"),
+    /**
+     * Exclusão é marca, não apagamento.
+     *
+     * A passagem diz a que horas uma criança entrou ou saiu da escola. Apagar
+     * a linha destruiria a única resposta para "ela chegou?" num dia em que
+     * alguém precise dela — e destruiria também o rastro de quem a apagou. A
+     * linha sai da lista e continua no banco, com autor e instante.
+     */
+    deletedAt: timestamp("deleted_at"),
+    deletedByUserId: text("deleted_by_user_id").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [

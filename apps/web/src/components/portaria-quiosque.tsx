@@ -97,6 +97,15 @@ export function PortariaQuiosque({
   const [erroDaCamera, setErroDaCamera] = useState<string | null>(null);
   const [agora, setAgora] = useState(() => new Date());
   const [msDaLeitura, setMsDaLeitura] = useState<number | null>(null);
+  /**
+   * A última pontuação de vivacidade, visível no rodapé.
+   *
+   * Está na tela porque o ataque precisa ser medido, não adivinhado: uma foto
+   * na tela do celular passou, e sem o número não dá para saber se o modelo
+   * foi enganado ou se ele nem chegou a rodar. Ajustar limiar no escuro é
+   * chute — e chute aqui abre portão de escola.
+   */
+  const [vivacidade, setVivacidade] = useState<{ real: number; vivo: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const leitorRef = useRef<HTMLInputElement>(null);
   /** Quando o rosto apareceu. Alimenta a paciência antes de desistir. */
@@ -334,6 +343,7 @@ export function PortariaQuiosque({
              */
             const vida = await detectorDeVivacidade.avaliar(videoRef.current);
             if (!vivo) return;
+            setVivacidade(vida ? { real: vida.real, vivo: vida.vivo } : null);
 
             if (!vida?.aprovado) {
               // A mensagem não acusa ninguém e não ensina o atacante: quem
@@ -429,6 +439,15 @@ export function PortariaQuiosque({
             uma portaria que só usa carteirinha seria ruído. */}
         {rostoLigado && msDaLeitura !== null ? (
           <span className="text-apoio tabular-nums">leitura em {msDaLeitura} ms</span>
+        ) : null}
+        {rostoLigado ? (
+          <span className="text-apoio tabular-nums">
+            {vivacidade
+              ? `vivacidade ${vivacidade.real.toFixed(2)} · ${vivacidade.vivo.toFixed(2)}`
+              : vivacidadeDisponivel()
+                ? "vivacidade: sem leitura ainda"
+                : "vivacidade: indisponível"}
+          </span>
         ) : null}
         <span className="text-apoio">
           {deviceLabel}

@@ -5,9 +5,10 @@ import {
   schoolEntry,
   student,
   studentFaceTemplate,
+  user,
 } from "@educa-escola/db/schema";
 import type { DbHandle } from "@educa-escola/db/types";
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { aliasedTable, and, desc, eq, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
 
 import type { TenantContext } from "../../trpc/tenant";
 import { ENROLLED_STATUSES } from "../student/schema";
@@ -195,7 +196,16 @@ export function createGateRepository(db: DbHandle, tenant: TenantContext) {
           direction: schoolEntry.direction,
         })
         .from(schoolEntry)
-        .where(and(eq(schoolEntry.schoolId, tenant.schoolId), gte(schoolEntry.occurredAt, desde)))
+        .where(
+          and(
+            eq(schoolEntry.schoolId, tenant.schoolId),
+            gte(schoolEntry.occurredAt, desde),
+            // Passagem excluída não conta para quem está dentro: se contasse,
+            // excluir um registro errado deixaria o número errado do mesmo
+            // jeito.
+            isNull(schoolEntry.deletedAt),
+          ),
+        )
         .orderBy(schoolEntry.studentId, desc(schoolEntry.occurredAt))
         .as("ultima");
 
@@ -206,8 +216,23 @@ export function createGateRepository(db: DbHandle, tenant: TenantContext) {
       return row?.total ?? 0;
     },
 
-    /** As passagens do dia, mais recentes primeiro. Alimenta a tela da gestão. */
-    async listEntries(desde: Date, limite: number) {
+    /**
+     * As passagens de uma janela, mais recentes primeiro.
+     *
+     * `excluidas` troca a lista em vez de acrescentar uma coluna: são duas
+     * telas com propósitos diferentes — uma é o movimento do portão, a outra é
+     * a trilha de quem mexeu nele. Misturá-las faria a lista do dia carregar
+     * linhas que já não valem.
+     */
+    async listEntries(filtros: {
+      desde: Date;
+      ate: Date;
+      studentId?: string;
+      excluidas?: boolean;
+      limite: number;
+    }) {
+      const autor = aliasedTable(user, "autor_da_exclusao");
+
       return db
         .select({
           id: schoolEntry.id,
@@ -217,13 +242,46 @@ export function createGateRepository(db: DbHandle, tenant: TenantContext) {
           direction: schoolEntry.direction,
           method: schoolEntry.method,
           occurredAt: schoolEntry.occurredAt,
+          deletedAt: schoolEntry.deletedAt,
+          deletedByName: autor.name,
         })
         .from(schoolEntry)
         .innerJoin(student, eq(student.id, schoolEntry.studentId))
         .leftJoin(classroom, eq(classroom.id, student.classroomId))
-        .where(and(eq(schoolEntry.schoolId, tenant.schoolId), gte(schoolEntry.occurredAt, desde)))
-        .orderBy(desc(schoolEntry.occurredAt))
-        .limit(limite);
+        .leftJoin(autor, eq(autor.id, schoolEntry.deletedByUserId))
+        .where(
+          and(
+            eq(schoolEntry.schoolId, tenant.schoolId),
+            gte(schoolEntry.occurredAt, filtros.desde),
+            lt(schoolEntry.occurredAt, filtros.ate),
+            filtros.excluidas ? isNotNull(schoolEntry.deletedAt) : isNull(schoolEntry.deletedAt),
+            filtros.studentId ? eq(schoolEntry.studentId, filtros.studentId) : undefined,
+          ),
+        )
+        .orderBy(desc(filtros.excluidas ? schoolEntry.deletedAt : schoolEntry.occurredAt))
+        .limit(filtros.limite);
+    },
+
+    /**
+     * Marca a passagem como excluída. **Não apaga.**
+     *
+     * O `isNull` no filtro é o que torna a operação idempotente: excluir duas
+     * vezes não troca o autor nem o instante da primeira, que é o registro que
+     * uma conferência vai ler.
+     */
+    async softDelete(id: string, porUserId: string, quando: Date) {
+      const [row] = await db
+        .update(schoolEntry)
+        .set({ deletedAt: quando, deletedByUserId: porUserId })
+        .where(
+          and(
+            eq(schoolEntry.schoolId, tenant.schoolId),
+            eq(schoolEntry.id, id),
+            isNull(schoolEntry.deletedAt),
+          ),
+        )
+        .returning({ id: schoolEntry.id });
+      return row ?? null;
     },
   };
 }

@@ -2,7 +2,12 @@ import { ConflictError, NotFoundError, ValidationError } from "../../errors";
 import { ENROLLED_STATUSES } from "../student/schema";
 import { identificar, type Veredito } from "./reconhecimento";
 import type { GateRepository } from "./repository";
-import type { CadastrarMoldeInput, RegistrarInput } from "./schema";
+import type {
+  CadastrarMoldeInput,
+  ExcluirPassagemInput,
+  PassagensInput,
+  RegistrarInput,
+} from "./schema";
 import { cifrarMolde, decifrarMolde } from "./segredo";
 
 export interface DepsDaPortaria {
@@ -42,10 +47,36 @@ export const JANELA_DE_RELEITURA_MS = 60_000;
  * professor. E **a carteirinha é o modo que nunca falha**: qualquer caminho
  * que dê errado no rosto termina pedindo o QR, nunca barrando a criança.
  */
+/**
+ * Teto da lista.
+ *
+ * Um portão de escola faz centenas de passagens por dia, e a tela é para
+ * conferir movimento, não para exportar histórico. Quando virar exportação, o
+ * caminho é outro — página, e não uma lista maior.
+ */
+const LIMITE_DA_LISTA = 300;
+
 export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
   function inicioDoDia(): Date {
     const agora = deps.now();
     return new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+  }
+
+  /** O dia seguinte, à meia-noite: o fim aberto da janela do dia. */
+  function fimDoDia(inicio: Date): Date {
+    return new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + 1);
+  }
+
+  /**
+   * "2026-09-22" vira a meia-noite local daquele dia.
+   *
+   * Montado componente a componente, e não `new Date("2026-09-22")`: essa
+   * forma é interpretada como UTC, e numa escola em UTC-3 a lista do dia 22
+   * começaria às 21h do dia 21.
+   */
+  function diaCivil(texto: string): Date {
+    const [ano, mes, dia] = texto.split("-").map(Number);
+    return new Date(ano as number, (mes as number) - 1, dia as number);
   }
 
   /** Aluno fora de `ENROLLED_STATUSES` não abre portão. */
@@ -252,14 +283,46 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
       await repo.deleteTemplate(studentId);
     },
 
-    /** O rodapé do quiosque e a tela da gestão. */
+    /** O rodapé do quiosque: quantos estão dentro, e o movimento de hoje. */
     async situacao() {
       const desde = inicioDoDia();
       const [dentro, passagens] = await Promise.all([
         repo.presentCount(desde),
-        repo.listEntries(desde, 50),
+        repo.listEntries({ desde, ate: fimDoDia(desde), limite: LIMITE_DA_LISTA }),
       ]);
       return { dentro, passagens };
+    },
+
+    /**
+     * As passagens de um dia, com filtro por aluno.
+     *
+     * Sem `dia`, hoje: quem abre a tela quer o movimento de agora, e obrigar a
+     * escolher data antes de ver qualquer coisa é ruído no caminho comum.
+     */
+    async passagens(input: PassagensInput) {
+      const desde = input.dia ? diaCivil(input.dia) : inicioDoDia();
+      return repo.listEntries({
+        desde,
+        ate: fimDoDia(desde),
+        studentId: input.studentId,
+        excluidas: input.excluidas,
+        limite: LIMITE_DA_LISTA,
+      });
+    },
+
+    /**
+     * Exclui uma passagem — marcando, nunca apagando.
+     *
+     * Devolve `NotFound` também para a que já estava excluída: para quem
+     * chamou, o efeito é o mesmo, e sobrescrever o autor apagaria justamente
+     * o registro que uma conferência vai procurar.
+     */
+    async excluir(input: ExcluirPassagemInput) {
+      const removida = await repo.softDelete(input.id, deps.actor.userId, deps.now());
+      if (!removida) {
+        throw new NotFoundError("Esta passagem não existe ou já foi excluída.");
+      }
+      return { id: removida.id };
     },
   };
 }

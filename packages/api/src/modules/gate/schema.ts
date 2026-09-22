@@ -44,3 +44,23 @@ export type IdentificarInput = z.infer<typeof identificarInput>;
 export type PorMatriculaInput = z.infer<typeof porMatriculaInput>;
 export type RegistrarInput = z.infer<typeof registrarInput>;
 export type CadastrarMoldeInput = z.infer<typeof cadastrarMoldeInput>;
+
+/**
+ * O recorte da tela de passagens.
+ *
+ * `dia` é data civil, não instante: "22/09" é o dia da escola, e mandar um
+ * `Date` faria o fuso do tablet decidir de que dia é a lista.
+ */
+export const passagensInput = z.object({
+  dia: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use o formato AAAA-MM-DD")
+    .optional(),
+  studentId: z.string().min(1).optional(),
+  excluidas: z.boolean().optional(),
+});
+
+export const excluirPassagemInput = z.object({ id: z.string().min(1) });
+
+export type PassagensInput = z.infer<typeof passagensInput>;
+export type ExcluirPassagemInput = z.infer<typeof excluirPassagemInput>;
