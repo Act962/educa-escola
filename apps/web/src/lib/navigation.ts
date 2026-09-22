@@ -65,7 +65,7 @@ const GESTAO: NavEntry[] = [
    */
   { label: "Financeiro", to: "/apps/$appKey", params: { appKey: "payment" }, icon: Wallet },
   { label: "Comunicados", icon: MessageCircle, soon: true },
-  { label: "Calendário", icon: CalendarDays, soon: true },
+  { label: "Calendário", to: "/calendario", icon: CalendarDays },
   { label: "Pontuação", to: "/pontuacao", icon: Sparkles },
   { label: "Placar entre escolas", to: "/placar-escolas", icon: Trophy },
   { label: "Relatórios", icon: BarChart3, soon: true },

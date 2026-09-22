@@ -167,3 +167,19 @@ describe("corpo docente", () => {
     expect(can("teacher", { faculty: ["read"] })).toBe(false);
   });
 });
+
+describe("calendário", () => {
+  /** Esconder quando tem aula de quem estuda ou dá aula não protege nada. */
+  it("todo papel lê o calendário", () => {
+    for (const role of APP_ROLES) {
+      expect(can(role, { calendar: ["read"] })).toBe(true);
+    }
+  });
+
+  it("só a gestão monta o calendário", () => {
+    expect(can("owner", { calendar: ["manage"] })).toBe(true);
+    expect(can("admin", { calendar: ["manage"] })).toBe(true);
+    expect(can("teacher", { calendar: ["manage"] })).toBe(false);
+    expect(can("student", { calendar: ["manage"] })).toBe(false);
+  });
+});
