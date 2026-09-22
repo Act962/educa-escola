@@ -68,7 +68,7 @@ const GESTAO: NavEntry[] = [
   { label: "Calendário", to: "/calendario", icon: CalendarDays },
   { label: "Pontuação", to: "/pontuacao", icon: Sparkles },
   { label: "Placar entre escolas", to: "/placar-escolas", icon: Trophy },
-  { label: "Relatórios", icon: BarChart3, soon: true },
+  { label: "Relatórios", to: "/relatorios", icon: BarChart3 },
 ];
 
 const PROFESSOR: NavEntry[] = [
