@@ -20,12 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@educa-escola/ui/components/select";
+import { SegmentedControl } from "@educa-escola/ui/integra/segmented";
 import { StatCard } from "@educa-escola/ui/integra/stat-card";
 import { EmptyState, ErrorState, ListSkeleton } from "@educa-escola/ui/integra/states";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarCheck, CalendarX, Download, Plus, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
+import { CalendarioMes } from "@/components/calendario-mes";
 import { CampoDeData } from "@/components/campo-de-data";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
@@ -62,6 +64,14 @@ function Calendario() {
 
   const sugestoes = useQuery(trpc.calendar.sugestoes.queryOptions({ academicYear: year }));
   const importar = useMutation(trpc.calendar.importar.mutationOptions({ onSuccess: recarregar }));
+
+  /**
+   * Lista e grade respondem perguntas diferentes: a lista diz "o que vem pela
+   * frente", a grade diz "como é a semana do dia 16" — que é a pergunta de
+   * quem monta prova e reunião. Por isso as duas, e não uma substituindo a
+   * outra.
+   */
+  const [visao, setVisao] = useState<"lista" | "calendario">("lista");
 
   const contagem = ano.data?.contagem;
 
@@ -149,8 +159,31 @@ function Calendario() {
           ) : null}
 
           <Card className="flex flex-col gap-3">
-            <CardEyebrow>Eventos do ano</CardEyebrow>
-            {ano.data?.eventos.length === 0 ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <CardEyebrow>Eventos do ano</CardEyebrow>
+              <div className="ml-auto">
+                <SegmentedControl
+                  label="Como ver o calendário"
+                  options={[
+                    // `tone` é obrigatório no controle: ele existe para
+                    // presença, onde cada opção tem cor semântica. Aqui as
+                    // duas são neutras — trocar de visão não é estado.
+                    { value: "lista", label: "Lista", tone: "secondary" },
+                    { value: "calendario", label: "Calendário", tone: "secondary" },
+                  ]}
+                  value={visao}
+                  onChange={(valor) => setVisao(valor as "lista" | "calendario")}
+                />
+              </div>
+            </div>
+
+            {visao === "calendario" ? (
+              <CalendarioMes
+                eventos={ano.data?.eventos ?? []}
+                ano={year}
+                periodo={ano.data?.ano ?? null}
+              />
+            ) : ano.data?.eventos.length === 0 ? (
               <EmptyState
                 title="Nenhum evento no calendário"
                 description="Feriados e recessos são o que tira dia letivo da conta acima."
