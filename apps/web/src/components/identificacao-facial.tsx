@@ -46,8 +46,7 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
   const queryClient = useQueryClient();
   const [modo, setModo] = useState<"resumo" | "capturando" | "revogando">("resumo");
   const [foto, setFoto] = useState<string | null>(null);
-  /** Os códigos do rosto extraídos do mesmo quadro da foto. */
-  const [descritor, setDescritor] = useState<number[] | null>(null);
+  const [gravando, setGravando] = useState(false);
 
   const status = useQuery(trpc.photo.status.queryOptions({ studentId }));
 
@@ -75,25 +74,50 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
     }),
   );
 
-  const salvar = useMutation(
-    trpc.photo.save.mutationOptions({
-      onSuccess: (_saida, entrada) => {
-        toast.success(descritor ? "Foto e rosto cadastrados." : "Foto cadastrada.");
-        if (descritor) {
-          cadastrarMolde.mutate({
-            studentId: entrada.studentId,
-            descritor,
-            extractor: NOME_DO_EXTRATOR,
-          });
-        }
-        setModo("resumo");
-        setFoto(null);
-        setDescritor(null);
-        queryClient.invalidateQueries();
-      },
-      onError: (erro) => toast.error(erro.message),
-    }),
-  );
+  const salvar = useMutation(trpc.photo.save.mutationOptions({}));
+
+  /**
+   * Grava a foto e, se houver, o molde — nesta ordem e com o valor na mão.
+   *
+   * A primeira versão guardava o descritor em estado e lia dentro do
+   * `onSuccess` da foto. `setDescritor` e `mutate` aconteciam no mesmo clique,
+   * então o retorno chegava a ler o valor anterior — `null` — e o molde
+   * simplesmente não era gravado. A tela dizia "foto cadastrada", o banco
+   * ficava sem rosto nenhum, e a portaria não tinha o que comparar.
+   *
+   * Agora o valor vem por parâmetro, direto de quem capturou. Estado do React
+   * não serve para carregar dado entre o clique e a resposta.
+   */
+  async function gravar(dataUrl: string, codigos: number[] | null) {
+    setGravando(true);
+    try {
+      await salvar.mutateAsync({ studentId, dataUrl });
+    } catch (erro) {
+      toast.error(erro instanceof Error ? erro.message : "Não foi possível salvar a foto.");
+      setGravando(false);
+      return;
+    }
+
+    if (codigos) {
+      try {
+        await cadastrarMolde.mutateAsync({
+          studentId,
+          descritor: codigos,
+          extractor: NOME_DO_EXTRATOR,
+        });
+        toast.success("Foto e rosto cadastrados. A portaria já reconhece.");
+      } catch {
+        // O aviso sai no `onError` da mutation. A foto continua valendo.
+      }
+    } else {
+      toast.success("Foto cadastrada. No portão, use a carteirinha.");
+    }
+
+    setGravando(false);
+    setModo("resumo");
+    setFoto(null);
+    queryClient.invalidateQueries();
+  }
 
   const revogar = useMutation(
     trpc.photo.revoke.mutationOptions({
@@ -121,12 +145,9 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
   if (modo === "capturando") {
     return (
       <Captura
-        enviando={salvar.isPending}
+        enviando={gravando}
         onCancelar={() => setModo("resumo")}
-        onCapturar={(dataUrl, codigos) => {
-          setDescritor(codigos);
-          salvar.mutate({ studentId, dataUrl });
-        }}
+        onCapturar={(dataUrl, codigos) => void gravar(dataUrl, codigos)}
       />
     );
   }
