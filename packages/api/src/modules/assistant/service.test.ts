@@ -558,3 +558,42 @@ describe("mensagem do que falta para ligar", () => {
     await expect(ligar()).resolves.toMatchObject({ enabled: true });
   });
 });
+
+describe("chave de cifragem girada", () => {
+  /** Credencial gravada com outra chave: o GCM autentica, e a etiqueta não bate. */
+  const comChaveAntiga = () => ({
+    find: async () =>
+      configurada({
+        apiKeyCipher: cifrarCredencial("sk-antiga", Buffer.alloc(32, 1).toString("base64")).cipher,
+      }),
+  });
+
+  it("a tela sabe que a credencial não abre, antes da primeira pergunta", async () => {
+    const visao = await servico({ repo: comChaveAntiga() }).configuracao();
+
+    expect(visao.credencialGravada).toBe(true);
+    expect(visao.credencialAbre).toBe(false);
+  });
+
+  it("credencial que abre é reportada como tal", async () => {
+    const visao = await servico({ repo: comConfiguracao() }).configuracao();
+
+    expect(visao.credencialAbre).toBe(true);
+  });
+
+  /**
+   * Sem isto a escola descobre por um 500: a exceção do `node:crypto` não é
+   * erro de domínio e sai como falha nossa, quando é configuração dela.
+   */
+  it("a pergunta recusa com instrução, não com erro do crypto", async () => {
+    const s = servico({ repo: comChaveAntiga() });
+
+    await expect(s.perguntar({ pergunta: "oi", fatos: "x" }, quem)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+
+    await expect(s.perguntar({ pergunta: "oi", fatos: "x" }, quem)).rejects.toThrow(
+      /Regrave a credencial/,
+    );
+  });
+});

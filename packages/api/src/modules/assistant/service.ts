@@ -4,7 +4,7 @@ import { ConflictError, NotFoundError, ValidationError } from "../../errors";
 import { ErroDoModelo, type ModeloDeLinguagem } from "../../integrations/modelo/cliente";
 import type { AssistantRepository } from "./repository";
 import type { AskInput, UpdateSettingsInput } from "./schema";
-import { cifrarCredencial, decifrarCredencial, dicaDaCredencial } from "./segredo";
+import { cifrarCredencial, credencialAbre, decifrarCredencial, dicaDaCredencial } from "./segredo";
 
 /** Como a escola encontra o Astro antes de configurar qualquer coisa. */
 export const CONFIGURACAO_PADRAO = {
@@ -96,13 +96,30 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
      */
     async configuracao() {
       const salva = await configuracaoBruta();
-      if (!salva)
-        return { ...CONFIGURACAO_PADRAO, credencialGravada: false, chaveDoServidor: !!deps.chave };
+      if (!salva) {
+        return {
+          ...CONFIGURACAO_PADRAO,
+          credencialGravada: false,
+          credencialAbre: false,
+          chaveDoServidor: !!deps.chave,
+        };
+      }
 
       const { apiKeyCipher, apiKeyIv, apiKeyTag, ...resto } = salva;
+      const gravada =
+        apiKeyCipher && apiKeyIv && apiKeyTag
+          ? { cipher: apiKeyCipher, iv: apiKeyIv, authTag: apiKeyTag }
+          : null;
+
       return {
         ...resto,
-        credencialGravada: !!(apiKeyCipher && apiKeyIv && apiKeyTag),
+        credencialGravada: !!gravada,
+        /**
+         * `false` quando a chave do servidor girou: o texto cifrado continua
+         * lá, íntegro, e não abre mais. A tela avisa antes da primeira
+         * pergunta, em vez de a escola descobrir por um erro 500.
+         */
+        credencialAbre: credencialAbre(gravada, deps.chave),
         /** Sem a chave do servidor, gravar credencial é recusado. A tela avisa antes. */
         chaveDoServidor: !!deps.chave,
       };
@@ -270,10 +287,21 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
         );
       }
 
-      const apiKey = decifrarCredencial(
-        { cipher: salva.apiKeyCipher, iv: salva.apiKeyIv, authTag: salva.apiKeyTag },
-        deps.chave,
-      );
+      let apiKey: string;
+      try {
+        apiKey = decifrarCredencial(
+          { cipher: salva.apiKeyCipher, iv: salva.apiKeyIv, authTag: salva.apiKeyTag },
+          deps.chave,
+        );
+      } catch {
+        // Chave do servidor girou: o texto cifrado está íntegro e não abre
+        // mais. Erro de domínio com o que fazer, e não um 500 com pilha do
+        // `node:crypto`.
+        throw new ValidationError(
+          "A credencial gravada não abre com a chave de cifragem atual do servidor. " +
+            "Regrave a credencial do modelo em Configurações.",
+        );
+      }
 
       const modelo = deps.modelo({
         baseUrl: salva.baseUrl,

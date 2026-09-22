@@ -1,9 +1,9 @@
+import { COMANDO_DA_CHAVE } from "@educa-escola/api/modules/assistant/instrucoes";
 import {
   camposAoTrocarProvedor,
   PROVEDORES,
   provedorDe,
 } from "@educa-escola/api/modules/assistant/provedores";
-import { COMANDO_DA_CHAVE } from "@educa-escola/api/modules/assistant/segredo";
 import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components/alert";
 import { Button } from "@educa-escola/ui/components/button";
 import { Card, CardEyebrow } from "@educa-escola/ui/components/card";
@@ -80,6 +80,7 @@ function Formulario({
     organizationId: string | null;
     apiKeyHint: string | null;
     credencialGravada: boolean;
+    credencialAbre: boolean;
     chaveDoServidor: boolean;
     maxTokens: number;
     dailyLimit: number;
@@ -119,7 +120,15 @@ function Formulario({
       modeloDigitado:
         !!atual.model && !provedorDe(atual.providerLabel).modelos.includes(atual.model),
       baseUrl: atual.baseUrl ?? "",
-      model: atual.model ?? "",
+      /*
+       * Sem modelo salvo, já abre no primeiro sugerido do provedor.
+       *
+       * O `Select` sem valor não mostra nada, e a direção salvaria de novo com
+       * o campo vazio — que é o defeito que acabou de acontecer aqui. Mesma
+       * regra de `camposAoTrocarProvedor`: quem exibe e quem grava têm de ser
+       * o mesmo valor.
+       */
+      model: atual.model ?? provedorDe(atual.providerLabel).modelos[0] ?? "",
       organizationId: atual.organizationId ?? "",
       // Sempre vazio: a chave nunca volta do servidor, e um campo
       // pré-preenchido com pontinhos convidaria a salvar "••••" como chave.
@@ -207,6 +216,22 @@ function Formulario({
           </AlertDescription>
         </Alert>
       )}
+
+      {/*
+        Chave de cifragem girou: o texto cifrado continua no banco, íntegro, e
+        não abre mais. Sem este aviso a escola só descobre na primeira
+        pergunta — e descobre como erro.
+      */}
+      {atual.chaveDoServidor && atual.credencialGravada && !atual.credencialAbre ? (
+        <Alert variant="danger">
+          <TriangleAlert size={18} strokeWidth={1.8} aria-hidden />
+          <AlertTitle>A credencial gravada não abre com a chave atual</AlertTitle>
+          <AlertDescription>
+            A <code>ASSISTANT_ENCRYPTION_KEY</code> do servidor mudou desde que esta credencial foi
+            salva. Cole a chave do provedor de novo no campo abaixo e salve.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <form
         onSubmit={(evento) => {
@@ -458,9 +483,11 @@ function Formulario({
                 }
               />
               <p className="text-meta text-muted-foreground">
-                {atual.credencialGravada
-                  ? `Há uma credencial gravada (${atual.apiKeyHint}). Ela é cifrada com chave que vive fora do banco e nunca volta para esta tela.`
-                  : "Será cifrada antes de ir ao banco, com chave que vive fora dele."}
+                {atual.credencialGravada && !atual.credencialAbre
+                  ? "A credencial gravada não abre com a chave atual do servidor. Cole a do provedor de novo."
+                  : atual.credencialGravada
+                    ? `Há uma credencial gravada (${atual.apiKeyHint}). Ela é cifrada com chave que vive fora do banco e nunca volta para esta tela.`
+                    : "Será cifrada antes de ir ao banco, com chave que vive fora dele."}
               </p>
             </div>
           )}
@@ -570,7 +597,17 @@ function Formulario({
         >
           {({ podeEnviar, enviando, sujo }) => (
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={!podeEnviar || enviando || !sujo}>
+              {/*
+                Sem o `!sujo` no `disabled`, de propósito.
+                O formulário preenche sozinho o que falta — o primeiro modelo
+                do provedor, quando o servidor não tem nenhum. Aí ele se
+                considera intocado enquanto o servidor continua inválido, e o
+                botão que resolveria isso fica desabilitado: a tela mostra a
+                configuração certa, o banco guarda a errada, e não há gesto que
+                aproxime os dois. Gravar de novo o mesmo valor é barato; ficar
+                preso não é.
+              */}
+              <Button type="submit" disabled={!podeEnviar || enviando}>
                 {enviando ? "Salvando…" : "Salvar o Astro"}
               </Button>
               {sujo ? (

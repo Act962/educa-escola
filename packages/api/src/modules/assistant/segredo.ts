@@ -1,4 +1,5 @@
 import { type Cifrado, decrypt, encrypt, parseKey } from "../../media/crypto";
+import { COMANDO_DA_CHAVE } from "./instrucoes";
 
 /**
  * A credencial do modelo, cifrada com a mesma máquina da foto do aluno.
@@ -8,19 +9,6 @@ import { type Cifrado, decrypt, encrypt, parseKey } from "../../media/crypto";
  * girar a chave de mídia por causa de um incidente com foto não deve obrigar a
  * escola a recadastrar a credencial do modelo.
  */
-
-/**
- * O comando que gera a chave, num lugar só.
- *
- * `printf` com `\n` na frente, e não `echo … >>`, por causa de um defeito que
- * este projeto já sofreu: arquivo `.env` sem quebra de linha no fim faz o `>>`
- * **colar** a variável nova no fim da anterior. As duas ficam inválidas, e o
- * erro que aparece é o mesmo de antes — então quem seguiu a instrução conclui
- * que a instrução estava errada, e não que o arquivo é que ficou torto.
- *
- * O `\n` da frente custa, no pior caso, uma linha em branco.
- */
-export const COMANDO_DA_CHAVE = `printf '\\nASSISTANT_ENCRYPTION_KEY=%s\\n' "$(openssl rand -base64 32)" >> apps/web/.env`;
 
 /**
  * A mensagem diz só o que falta.
@@ -60,4 +48,28 @@ export function decifrarCredencial(dados: Cifrado, raw: string | undefined): str
  */
 export function dicaDaCredencial(valor: string): string {
   return valor.length >= 12 ? `••••${valor.slice(-4)}` : "••••";
+}
+
+/**
+ * A credencial gravada abre com a chave que o servidor tem agora?
+ *
+ * Existe por um cenário concreto e recorrente: **girar
+ * `ASSISTANT_ENCRYPTION_KEY`**. O texto cifrado continua no banco, íntegro, e
+ * simplesmente não abre mais — o GCM autentica, então a etiqueta não bate e o
+ * `decipher` lança.
+ *
+ * Sem esta checagem, a escola só descobre na primeira pergunta, e descobre
+ * como erro 500: a exceção do `node:crypto` não é erro de domínio e sai como
+ * falha nossa. Com ela, a tela avisa antes e diz o que fazer — regravar a
+ * credencial.
+ */
+export function credencialAbre(dados: Cifrado | null, raw: string | undefined): boolean {
+  if (!dados || !raw) return false;
+
+  try {
+    decifrarCredencial(dados, raw);
+    return true;
+  } catch {
+    return false;
+  }
 }
