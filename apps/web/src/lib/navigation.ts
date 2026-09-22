@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   type LucideIcon,
   MessageCircle,
+  Share2,
   Sparkles,
   Trophy,
   Users,
@@ -68,6 +69,7 @@ const GESTAO: NavEntry[] = [
   { label: "Calendário", to: "/calendario", icon: CalendarDays },
   { label: "Pontuação", to: "/pontuacao", icon: Sparkles },
   { label: "Placar entre escolas", to: "/placar-escolas", icon: Trophy },
+  { label: "Indicações", to: "/indicacoes", icon: Share2 },
   { label: "Relatórios", to: "/relatorios", icon: BarChart3 },
 ];
 
@@ -91,6 +93,7 @@ const ALUNO: NavEntry[] = [
   { label: "Materiais", icon: FolderOpen, soon: true },
   { label: "Agenda", icon: CalendarDays, soon: true },
   { label: "Comunicados", to: "/mural", icon: MessageCircle, badge: "comunicadosNaoLidos" },
+  { label: "Indicações", to: "/indicacoes", icon: Share2 },
 ];
 
 /**

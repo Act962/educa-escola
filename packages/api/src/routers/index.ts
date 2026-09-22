@@ -12,6 +12,7 @@ import { orbitaRouter } from "../modules/orbita/router";
 import { overviewRouter } from "../modules/overview/router";
 import { photoRouter } from "../modules/photo/router";
 import { profileRouter } from "../modules/profile/router";
+import { referralRouter } from "../modules/referral/router";
 import { reportRouter } from "../modules/report/router";
 import { scoreRouter } from "../modules/score/router";
 import { settingsRouter } from "../modules/settings/router";
@@ -72,6 +73,11 @@ export const appRouter = router({
   profile: profileRouter,
   /** Configurações da instituição. Fechado atrás de `organization: update`. */
   settings: settingsRouter,
+  /**
+   * Programa de indicações. A visão da gestão é nominal e fica atrás de
+   * `referral: read`; a de quem divulga resolve por identidade.
+   */
+  referral: referralRouter,
 });
 
 export type AppRouter = typeof appRouter;

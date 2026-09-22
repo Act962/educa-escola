@@ -5,5 +5,6 @@ export * from "./communication";
 export * from "./enrollment";
 export * from "./leaderboard";
 export * from "./orbita";
+export * from "./referral";
 export * from "./school";
 export * from "./score";
