@@ -35,6 +35,11 @@ export interface RegraEmVigor {
   onde: string;
 }
 
+const ROTULO_DA_SITUACAO: Record<(typeof ENROLLED_STATUSES)[number], string> = {
+  ativo: "Ativo",
+  documentacao_pendente: "Documentação pendente",
+};
+
 export function regrasEmVigor(): RegraEmVigor[] {
   return [
     {
@@ -63,7 +68,9 @@ export function regrasEmVigor(): RegraEmVigor[] {
     {
       chave: "quem_esta_na_sala",
       titulo: "Quem entra na chamada e na grade de notas",
-      valor: ENROLLED_STATUSES.join(" · "),
+      // Rótulo legível, e não o valor cru do enum: "documentacao_pendente"
+      // numa tela da direção parece vazamento de banco.
+      valor: ENROLLED_STATUSES.map((e) => ROTULO_DA_SITUACAO[e]).join(" · "),
       porque:
         "Documentação pendente não tira o aluno da turma: ele assiste à aula, recebe nota e conta como pendência.",
       onde: "student/schema.ts",

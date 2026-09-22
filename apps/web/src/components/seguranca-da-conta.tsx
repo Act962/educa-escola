@@ -341,7 +341,9 @@ function SessoesAtivas() {
                   <span className="text-[11px] text-muted-foreground">em uso</span>
                 ) : (
                   <Button
-                    variant="secondary"
+                    // `outline` e não `secondary`: a linha já é `bg-muted`, e
+                    // o botão secundário some dentro dela.
+                    variant="outline"
                     size="sm"
                     onClick={() => encerrar.mutate(sessao.token)}
                     disabled={encerrar.isPending}
@@ -363,7 +365,7 @@ function SessoesAtivas() {
           <AlertDescription className="flex flex-wrap items-center gap-3">
             <span>Encerrar todas mantém só este aparelho conectado.</span>
             <Button
-              variant="warning"
+              variant="outline"
               size="sm"
               onClick={() => encerrarOutras.mutate()}
               disabled={encerrarOutras.isPending}

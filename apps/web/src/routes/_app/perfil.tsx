@@ -16,7 +16,7 @@ import z from "zod";
 
 import { SegurancaDaConta } from "@/components/seguranca-da-conta";
 import { authClient } from "@/lib/auth-client";
-import { dataHora, inteiro, situacaoMatricula, turno } from "@/lib/format";
+import { dataDoInstante, inteiro, situacaoMatricula, turno } from "@/lib/format";
 import { roleLabel } from "@/lib/navigation";
 import { useSchoolContext } from "@/lib/school-context";
 import { type RouterOutputs, useTRPC } from "@/utils/trpc";
@@ -93,7 +93,7 @@ function Identificacao({ perfil }: { perfil: PerfilCarregado }) {
           .max(120, "O nome passou de 120 caracteres"),
       }),
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value, formApi }) => {
       /**
        * O nome mora na tabela `user`, que é do Better Auth — por isso a
        * escrita vai por `authClient` e não por tRPC. A decisão estrutural nº 2
@@ -107,6 +107,10 @@ function Identificacao({ perfil }: { perfil: PerfilCarregado }) {
       }
 
       toast.success("Nome atualizado.");
+      // Sem o `reset`, o formulário continuaria "sujo" depois de salvar: o
+      // botão "Desfazer" ficaria na tela oferecendo desfazer o que já é o
+      // valor gravado.
+      formApi.reset({ name: value.name.trim() });
       // `me` decide o menu e a saudação do painel; sem invalidar, a tela
       // continuaria chamando a pessoa pelo nome antigo até o cache expirar.
       await Promise.all([
@@ -173,8 +177,8 @@ function Identificacao({ perfil }: { perfil: PerfilCarregado }) {
             valor={roleLabel(perfil.role)}
             nota="Definido pelo vínculo. Não se altera por esta tela."
           />
-          <CampoFixo rotulo="Na escola desde" valor={dataHora(perfil.naEscolaDesde)} />
-          <CampoFixo rotulo="Conta criada em" valor={dataHora(perfil.contaCriadaEm)} />
+          <CampoFixo rotulo="Na escola desde" valor={dataDoInstante(perfil.naEscolaDesde)} />
+          <CampoFixo rotulo="Conta criada em" valor={dataDoInstante(perfil.contaCriadaEm)} />
         </div>
 
         <form.Subscribe

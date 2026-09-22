@@ -17,7 +17,7 @@ import z from "zod";
 
 import { CampoDeData } from "@/components/campo-de-data";
 import { authClient } from "@/lib/auth-client";
-import { dataCivil, dataHora, inteiro } from "@/lib/format";
+import { dataDoInstante, inteiro } from "@/lib/format";
 import { roleLabel } from "@/lib/navigation";
 import { useSchoolContext } from "@/lib/school-context";
 import { type RouterOutputs, useTRPC } from "@/utils/trpc";
@@ -169,7 +169,7 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
           <CardEyebrow>Instituição</CardEyebrow>
           <p className="truncate font-extrabold text-lg tracking-[-0.3px]">{escola.name}</p>
           <p className="text-[12px] text-muted-foreground">
-            No Integra desde {dataHora(escola.criadaEm)}
+            No Integra desde {dataDoInstante(escola.criadaEm)}
           </p>
         </div>
       </div>
@@ -284,53 +284,10 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
  */
 function AnoLetivo() {
   const trpc = useTRPC();
-  const queryClient = useQueryClient();
   const { year } = useSchoolContext();
 
   const ano = useQuery(trpc.calendar.year.queryOptions({ academicYear: year }));
-  const definir = useMutation(
-    trpc.calendar.defineYear.mutationOptions({
-      onSuccess: async () => {
-        toast.success(`Ano letivo de ${year} definido.`);
-        await queryClient.invalidateQueries({ queryKey: [["calendar"]] });
-      },
-      onError: (erro) => toast.error(erro.message),
-    }),
-  );
-
-  const definido = ano.data?.ano;
   const contagem = ano.data?.contagem;
-
-  const form = useForm({
-    defaultValues: {
-      startsOn: definido?.startsOn ?? "",
-      endsOn: definido?.endsOn ?? "",
-      minimumSchoolDays: String(definido?.minimumSchoolDays ?? 200),
-    },
-    validators: {
-      onSubmit: z
-        .object({
-          startsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de início"),
-          endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de término"),
-          minimumSchoolDays: z
-            .string()
-            .refine((v) => Number(v) >= 1 && Number(v) <= 365, "Entre 1 e 365 dias"),
-        })
-        .refine((v) => v.startsOn <= v.endsOn, {
-          message: "O fim não pode ser antes do início",
-          path: ["endsOn"],
-        }),
-    },
-    onSubmit: async ({ value }) => {
-      await definir.mutateAsync({
-        academicYear: year,
-        startsOn: value.startsOn,
-        endsOn: value.endsOn,
-        minimumSchoolDays: Number(value.minimumSchoolDays),
-      });
-    },
-  });
-
   return (
     <Card className="flex flex-col gap-5">
       <div className="flex items-center gap-2">
@@ -375,102 +332,166 @@ function AnoLetivo() {
             </Alert>
           )}
 
-          <form
-            onSubmit={(evento) => {
-              evento.preventDefault();
-              evento.stopPropagation();
-              form.handleSubmit();
-            }}
-            className="flex flex-col gap-4"
-          >
-            <div className="grid gap-4 sm:grid-cols-3">
-              <form.Field name="startsOn">
-                {(field) => (
-                  <div className="flex flex-col gap-1.5">
-                    <CampoDeData
-                      id={field.name}
-                      label="Início"
-                      value={field.state.value}
-                      // O campo devolve `null` enquanto a data está
-                      // incompleta; o formulário guarda string, e o validador
-                      // recusa o vazio com a mensagem certa.
-                      onChange={(iso) => field.handleChange(iso ?? "")}
-                    />
-                    {field.state.meta.errors.map((erro) => (
-                      <p key={erro?.message} className="text-[11px] text-danger">
-                        {erro?.message}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </form.Field>
-
-              <form.Field name="endsOn">
-                {(field) => (
-                  <div className="flex flex-col gap-1.5">
-                    <CampoDeData
-                      id={field.name}
-                      label="Término"
-                      value={field.state.value}
-                      // O campo devolve `null` enquanto a data está
-                      // incompleta; o formulário guarda string, e o validador
-                      // recusa o vazio com a mensagem certa.
-                      onChange={(iso) => field.handleChange(iso ?? "")}
-                    />
-                    {field.state.meta.errors.map((erro) => (
-                      <p key={erro?.message} className="text-[11px] text-danger">
-                        {erro?.message}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </form.Field>
-
-              <form.Field name="minimumSchoolDays">
-                {(field) => (
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={field.name}>Mínimo de dias letivos</Label>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      inputMode="numeric"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(evento) =>
-                        field.handleChange(evento.target.value.replace(/\D/g, "").slice(0, 3))
-                      }
-                    />
-                    {field.state.meta.errors.map((erro) => (
-                      <p key={erro?.message} className="text-[11px] text-danger">
-                        {erro?.message}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </form.Field>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <form.Subscribe
-                selector={(estado) => ({
-                  podeEnviar: estado.canSubmit,
-                  enviando: estado.isSubmitting,
-                })}
-              >
-                {({ podeEnviar, enviando }) => (
-                  <Button type="submit" disabled={!podeEnviar || enviando}>
-                    {enviando ? "Salvando…" : definido ? "Atualizar período" : "Definir período"}
-                  </Button>
-                )}
-              </form.Subscribe>
-              <Button variant="secondary" nativeButton={false} render={<Link to="/calendario" />}>
-                Abrir o calendário
-              </Button>
-            </div>
-          </form>
+          <FormularioDoAno definido={ano.data?.ano ?? null} />
         </>
       )}
     </Card>
+  );
+}
+
+/**
+ * O formulário do período, montado **só depois** que a consulta responde.
+ *
+ * `useForm` congela os `defaultValues` na primeira renderização. Deixá-lo no
+ * componente de cima faria o formulário nascer vazio sempre que a consulta
+ * ainda não tivesse respondido — e a direção veria os campos em branco numa
+ * escola cujo ano letivo já está definido, o que convida a redefinir por cima.
+ * Montar o formulário junto com o dado elimina a corrida em vez de remendá-la
+ * com um `reset` num efeito.
+ */
+function FormularioDoAno({
+  definido,
+}: {
+  definido: { startsOn: string; endsOn: string; minimumSchoolDays: number } | null;
+}) {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const { year } = useSchoolContext();
+
+  const definir = useMutation(
+    trpc.calendar.defineYear.mutationOptions({
+      onSuccess: async () => {
+        toast.success(`Ano letivo de ${year} definido.`);
+        await queryClient.invalidateQueries({ queryKey: [["calendar"]] });
+      },
+      onError: (erro) => toast.error(erro.message),
+    }),
+  );
+
+  const form = useForm({
+    defaultValues: {
+      startsOn: definido?.startsOn ?? "",
+      endsOn: definido?.endsOn ?? "",
+      minimumSchoolDays: String(definido?.minimumSchoolDays ?? 200),
+    },
+    validators: {
+      onSubmit: z
+        .object({
+          startsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de início"),
+          endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de término"),
+          minimumSchoolDays: z
+            .string()
+            .refine((v) => Number(v) >= 1 && Number(v) <= 365, "Entre 1 e 365 dias"),
+        })
+        .refine((v) => v.startsOn <= v.endsOn, {
+          message: "O fim não pode ser antes do início",
+          path: ["endsOn"],
+        }),
+    },
+    onSubmit: async ({ value }) => {
+      await definir.mutateAsync({
+        academicYear: year,
+        startsOn: value.startsOn,
+        endsOn: value.endsOn,
+        minimumSchoolDays: Number(value.minimumSchoolDays),
+      });
+    },
+  });
+
+  return (
+    <form
+      onSubmit={(evento) => {
+        evento.preventDefault();
+        evento.stopPropagation();
+        form.handleSubmit();
+      }}
+      className="flex flex-col gap-4"
+    >
+      <div className="grid gap-4 sm:grid-cols-3">
+        <form.Field name="startsOn">
+          {(field) => (
+            <div className="flex flex-col gap-1.5">
+              <CampoDeData
+                id={field.name}
+                label="Início"
+                value={field.state.value}
+                // O campo devolve `null` enquanto a data está
+                // incompleta; o formulário guarda string, e o validador
+                // recusa o vazio com a mensagem certa.
+                onChange={(iso) => field.handleChange(iso ?? "")}
+              />
+              {field.state.meta.errors.map((erro) => (
+                <p key={erro?.message} className="text-[11px] text-danger">
+                  {erro?.message}
+                </p>
+              ))}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="endsOn">
+          {(field) => (
+            <div className="flex flex-col gap-1.5">
+              <CampoDeData
+                id={field.name}
+                label="Término"
+                value={field.state.value}
+                // O campo devolve `null` enquanto a data está
+                // incompleta; o formulário guarda string, e o validador
+                // recusa o vazio com a mensagem certa.
+                onChange={(iso) => field.handleChange(iso ?? "")}
+              />
+              {field.state.meta.errors.map((erro) => (
+                <p key={erro?.message} className="text-[11px] text-danger">
+                  {erro?.message}
+                </p>
+              ))}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="minimumSchoolDays">
+          {(field) => (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={field.name}>Mínimo de dias letivos</Label>
+              <Input
+                id={field.name}
+                name={field.name}
+                inputMode="numeric"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(evento) =>
+                  field.handleChange(evento.target.value.replace(/\D/g, "").slice(0, 3))
+                }
+              />
+              {field.state.meta.errors.map((erro) => (
+                <p key={erro?.message} className="text-[11px] text-danger">
+                  {erro?.message}
+                </p>
+              ))}
+            </div>
+          )}
+        </form.Field>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <form.Subscribe
+          selector={(estado) => ({
+            podeEnviar: estado.canSubmit,
+            enviando: estado.isSubmitting,
+          })}
+        >
+          {({ podeEnviar, enviando }) => (
+            <Button type="submit" disabled={!podeEnviar || enviando}>
+              {enviando ? "Salvando…" : definido ? "Atualizar período" : "Definir período"}
+            </Button>
+          )}
+        </form.Subscribe>
+        <Button variant="secondary" nativeButton={false} render={<Link to="/calendario" />}>
+          Abrir o calendário
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -491,6 +512,17 @@ function Acessos({ visao }: { visao: Visao }) {
           Vínculos ativos por papel. Quem cria e remove vínculo é a plataforma, por provisionamento.
         </p>
       </div>
+
+      {/*
+        "Aluno: 1" ao lado de "Professor: 20" numa escola com centenas de
+        matriculados parece erro, e não é: aqui se conta conta de acesso, não
+        matrícula. Dizer isso na tela custa uma linha; deixar a direção
+        desconfiar do número custa a confiança no resto.
+      */}
+      <p className="text-[12px] text-muted-foreground">
+        Conta de acesso, não matrícula. Aluno sem login continua matriculado, aparece na chamada e
+        recebe nota.
+      </p>
 
       <div className="grid gap-3 sm:grid-cols-4">
         {ORDEM_DOS_PAPEIS.map((papel) => (
@@ -534,7 +566,11 @@ function Acessos({ visao }: { visao: Visao }) {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[11px] text-muted-foreground">
-                    desde {dataCivil(new Date(pessoa.desde).toISOString().slice(0, 10))}
+                    {/* `toISOString().slice(0, 10)` daria o dia em UTC: um
+                        vínculo criado às 21h em Brasília apareceria no dia
+                        seguinte. Formatar no fuso de quem lê não tem esse
+                        buraco. */}
+                    desde {dataDoInstante(pessoa.desde)}
                   </span>
                   <Badge variant={pessoa.role === "owner" ? "info" : "neutral"}>
                     {roleLabel(pessoa.role === "owner" ? "owner" : "admin")}
