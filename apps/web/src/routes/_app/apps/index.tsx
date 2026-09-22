@@ -6,7 +6,7 @@ import { Input } from "@educa-escola/ui/components/input";
 import { Label } from "@educa-escola/ui/components/label";
 import { ErrorState, ListSkeleton, PermissionState } from "@educa-escola/ui/integra/states";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plug, Star } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,7 +16,7 @@ import { inteiro } from "@/lib/format";
 import type { RouterOutputs } from "@/utils/trpc";
 import { useTRPC } from "@/utils/trpc";
 
-export const Route = createFileRoute("/_app/apps")({
+export const Route = createFileRoute("/_app/apps/")({
   component: Apps,
 });
 
@@ -38,21 +38,6 @@ function Apps() {
   const [confirmando, setConfirmando] = useState<AppState | null>(null);
 
   const panorama = useQuery(trpc.orbita.overview.queryOptions());
-
-  /**
-   * O endereço vem no clique, não antes: o token vale segundos e é de uso
-   * único. Buscá-lo junto com a lista entregaria um endereço já morto.
-   */
-  const abrir = useMutation(
-    trpc.orbita.openApp.mutationOptions({
-      onSuccess: ({ url }) => {
-        // Até a PR do embutido, abre em aba nova. A aba própria dentro do
-        // Integra é o próximo passo, e usa exatamente este endereço.
-        window.open(url, "_blank", "noopener,noreferrer");
-      },
-      onError: (erro) => toast.error(erro.message),
-    }),
-  );
 
   const instalar = useMutation(
     trpc.orbita.install.mutationOptions({
@@ -142,9 +127,7 @@ function Apps() {
             app={app}
             estado={estadoDe.get(app.key)}
             conectada={dados.connected}
-            abrindo={abrir.isPending && abrir.variables?.appKey === app.key}
             onInstalar={setConfirmando}
-            onAbrir={() => abrir.mutate({ appKey: app.key, embedded: false })}
           />
         ))}
       </div>
@@ -262,16 +245,12 @@ function CardApp({
   app,
   estado,
   conectada,
-  abrindo,
   onInstalar,
-  onAbrir,
 }: {
   app: AppOrbita;
   estado: AppState | undefined;
   conectada: boolean;
-  abrindo: boolean;
   onInstalar: (estado: AppState) => void;
-  onAbrir: () => void;
 }) {
   const Icone = app.icon;
   const status = estado?.status ?? "disponivel";
@@ -314,14 +293,25 @@ function CardApp({
           <Badge variant={instalando ? "info" : "success"}>
             {instalando ? "Instalando…" : "Instalado"}
           </Badge>
-          <Button
-            size="sm"
-            disabled={instalando || abrindo}
-            className="min-h-8 px-3 text-[11px]"
-            onClick={onAbrir}
-          >
-            {instalando ? "Aguarde" : abrindo ? "Abrindo…" : "Abrir"}
-          </Button>
+          {instalando ? (
+            <Button size="sm" disabled className="min-h-8 px-3 text-[11px]">
+              Aguarde
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="min-h-8 px-3 text-[11px]"
+              // O alvo é uma navegação, então o elemento é um link de
+              // verdade. `nativeButton={false}` diz isso ao Base UI: sem
+              // ele o primitivo espera um <button> e reclama em tempo de
+              // execução, com razão — semântica de botão num <a> confunde
+              // leitor de tela e quebra "abrir em nova aba".
+              nativeButton={false}
+              render={<Link to="/apps/$appKey" params={{ appKey: app.key }} />}
+            >
+              Abrir
+            </Button>
+          )}
         </div>
       ) : (
         <>
