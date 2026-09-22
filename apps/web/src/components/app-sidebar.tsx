@@ -81,7 +81,7 @@ export function AppSidebar({ role, schoolName, pendingCalls, onSignOut }: AppSid
                 <SidebarMenuItem key={entry.label}>
                   <SidebarMenuButton
                     tooltip={entry.label}
-                    render={<Link to={entry.to as string} />}
+                    render={<Link to={entry.to as string} params={entry.params ?? {}} />}
                   >
                     <entry.icon strokeWidth={1.7} aria-hidden />
                     <span>{entry.label}</span>

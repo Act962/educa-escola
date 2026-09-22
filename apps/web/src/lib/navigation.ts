@@ -29,6 +29,15 @@ export interface NavEntry {
    * vez de sumir: esconder o roadmap faz o produto parecer menor do que é, e
    * um link que leva a lugar nenhum é pior que um item honestamente inativo.
    */
+  /**
+   * Parâmetros da rota, quando `to` é um padrão dinâmico.
+   *
+   * Existe por causa do Financeiro, que não é tela nativa: ele aponta para a
+   * aba de um app do Órbita (`/apps/$appKey`). Resolver o caminho à mão
+   * (`/apps/payment`) funcionaria por acidente — o roteador casa por padrão,
+   * não por string pronta.
+   */
+  params?: Record<string, string>;
   soon?: boolean;
   badge?: "chamadasPendentes";
 }
@@ -42,7 +51,19 @@ const GESTAO: NavEntry[] = [
   { label: "Matrículas", to: "/matriculas", icon: IdCard },
   { label: "Acadêmico", icon: BookOpen, soon: true },
   { label: "Frequência", to: "/frequencia", icon: ClipboardCheck },
-  { label: "Financeiro", icon: Wallet, soon: true },
+  /**
+   * O financeiro é o app Payment do Órbita, não uma tela daqui.
+   *
+   * DECISÃO-JOÃO: isto tira o financeiro do banco da escola.
+   * Quebra se: a escola esperar cruzar inadimplência com matrícula e
+   *   frequência — os relatórios da §15.3 do requisito passam a depender de
+   *   dado que mora no Órbita, e não há junção possível entre os dois bancos.
+   * Fiz assim: item de menu apontando para a aba do app, que é reversível em
+   *   três linhas se um financeiro nativo entrar no roadmap.
+   * Alternativas: módulo financeiro nativo (§14 do requisito) · Payment como
+   *   é agora, com um resumo lido por API para os relatórios daqui.
+   */
+  { label: "Financeiro", to: "/apps/$appKey", params: { appKey: "payment" }, icon: Wallet },
   { label: "Comunicados", icon: MessageCircle, soon: true },
   { label: "Calendário", icon: CalendarDays, soon: true },
   { label: "Pontuação", to: "/pontuacao", icon: Sparkles },
