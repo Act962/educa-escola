@@ -3,6 +3,7 @@ import { academicRouter } from "../modules/academic/router";
 import { assessmentRouter } from "../modules/assessment/router";
 import { calendarRouter } from "../modules/calendar/router";
 import { classroomRouter } from "../modules/classroom/router";
+import { communicationRouter } from "../modules/communication/router";
 import { enrollmentRouter } from "../modules/enrollment/router";
 import { enrollmentLinkRouter } from "../modules/enrollment-link/router";
 import { leaderboardRouter } from "../modules/leaderboard/router";
@@ -44,6 +45,7 @@ export const appRouter = router({
   academic: academicRouter,
   calendar: calendarRouter,
   classroom: classroomRouter,
+  communication: communicationRouter,
   enrollment: enrollmentRouter,
   /** Fluxo do responsável, sem sessão. Ver o comentário no router. */
   enrollmentLink: enrollmentLinkRouter,

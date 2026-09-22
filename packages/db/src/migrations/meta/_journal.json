@@ -71,6 +71,13 @@
       "when": 1790070792245,
       "tag": "0009_calendario",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790071823169,
+      "tag": "0010_comunicados",
+      "breakpoints": true
     }
   ]
 }
