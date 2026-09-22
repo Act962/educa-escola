@@ -15,7 +15,7 @@ import {
 import { EmptyState, ErrorState, ListSkeleton } from "@educa-escola/ui/integra/states";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { BookOpen, Plus, X } from "lucide-react";
+import { BookOpen, Check, Pencil, Plus, X } from "lucide-react";
 import { useState } from "react";
 
 import { inteiro } from "@/lib/format";
@@ -44,6 +44,7 @@ function Academico() {
   const queryClient = useQueryClient();
   const { year } = useSchoolContext();
   const [nova, setNova] = useState("");
+  const [editando, setEditando] = useState<{ id: string; nome: string } | null>(null);
 
   const disciplinas = useQuery(trpc.academic.subjects.queryOptions());
   const grade = useQuery(trpc.academic.curriculum.queryOptions({ academicYear: year }));
@@ -56,6 +57,17 @@ function Academico() {
         recarregar();
       },
     }),
+  );
+  const renomear = useMutation(
+    trpc.academic.updateSubject.mutationOptions({
+      onSuccess: () => {
+        setEditando(null);
+        recarregar();
+      },
+    }),
+  );
+  const excluir = useMutation(
+    trpc.academic.removeSubject.mutationOptions({ onSuccess: recarregar }),
   );
   const por = useMutation(trpc.academic.setCurriculum.mutationOptions({ onSuccess: recarregar }));
   const tirar = useMutation(
@@ -102,10 +114,12 @@ function Academico() {
           </Button>
         </div>
 
-        {criar.isError ? (
+        {criar.isError || renomear.isError || excluir.isError ? (
           <Alert variant="danger">
-            <AlertTitle>Não foi possível criar</AlertTitle>
-            <AlertDescription>{criar.error.message}</AlertDescription>
+            <AlertTitle>Não foi possível salvar</AlertTitle>
+            <AlertDescription>
+              {(criar.error ?? renomear.error ?? excluir.error)?.message}
+            </AlertDescription>
           </Alert>
         ) : null}
 
@@ -122,13 +136,59 @@ function Academico() {
             description="Crie as disciplinas antes de montar a grade de cada série."
           />
         ) : (
-          <ul className="flex flex-wrap gap-2">
+          <ul className="flex flex-col">
             {disciplinas.data?.map((disciplina) => (
-              <li key={disciplina.id}>
-                <Badge variant={TIPOS[disciplina.kind].variante}>
-                  {disciplina.name}
-                  {disciplina.code ? ` · ${disciplina.code}` : null}
-                </Badge>
+              <li
+                key={disciplina.id}
+                className="flex flex-wrap items-center gap-3 border-border border-t py-2.5 text-[13px] first:border-t-0"
+              >
+                {editando?.id === disciplina.id ? (
+                  <>
+                    <Input
+                      value={editando.nome}
+                      onChange={(e) => setEditando({ id: disciplina.id, nome: e.target.value })}
+                      className="max-w-64"
+                      aria-label={`Novo nome de ${disciplina.name}`}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => renomear.mutate({ id: disciplina.id, name: editando.nome })}
+                      disabled={renomear.isPending || editando.nome.trim().length < 2}
+                    >
+                      <Check size={16} strokeWidth={1.8} aria-hidden />
+                      Salvar
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setEditando(null)}>
+                      Cancelar
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="min-w-0 flex-1 truncate font-bold">{disciplina.name}</span>
+                    <Badge variant={TIPOS[disciplina.kind].variante}>
+                      {TIPOS[disciplina.kind].rotulo}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Renomear ${disciplina.name}`}
+                      onClick={() => setEditando({ id: disciplina.id, nome: disciplina.name })}
+                    >
+                      <Pencil size={16} strokeWidth={1.8} aria-hidden />
+                    </Button>
+                    {/* Excluir é recusado pelo servidor quando há aula dada —
+                        a mensagem manda tirar da grade, que é reversível. */}
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Excluir ${disciplina.name}`}
+                      onClick={() => excluir.mutate({ id: disciplina.id })}
+                      disabled={excluir.isPending}
+                    >
+                      <X size={16} strokeWidth={1.8} aria-hidden />
+                    </Button>
+                  </>
+                )}
               </li>
             ))}
           </ul>

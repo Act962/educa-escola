@@ -52,6 +52,12 @@ export const statement = {
    * isso de aluno ou professor não protege nada. Quem monta é a gestão.
    */
   calendar: ["read", "manage"],
+  /**
+   * Comunicados. `read` é o mural — todo papel recebe. `manage` é escrever
+   * para a escola inteira, e isso é da gestão: um comunicado institucional
+   * não se desfaz depois de lido (§8.3).
+   */
+  communication: ["read", "manage"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -67,6 +73,7 @@ const fullAcademicAccess = {
   score: ["read", "apurar"],
   faculty: ["read", "manage"],
   calendar: ["read", "manage"],
+  communication: ["read", "manage"],
 } as const;
 
 /** Diretor(a) / mantenedor(a) da escola. Único papel que pode excluir a escola. */
@@ -113,6 +120,8 @@ export const teacher = ac.newRole({
   ranking: [],
   /** Lê o calendário da escola; quem o monta é a gestão. */
   calendar: ["read"],
+  /** Recebe comunicados; escrever para a escola é da gestão. */
+  communication: ["read"],
   /**
    * Vazio: a lista de docentes carrega pendência de colega, que é dado de
    * pessoal. O professor vê o que ele mesmo deve no próprio painel.
@@ -147,6 +156,7 @@ export const student = ac.newRole({
   ranking: [],
   faculty: [],
   calendar: ["read"],
+  communication: ["read"],
 });
 
 export const roles = { owner, admin, teacher, student };

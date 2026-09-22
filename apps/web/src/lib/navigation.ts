@@ -39,7 +39,7 @@ export interface NavEntry {
    */
   params?: Record<string, string>;
   soon?: boolean;
-  badge?: "chamadasPendentes";
+  badge?: "chamadasPendentes" | "comunicadosNaoLidos";
 }
 
 const GESTAO: NavEntry[] = [
@@ -64,7 +64,7 @@ const GESTAO: NavEntry[] = [
    *   é agora, com um resumo lido por API para os relatórios daqui.
    */
   { label: "Financeiro", to: "/apps/$appKey", params: { appKey: "payment" }, icon: Wallet },
-  { label: "Comunicados", icon: MessageCircle, soon: true },
+  { label: "Comunicados", to: "/comunicados", icon: MessageCircle },
   { label: "Calendário", to: "/calendario", icon: CalendarDays },
   { label: "Pontuação", to: "/pontuacao", icon: Sparkles },
   { label: "Placar entre escolas", to: "/placar-escolas", icon: Trophy },
@@ -79,7 +79,7 @@ const PROFESSOR: NavEntry[] = [
   { label: "Meus pontos", to: "/meus-pontos", icon: Sparkles },
   { label: "Atividades", icon: FileText, soon: true },
   { label: "Agenda", icon: CalendarDays, soon: true },
-  { label: "Comunicados", icon: MessageCircle, soon: true },
+  { label: "Comunicados", to: "/mural", icon: MessageCircle, badge: "comunicadosNaoLidos" },
 ];
 
 const ALUNO: NavEntry[] = [
@@ -90,7 +90,7 @@ const ALUNO: NavEntry[] = [
   { label: "Atividades", icon: FileText, soon: true },
   { label: "Materiais", icon: FolderOpen, soon: true },
   { label: "Agenda", icon: CalendarDays, soon: true },
-  { label: "Comunicados", icon: MessageCircle, soon: true },
+  { label: "Comunicados", to: "/mural", icon: MessageCircle, badge: "comunicadosNaoLidos" },
 ];
 
 /**

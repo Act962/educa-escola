@@ -7,7 +7,7 @@ import { Label } from "@educa-escola/ui/components/label";
 import { ErrorState, ListSkeleton, PermissionState } from "@educa-escola/ui/integra/states";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Plug, Star } from "lucide-react";
+import { Plug, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -38,6 +38,23 @@ function Apps() {
   const [confirmando, setConfirmando] = useState<AppState | null>(null);
 
   const panorama = useQuery(trpc.orbita.overview.queryOptions());
+
+  /**
+   * Desinstalar tira o vínculo, não o dado.
+   *
+   * O que o app produziu continua no Órbita — o que sai daqui é a aba e a
+   * cobrança mensal. Por isso não há confirmação destrutiva: a ação é
+   * reversível reinstalando, e o custo de ativação já foi pago.
+   */
+  const remover = useMutation(
+    trpc.orbita.remove.mutationOptions({
+      onSuccess: () => {
+        toast.success("App desinstalado. O que ele produziu continua no Órbita.");
+        queryClient.invalidateQueries();
+      },
+      onError: (erro) => toast.error(erro.message),
+    }),
+  );
 
   const instalar = useMutation(
     trpc.orbita.install.mutationOptions({
@@ -128,6 +145,8 @@ function Apps() {
             estado={estadoDe.get(app.key)}
             conectada={dados.connected}
             onInstalar={setConfirmando}
+            aoRemover={(appKey) => remover.mutate({ appKey })}
+            removendo={remover.isPending}
           />
         ))}
       </div>
@@ -246,11 +265,15 @@ function CardApp({
   estado,
   conectada,
   onInstalar,
+  aoRemover,
+  removendo,
 }: {
   app: AppOrbita;
   estado: AppState | undefined;
   conectada: boolean;
   onInstalar: (estado: AppState) => void;
+  aoRemover?: (appKey: AppOrbita["key"]) => void;
+  removendo?: boolean;
 }) {
   const Icone = app.icon;
   const status = estado?.status ?? "disponivel";
@@ -312,6 +335,20 @@ function CardApp({
               Abrir
             </Button>
           )}
+          {/* Desinstalar não apaga o dado do app: ele mora no Órbita, e o que
+              sai daqui é o vínculo. Por isso é uma ação discreta ao lado de
+              "Abrir", e não um botão vermelho pedindo para ser clicado. */}
+          {instalado && aoRemover ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Desinstalar ${app.nome}`}
+              onClick={() => aoRemover(app.key)}
+              disabled={removendo}
+            >
+              <Trash2 size={16} strokeWidth={1.8} aria-hidden />
+            </Button>
+          ) : null}
         </div>
       ) : (
         <>

@@ -41,6 +41,8 @@ export interface CurrentUser {
 interface AppShellProps {
   me: CurrentUser;
   pendingCalls?: number;
+  /** Comunicados publicados que esta pessoa ainda não abriu. */
+  unreadNotices?: number;
   children: React.ReactNode;
 }
 
@@ -182,7 +184,7 @@ function MenuDoUsuario({ me, onSignOut }: { me: CurrentUser; onSignOut: () => vo
  * O leiaute segue os mockups de `docs/design/`: fundo azul, cascas brancas de
  * 24px de raio e nenhuma sombra.
  */
-export function AppShell({ me, pendingCalls, children }: AppShellProps) {
+export function AppShell({ me, pendingCalls, unreadNotices, children }: AppShellProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -201,6 +203,7 @@ export function AppShell({ me, pendingCalls, children }: AppShellProps) {
         role={me.role}
         schoolName={me.schoolName}
         pendingCalls={pendingCalls}
+        unreadNotices={unreadNotices}
         onSignOut={sair}
       />
 

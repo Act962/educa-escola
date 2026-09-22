@@ -20,12 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@educa-escola/ui/components/select";
+import { SegmentedControl } from "@educa-escola/ui/integra/segmented";
 import { StatCard } from "@educa-escola/ui/integra/stat-card";
 import { EmptyState, ErrorState, ListSkeleton } from "@educa-escola/ui/integra/states";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarCheck, CalendarX, Plus, TriangleAlert, X } from "lucide-react";
+import { CalendarCheck, CalendarX, Download, Plus, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
+import { CalendarioMes } from "@/components/calendario-mes";
+import { CampoDeData } from "@/components/campo-de-data";
+import { PainelDoDia } from "@/components/painel-do-dia";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -58,6 +62,22 @@ function Calendario() {
   const definir = useMutation(trpc.calendar.defineYear.mutationOptions({ onSuccess: recarregar }));
   const criar = useMutation(trpc.calendar.createEvent.mutationOptions({ onSuccess: recarregar }));
   const remover = useMutation(trpc.calendar.removeEvent.mutationOptions({ onSuccess: recarregar }));
+  const editar = useMutation(trpc.calendar.updateEvent.mutationOptions({ onSuccess: recarregar }));
+
+  const sugestoes = useQuery(trpc.calendar.sugestoes.queryOptions({ academicYear: year }));
+  const importar = useMutation(trpc.calendar.importar.mutationOptions({ onSuccess: recarregar }));
+
+  /**
+   * Lista e grade respondem perguntas diferentes: a lista diz "o que vem pela
+   * frente", a grade diz "como é a semana do dia 16" — que é a pergunta de
+   * quem monta prova e reunião. Por isso as duas, e não uma substituindo a
+   * outra.
+   */
+  const [visao, setVisao] = useState<"lista" | "calendario">("lista");
+  const [diaAberto, setDiaAberto] = useState<{
+    dia: string;
+    intencao: "ver" | "criar";
+  } | null>(null);
 
   const contagem = ano.data?.contagem;
 
@@ -125,8 +145,19 @@ function Calendario() {
           />
 
           {ano.data?.ano ? (
+            <CalendarioBrasileiro
+              sugestoes={sugestoes.data ?? []}
+              aoImportar={() => importar.mutate({ academicYear: year })}
+              importando={importar.isPending}
+              resultado={importar.data ?? null}
+              erro={importar.isError ? importar.error.message : null}
+            />
+          ) : null}
+
+          {ano.data?.ano ? (
             <NovoEvento
               ano={year}
+              periodo={ano.data.ano}
               aoCriar={(dados) => criar.mutate({ academicYear: year, ...dados })}
               criando={criar.isPending}
               erro={criar.isError ? criar.error.message : null}
@@ -134,8 +165,32 @@ function Calendario() {
           ) : null}
 
           <Card className="flex flex-col gap-3">
-            <CardEyebrow>Eventos do ano</CardEyebrow>
-            {ano.data?.eventos.length === 0 ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <CardEyebrow>Eventos do ano</CardEyebrow>
+              <div className="ml-auto">
+                <SegmentedControl
+                  label="Como ver o calendário"
+                  options={[
+                    // `tone` é obrigatório no controle: ele existe para
+                    // presença, onde cada opção tem cor semântica. Aqui as
+                    // duas são neutras — trocar de visão não é estado.
+                    { value: "lista", label: "Lista", tone: "secondary" },
+                    { value: "calendario", label: "Calendário", tone: "secondary" },
+                  ]}
+                  value={visao}
+                  onChange={(valor) => setVisao(valor as "lista" | "calendario")}
+                />
+              </div>
+            </div>
+
+            {visao === "calendario" ? (
+              <CalendarioMes
+                eventos={ano.data?.eventos ?? []}
+                ano={year}
+                periodo={ano.data?.ano ?? null}
+                aoAbrirDia={(dia, intencao) => setDiaAberto({ dia, intencao })}
+              />
+            ) : ano.data?.eventos.length === 0 ? (
               <EmptyState
                 title="Nenhum evento no calendário"
                 description="Feriados e recessos são o que tira dia letivo da conta acima."
@@ -174,6 +229,24 @@ function Calendario() {
           </Card>
         </>
       )}
+
+      <PainelDoDia
+        dia={diaAberto?.dia ?? null}
+        intencao={diaAberto?.intencao ?? "ver"}
+        aberto={diaAberto !== null}
+        aoFechar={() => setDiaAberto(null)}
+        eventos={(ano.data?.eventos ?? []).filter(
+          (evento) =>
+            diaAberto !== null &&
+            evento.startsOn <= diaAberto.dia &&
+            evento.endsOn >= diaAberto.dia,
+        )}
+        aoCriar={(dados) => criar.mutate({ academicYear: year, ...dados })}
+        aoApagar={(id) => remover.mutate({ id })}
+        aoEditar={(dados) => editar.mutate(dados)}
+        ocupado={criar.isPending || remover.isPending || editar.isPending}
+        erro={criar.isError ? criar.error.message : editar.isError ? editar.error.message : null}
+      />
     </>
   );
 }
@@ -207,19 +280,18 @@ function DefinirAno({
       )}
 
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="inicio-do-ano">Início</Label>
-          <Input
-            id="inicio-do-ano"
-            type="date"
-            value={inicio}
-            onChange={(e) => setInicio(e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="fim-do-ano">Fim</Label>
-          <Input id="fim-do-ano" type="date" value={fim} onChange={(e) => setFim(e.target.value)} />
-        </div>
+        <CampoDeData
+          id="inicio-do-ano"
+          label="Início"
+          value={inicio}
+          onChange={(iso) => setInicio(iso ?? "")}
+        />
+        <CampoDeData
+          id="fim-do-ano"
+          label="Fim"
+          value={fim}
+          onChange={(iso) => setFim(iso ?? "")}
+        />
         <div className="flex w-36 flex-col gap-2">
           <Label htmlFor="minimo-de-dias">Mínimo de dias</Label>
           <Input
@@ -257,11 +329,13 @@ function DefinirAno({
 
 function NovoEvento({
   ano,
+  periodo,
   aoCriar,
   criando,
   erro,
 }: {
   ano: number;
+  periodo: { startsOn: string; endsOn: string } | null;
   aoCriar: (dados: {
     type: EventType;
     dayEffect: "nenhum" | "nao_letivo" | "letivo_extra";
@@ -313,24 +387,24 @@ function NovoEvento({
             maxLength={120}
           />
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="inicio-do-evento">Início</Label>
-          <Input
-            id="inicio-do-evento"
-            type="date"
-            value={inicio}
-            onChange={(e) => setInicio(e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="fim-do-evento">Fim (opcional)</Label>
-          <Input
-            id="fim-do-evento"
-            type="date"
-            value={fim}
-            onChange={(e) => setFim(e.target.value)}
-          />
-        </div>
+        {/* O intervalo vem do ano letivo: a pessoa vê que 05/01 está fora
+            antes de clicar, em vez de descobrir pela recusa do servidor. */}
+        <CampoDeData
+          id="inicio-do-evento"
+          label="Início"
+          value={inicio}
+          onChange={(iso) => setInicio(iso ?? "")}
+          min={periodo?.startsOn}
+          max={periodo?.endsOn}
+        />
+        <CampoDeData
+          id="fim-do-evento"
+          label="Fim (opcional)"
+          value={fim}
+          onChange={(iso) => setFim(iso ?? "")}
+          min={periodo?.startsOn}
+          max={periodo?.endsOn}
+        />
         <Button
           variant="secondary"
           onClick={() =>
@@ -361,6 +435,109 @@ function NovoEvento({
           <AlertDescription>{erro}</AlertDescription>
         </Alert>
       ) : null}
+    </Card>
+  );
+}
+
+/**
+ * O calendário brasileiro do ano, para importar de uma vez.
+ *
+ * A lista aparece **antes** do clique: confirmar a importação de quarenta
+ * linhas às cegas é o tipo de coisa de que a pessoa se arrepende. O que já
+ * está no sistema e o que cai fora do ano letivo vêm marcados, para o número
+ * do botão ser o número que vai entrar de verdade.
+ */
+function CalendarioBrasileiro({
+  sugestoes,
+  aoImportar,
+  importando,
+  resultado,
+  erro,
+}: {
+  sugestoes: {
+    title: string;
+    startsOn: string;
+    endsOn: string;
+    dayEffect: string;
+    fonte: string;
+    jaExiste: boolean;
+    foraDoPeriodo: boolean;
+  }[];
+  aoImportar: () => void;
+  importando: boolean;
+  resultado: { criados: number; jaExistiam: number; foraDoPeriodo: number } | null;
+  erro: string | null;
+}) {
+  const novas = sugestoes.filter((s) => !s.jaExiste && !s.foraDoPeriodo);
+
+  return (
+    <Card className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <CardEyebrow>Calendário brasileiro</CardEyebrow>
+        <span className="text-[11px] text-muted-foreground">
+          feriados nacionais, pontos facultativos e datas da cultura e da história
+        </span>
+        <Button
+          variant="secondary"
+          className="ml-auto"
+          onClick={aoImportar}
+          disabled={importando || novas.length === 0}
+        >
+          <Download size={18} strokeWidth={1.8} aria-hidden />
+          {importando
+            ? "Importando…"
+            : novas.length === 0
+              ? "Tudo já está no calendário"
+              : `Trazer ${novas.length} datas`}
+        </Button>
+      </div>
+
+      {resultado ? (
+        <Alert variant="success">
+          <AlertTitle>{resultado.criados} datas acrescentadas</AlertTitle>
+          <AlertDescription>
+            {resultado.jaExistiam > 0 ? `${resultado.jaExistiam} já estavam no calendário. ` : ""}
+            {resultado.foraDoPeriodo > 0
+              ? `${resultado.foraDoPeriodo} ficaram de fora por caírem fora do ano letivo — 1º de janeiro e Natal costumam cair aí.`
+              : ""}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {erro ? (
+        <Alert variant="danger">
+          <AlertTitle>Não foi possível importar</AlertTitle>
+          <AlertDescription>{erro}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <ul className="flex flex-col">
+        {sugestoes.map((data) => (
+          <li
+            key={`${data.startsOn}-${data.title}`}
+            className="flex flex-wrap items-center gap-3 border-border border-t py-2 text-[12px] first:border-t-0"
+          >
+            <span className="min-w-36 text-muted-foreground">
+              {longDate(data.startsOn)}
+              {data.endsOn !== data.startsOn ? ` a ${longDate(data.endsOn)}` : null}
+            </span>
+            <span className="min-w-0 flex-1 truncate font-bold">{data.title}</span>
+            {/* A origem fica na tela: data sem origem é data que ninguém
+                confere, e metade desta lista vem de lei. */}
+            <span className="hidden text-[11px] text-muted-foreground sm:block">{data.fonte}</span>
+            {data.dayEffect === "nao_letivo" ? (
+              <Badge variant="warning">Não letivo</Badge>
+            ) : (
+              <Badge variant="secondary">Tem aula</Badge>
+            )}
+            {data.jaExiste ? (
+              <Badge variant="success">Já está</Badge>
+            ) : data.foraDoPeriodo ? (
+              <Badge variant="secondary">Fora do ano letivo</Badge>
+            ) : null}
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }

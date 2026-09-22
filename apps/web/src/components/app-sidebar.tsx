@@ -27,6 +27,7 @@ interface AppSidebarProps {
   role: AppRole;
   schoolName: string;
   pendingCalls?: number;
+  unreadNotices?: number;
   onSignOut: () => void;
 }
 
@@ -36,7 +37,13 @@ interface AppSidebarProps {
  * Em tela estreita a mesma barra vira um `Sheet` — não existe barra inferior
  * de app mobile: o produto é web, e a navegação continua sendo a lateral.
  */
-export function AppSidebar({ role, schoolName, pendingCalls, onSignOut }: AppSidebarProps) {
+export function AppSidebar({
+  role,
+  schoolName,
+  pendingCalls,
+  unreadNotices,
+  onSignOut,
+}: AppSidebarProps) {
   const entries = navigationFor(role);
   const disponiveis = entries.filter((entry) => entry.to);
   const previstos = entries.filter((entry) => !entry.to);
@@ -86,8 +93,12 @@ export function AppSidebar({ role, schoolName, pendingCalls, onSignOut }: AppSid
                     <entry.icon strokeWidth={1.7} aria-hidden />
                     <span>{entry.label}</span>
                   </SidebarMenuButton>
+                  {/* O contador só aparece quando há o que fazer: um "0"
+                      permanente ao lado do item vira ruído e some da vista. */}
                   {entry.badge === "chamadasPendentes" && pendingCalls ? (
                     <SidebarMenuBadge>{pendingCalls}</SidebarMenuBadge>
+                  ) : entry.badge === "comunicadosNaoLidos" && unreadNotices ? (
+                    <SidebarMenuBadge>{unreadNotices}</SidebarMenuBadge>
                   ) : null}
                 </SidebarMenuItem>
               ))}

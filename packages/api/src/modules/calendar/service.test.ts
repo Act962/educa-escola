@@ -14,10 +14,15 @@ interface Estado {
 
 function fakeRepository(estado: Estado = {}): CalendarRepository {
   const criados: unknown[] = [];
+  const eventos = (estado.eventos ?? []) as Evento[];
+
   return {
+    findEvent: async (id) => eventos.find((e) => e.id === id) ?? null,
+    updateEvent: async (id, data) =>
+      eventos.some((e) => e.id === id) ? ({ id, ...data } as never) : null,
     findYear: async () => (estado.ano ? ({ ...estado.ano } as unknown as Ano) : null),
     defineYear: async (data) => ({ ...data }) as never,
-    listEvents: async () => (estado.eventos ?? []) as Evento[],
+    listEvents: async () => eventos,
     createEvent: async (data) => {
       criados.push(data);
       return { ...data, id: "novo" } as never;
@@ -128,5 +133,56 @@ describe("removeEvent", () => {
     await expect(createCalendarService(fakeRepository()).removeEvent("de-outra")).rejects.toThrow(
       NotFoundError,
     );
+  });
+});
+
+describe("updateEvent", () => {
+  const edicao = {
+    id: "e1",
+    type: "reuniao" as const,
+    dayEffect: "nenhum" as const,
+    title: "Reunião de pais — nova data",
+    startsOn: "2026-10-20",
+  };
+
+  const existente = [
+    { id: "e1", academicYear: 2026, startsOn: "2026-09-16", endsOn: "2026-09-16" },
+  ] as Partial<Evento>[];
+
+  it("recusa evento que não é desta escola", async () => {
+    await expect(
+      createCalendarService(fakeRepository({ ano: anoDefinido })).updateEvent(edicao),
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  /**
+   * Corrigir a data para fora do ano letivo tiraria o evento da contagem sem
+   * avisar ninguém, o que é pior que recusar.
+   */
+  it("recusa mover o evento para fora do ano letivo", async () => {
+    const servico = createCalendarService(fakeRepository({ ano: anoDefinido, eventos: existente }));
+
+    await expect(servico.updateEvent({ ...edicao, startsOn: "2027-01-05" })).rejects.toThrow(
+      ValidationError,
+    );
+    await expect(servico.updateEvent({ ...edicao, startsOn: "2027-01-05" })).rejects.toThrow(
+      /2026-02-02 e 2026-12-18/,
+    );
+  });
+
+  it("fecha o intervalo quando só o início foi informado", async () => {
+    const atualizado = await createCalendarService(
+      fakeRepository({ ano: anoDefinido, eventos: existente }),
+    ).updateEvent(edicao);
+
+    expect(atualizado).toMatchObject({ startsOn: "2026-10-20", endsOn: "2026-10-20" });
+  });
+
+  it("troca tipo e efeito no dia letivo", async () => {
+    const atualizado = await createCalendarService(
+      fakeRepository({ ano: anoDefinido, eventos: existente }),
+    ).updateEvent({ ...edicao, type: "recesso", dayEffect: "nao_letivo" });
+
+    expect(atualizado).toMatchObject({ type: "recesso", dayEffect: "nao_letivo" });
   });
 });

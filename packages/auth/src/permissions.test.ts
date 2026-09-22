@@ -183,3 +183,19 @@ describe("calendário", () => {
     expect(can("student", { calendar: ["manage"] })).toBe(false);
   });
 });
+
+describe("comunicados", () => {
+  it("todo papel recebe comunicado", () => {
+    for (const role of APP_ROLES) {
+      expect(can(role, { communication: ["read"] })).toBe(true);
+    }
+  });
+
+  /** Comunicado institucional não se desfaz depois de lido (§8.3). */
+  it("só a gestão escreve para a escola", () => {
+    expect(can("owner", { communication: ["manage"] })).toBe(true);
+    expect(can("admin", { communication: ["manage"] })).toBe(true);
+    expect(can("teacher", { communication: ["manage"] })).toBe(false);
+    expect(can("student", { communication: ["manage"] })).toBe(false);
+  });
+});
