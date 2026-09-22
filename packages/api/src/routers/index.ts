@@ -10,6 +10,7 @@ import { overviewRouter } from "../modules/overview/router";
 import { photoRouter } from "../modules/photo/router";
 import { scoreRouter } from "../modules/score/router";
 import { studentRouter } from "../modules/student/router";
+import { teacherRouter } from "../modules/teacher/router";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
@@ -41,6 +42,8 @@ export const appRouter = router({
   /** Fluxo do responsável, sem sessão. Ver o comentário no router. */
   enrollmentLink: enrollmentLinkRouter,
   student: studentRouter,
+  /** Corpo docente, para a gestão. Pendências de registro, nunca desempenho. */
+  teacher: teacherRouter,
   /** Foto do aluno. Ver o comentário no router: leitura também é restrita. */
   photo: photoRouter,
   lesson: lessonRouter,

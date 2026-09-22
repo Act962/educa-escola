@@ -41,6 +41,12 @@ export const statement = {
    * a PR do placar entre escolas vai usar — nenhum papel a tem ainda.
    */
   ranking: ["read", "read_cross_school", "opt_in"],
+  /**
+   * Corpo docente. Recurso próprio, e não `student`, porque é dado de pessoal:
+   * quem enxerga a ficha de um aluno não enxerga por isso a de um colega de
+   * trabalho, com pendências e carga horária.
+   */
+  faculty: ["read", "manage"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -54,6 +60,7 @@ const fullAcademicAccess = {
   assessment: ["create", "read", "update", "delete", "publish"],
   grade: ["create", "read", "update"],
   score: ["read", "apurar"],
+  faculty: ["read", "manage"],
 } as const;
 
 /** Diretor(a) / mantenedor(a) da escola. Único papel que pode excluir a escola. */
@@ -98,6 +105,11 @@ export const teacher = ac.newRole({
   /** Vê os próprios pontos; não reprocessa o ano da escola. */
   score: ["read"],
   ranking: [],
+  /**
+   * Vazio: a lista de docentes carrega pendência de colega, que é dado de
+   * pessoal. O professor vê o que ele mesmo deve no próprio painel.
+   */
+  faculty: [],
 });
 
 /**
@@ -125,6 +137,7 @@ export const student = ac.newRole({
    */
   score: ["read"],
   ranking: [],
+  faculty: [],
 });
 
 export const roles = { owner, admin, teacher, student };
