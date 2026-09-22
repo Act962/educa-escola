@@ -15,6 +15,7 @@ import {
   type LucideIcon,
   MessageCircle,
   Sparkles,
+  Trophy,
   Users,
   Wallet,
 } from "lucide-react";
@@ -45,6 +46,7 @@ const GESTAO: NavEntry[] = [
   { label: "Comunicados", icon: MessageCircle, soon: true },
   { label: "Calendário", icon: CalendarDays, soon: true },
   { label: "Pontuação", to: "/pontuacao", icon: Sparkles },
+  { label: "Placar entre escolas", to: "/placar-escolas", icon: Trophy },
   { label: "Relatórios", icon: BarChart3, soon: true },
 ];
 

@@ -817,6 +817,10 @@ entregar?*, *como estou indo?* e *o que a escola está me dizendo?*.
 - Evolução ao longo dos períodos.
 - Sem comparação nominal com colegas; comparativos apenas contra a média da turma, de forma anônima
   e configurável pela instituição. `[A VALIDAR]`
+- **Vale também para a pontuação.** O painel de pontos do aluno devolve a
+  própria posição, o total de colegas e a média da turma — nunca a lista. A
+  garantia está na forma do retorno de `score/service.ts` e no papel
+  `student`, que não tem a ação `ranking: read`; há teste para as duas.
 
 ## 7.6 Frequência
 
@@ -1002,8 +1006,38 @@ da média; taxa de entrega de atividades; frequência média; evolução entre p
 **Por disciplina/professor:** comparação entre turmas da mesma disciplina; índice de aprovação;
 pendências de lançamento. *Usado como apoio pedagógico, não como ranking de docentes.*
 
+> **Emenda (gamificação).** A decisão de produto passou a incluir um placar de
+> professores, o que contraria a frase acima em letra. Ela continua valendo
+> para **estes** indicadores: nada em 10.6 alimenta o placar. A pontuação do
+> professor vem de um catálogo próprio
+> (`packages/api/src/modules/score/rules.ts`) e mede **apenas o registro** —
+> chamada no prazo, diário preenchido, avaliação publicada sem pendência,
+> devolutiva em até sete dias.
+>
+> Índice de aprovação, média da turma e frequência da turma ficaram
+> deliberadamente **fora** do placar: premiar aprovação incentiva inflar nota
+> e pune quem pega turma difícil, e premiar frequência da turma incentiva
+> marcar presente quem faltou — o dado mais crítico do sistema. O placar mede
+> se o professor registrou, nunca o que ele registrou.
+
 **Institucional:** taxa de aprovação/reprovação por série e segmento; alunos em risco; comparação
 entre unidades e entre anos letivos.
+
+## 10.6-A Placar entre escolas `[A VALIDAR]`
+
+Comparação entre instituições, **por adesão explícita da direção**. Fora da
+adesão, a escola não aparece e não é lida.
+
+O que atravessa a fronteira entre instituições é um número por escola: nome de
+exibição escolhido pela direção e três indicadores de 0 a 100 — chamada no
+prazo, avaliações publicadas sem pendência e frequência média. **Taxas, nunca
+totais:** somar pontos de pessoas faria o placar medir matrícula, e a escola
+pequena não teria caminho nenhum para subir.
+
+Nenhum dado de aluno ou de professor sai da instituição. A tabela publicada não
+tem coluna onde uma pessoa caberia, e a consulta é a segunda (e única outra) do
+sistema sem filtro de escola — registrada na allowlist de
+`packages/api/src/architecture.test.ts`.
 
 ## 10.7 Acompanhamento de alunos com baixo desempenho
 
