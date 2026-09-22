@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@educa-escola/ui/components/select";
 
-export interface Turma {
+export interface ClassroomOption {
   id: string;
   name: string;
 }
@@ -32,7 +32,7 @@ export function TargetField({
   rotulo = "Vale para",
 }: {
   id: string;
-  turmas: Turma[];
+  turmas: ClassroomOption[];
   /** `null` é a escola inteira. */
   valor: string | null;
   aoMudar: (turmaId: string | null) => void;
@@ -73,6 +73,6 @@ export function TargetField({
  * um montando o par `scope`/`classroomId` à mão seria três chances de mandar
  * escopo de turma sem turma, que o servidor recusa com razão.
  */
-export function alvoDe(turmaId: string | null): { scope: EventScope; classroomId?: string } {
+export function targetOf(turmaId: string | null): { scope: EventScope; classroomId?: string } {
   return turmaId ? { scope: "turma", classroomId: turmaId } : { scope: "institucional" };
 }

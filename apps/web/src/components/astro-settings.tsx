@@ -1,8 +1,8 @@
-import { COMANDO_DA_CHAVE } from "@educa-escola/api/modules/assistant/instructions";
+import { KEY_COMMAND } from "@educa-escola/api/modules/assistant/instructions";
 import {
-  camposAoTrocarProvedor,
-  PROVEDORES,
-  provedorDe,
+  fieldsOnProviderChange,
+  PROVIDERS,
+  providerFor,
 } from "@educa-escola/api/modules/assistant/providers";
 import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components/alert";
 import { Button } from "@educa-escola/ui/components/button";
@@ -80,7 +80,7 @@ function Formulario({
     organizationId: string | null;
     apiKeyHint: string | null;
     credencialGravada: boolean;
-    credencialAbre: boolean;
+    credentialOpens: boolean;
     chaveDoServidor: boolean;
     maxTokens: number;
     dailyLimit: number;
@@ -119,17 +119,17 @@ function Formulario({
       // no campo de texto — senão o `Select` mostraria outro valor e a
       // primeira gravação trocaria o modelo sem ninguém pedir.
       modeloDigitado:
-        !!atual.model && !provedorDe(atual.providerLabel).modelos.includes(atual.model),
+        !!atual.model && !providerFor(atual.providerLabel).modelos.includes(atual.model),
       baseUrl: atual.baseUrl ?? "",
       /*
        * Sem modelo salvo, já abre no primeiro sugerido do provedor.
        *
        * O `Select` sem valor não mostra nada, e a direção salvaria de novo com
        * o campo vazio — que é o defeito que acabou de acontecer aqui. Mesma
-       * regra de `camposAoTrocarProvedor`: quem exibe e quem grava têm de ser
+       * regra de `fieldsOnProviderChange`: quem exibe e quem grava têm de ser
        * o mesmo valor.
        */
-      model: atual.model ?? provedorDe(atual.providerLabel).modelos[0] ?? "",
+      model: atual.model ?? providerFor(atual.providerLabel).modelos[0] ?? "",
       organizationId: atual.organizationId ?? "",
       // Sempre vazio: a chave nunca volta do servidor, e um campo
       // pré-preenchido com pontinhos convidaria a salvar "••••" como chave.
@@ -223,7 +223,7 @@ function Formulario({
             {/* `printf` com quebra de linha na frente, e não `echo … >>`:
                 `.env` sem quebra no fim faz o `>>` colar a variável nova no
                 fim da anterior, e as duas ficam inválidas. */}
-            <code className="whitespace-pre-wrap break-all text-meta">{COMANDO_DA_CHAVE}</code>
+            <code className="whitespace-pre-wrap break-all text-meta">{KEY_COMMAND}</code>
             <span>Depois reinicie o servidor: o .env é lido só na subida.</span>
           </AlertDescription>
         </Alert>
@@ -234,7 +234,7 @@ function Formulario({
         não abre mais. Sem este aviso a escola só descobre na primeira
         pergunta — e descobre como erro.
       */}
-      {atual.chaveDoServidor && atual.credencialGravada && !atual.credencialAbre ? (
+      {atual.chaveDoServidor && atual.credencialGravada && !atual.credentialOpens ? (
         <Alert variant="danger">
           <TriangleAlert size={18} strokeWidth={1.8} aria-hidden />
           <AlertTitle>A credencial gravada não abre com a chave atual</AlertTitle>
@@ -281,32 +281,32 @@ function Formulario({
                 <Select
                   value={field.state.value}
                   onValueChange={(valor) => {
-                    // A regra mora em `camposAoTrocarProvedor`, testada: ela
+                    // A regra mora em `fieldsOnProviderChange`, testada: ela
                     // zera endereço e modelo junto, porque os dois eram do
                     // provedor que saiu.
-                    const campos = camposAoTrocarProvedor(valor ?? "outro");
+                    const campos = fieldsOnProviderChange(valor ?? "outro");
                     field.handleChange(campos.providerLabel);
                     form.setFieldValue("baseUrl", campos.baseUrl);
                     form.setFieldValue("model", campos.model);
                     form.setFieldValue("modeloDigitado", campos.modeloDigitado);
                     setModelosDoProvedor(null);
                   }}
-                  items={PROVEDORES.map((p) => ({ value: p.id, label: p.nome }))}
+                  items={PROVIDERS.map((p) => ({ value: p.id, label: p.nome }))}
                 >
                   <SelectTrigger id={field.name} className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PROVEDORES.map((provedor) => (
+                    {PROVIDERS.map((provedor) => (
                       <SelectItem key={provedor.id} value={provedor.id}>
                         {provedor.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {provedorDe(field.state.value).nota ? (
+                {providerFor(field.state.value).nota ? (
                   <p className="text-meta text-muted-foreground">
-                    {provedorDe(field.state.value).nota}
+                    {providerFor(field.state.value).nota}
                   </p>
                 ) : null}
               </div>
@@ -322,7 +322,7 @@ function Formulario({
             {({ provedor, digitado }) => {
               // A lista buscada no provedor vence a curada: ela é de hoje, a
               // outra é do dia em que o arquivo foi escrito.
-              const sugeridos = modelosDoProvedor ?? provedorDe(provedor).modelos;
+              const sugeridos = modelosDoProvedor ?? providerFor(provedor).modelos;
 
               // O modelo salvo entra na lista mesmo que o provedor não o
               // tenha devolvido. Sem isto, o `Select` exibiria outro valor e
@@ -495,7 +495,7 @@ function Formulario({
                 }
               />
               <p className="text-meta text-muted-foreground">
-                {atual.credencialGravada && !atual.credencialAbre
+                {atual.credencialGravada && !atual.credentialOpens
                   ? "A credencial gravada não abre com a chave atual do servidor. Cole a do provedor de novo."
                   : atual.credencialGravada
                     ? `Há uma credencial gravada (${atual.apiKeyHint}). Ela é cifrada com chave que vive fora do banco e nunca volta para esta tela.`

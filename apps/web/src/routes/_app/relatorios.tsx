@@ -7,7 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Download, Info, TriangleAlert } from "lucide-react";
 
-import { inteiro, percentual } from "@/lib/format";
+import { integerText, percentText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -58,7 +58,7 @@ function Relatorios() {
           </AlertTitle>
           <AlertDescription>
             {alerta.data
-              .map((turma) => `${turma.nome} (${percentual(turma.frequencia)})`)
+              .map((turma) => `${turma.nome} (${percentText(turma.frequencia)})`)
               .join(" · ")}
           </AlertDescription>
         </Alert>
@@ -84,8 +84,8 @@ function Relatorios() {
                 <span className="min-w-52 font-bold text-corpo">{indicador.rotulo}</span>
                 <span className="font-extrabold text-xl">
                   {indicador.formato === "percentual"
-                    ? percentual(indicador.valor)
-                    : inteiro(indicador.valor ?? 0)}
+                    ? percentText(indicador.valor)
+                    : integerText(indicador.valor ?? 0)}
                 </span>
                 {/* A fórmula fica na tela: número sem fórmula é fé. */}
                 <span className="text-meta text-muted-foreground">{indicador.formula}</span>

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { type ContagensDaEscola, indicadoresDe, PONTUACAO_MAXIMA, proporcao } from "./indicators";
+import { indicatorsFor, MAXIMUM_SCORE, ratio, type SchoolCounts } from "./indicators";
 
-const vazia: ContagensDaEscola = {
+const vazia: SchoolCounts = {
   aulasComChamada: 0,
   aulasNoPrazo: 0,
   avaliacoesPublicadas: 0,
@@ -17,24 +17,24 @@ describe("proporcao", () => {
    * contrário premiaria quem não usa o sistema.
    */
   it("sem denominador vale zero", () => {
-    expect(proporcao(0, 0)).toBe(0);
-    expect(proporcao(5, 0)).toBe(0);
+    expect(ratio(0, 0)).toBe(0);
+    expect(ratio(5, 0)).toBe(0);
   });
 
   it("arredonda para inteiro", () => {
-    expect(proporcao(1, 3)).toBe(33);
-    expect(proporcao(2, 3)).toBe(67);
+    expect(ratio(1, 3)).toBe(33);
+    expect(ratio(2, 3)).toBe(67);
   });
 
   /** Dado incoerente não pode gerar nota acima do máximo. */
   it("não passa de cem mesmo com contagem inconsistente", () => {
-    expect(proporcao(12, 10)).toBe(100);
+    expect(ratio(12, 10)).toBe(100);
   });
 });
 
 describe("indicadoresDe", () => {
   it("soma os três indicadores", () => {
-    const resultado = indicadoresDe({
+    const resultado = indicatorsFor({
       aulasComChamada: 100,
       aulasNoPrazo: 90,
       avaliacoesPublicadas: 10,
@@ -58,7 +58,7 @@ describe("indicadoresDe", () => {
    * caminho nenhum para subir.
    */
   it("escola grande e escola pequena com o mesmo desempenho empatam", () => {
-    const pequena = indicadoresDe({
+    const pequena = indicatorsFor({
       aulasComChamada: 50,
       aulasNoPrazo: 45,
       avaliacoesPublicadas: 5,
@@ -66,7 +66,7 @@ describe("indicadoresDe", () => {
       comparecimentos: 190,
       registrosDeChamada: 200,
     });
-    const grande = indicadoresDe({
+    const grande = indicatorsFor({
       aulasComChamada: 500,
       aulasNoPrazo: 450,
       avaliacoesPublicadas: 50,
@@ -79,11 +79,11 @@ describe("indicadoresDe", () => {
   });
 
   it("escola sem movimento fica em zero, não no topo", () => {
-    expect(indicadoresDe(vazia).points).toBe(0);
+    expect(indicatorsFor(vazia).points).toBe(0);
   });
 
   it("escola impecável chega ao máximo", () => {
-    const perfeita = indicadoresDe({
+    const perfeita = indicatorsFor({
       aulasComChamada: 10,
       aulasNoPrazo: 10,
       avaliacoesPublicadas: 4,
@@ -91,6 +91,6 @@ describe("indicadoresDe", () => {
       comparecimentos: 80,
       registrosDeChamada: 80,
     });
-    expect(perfeita.points).toBe(PONTUACAO_MAXIMA);
+    expect(perfeita.points).toBe(MAXIMUM_SCORE);
   });
 });

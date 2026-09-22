@@ -9,7 +9,7 @@
  * Não é identificação confiável: `user-agent` é texto que o cliente escolhe.
  * Serve de lembrete para quem já sabe, nunca de prova de quem acessou.
  */
-export function dispositivoDe(userAgent: string | null | undefined): string {
+export function deviceFrom(userAgent: string | null | undefined): string {
   if (!userAgent?.trim()) return "Dispositivo desconhecido";
 
   const ua = userAgent;

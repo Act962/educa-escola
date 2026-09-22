@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { SEM_DADO, taxa } from "./indicators";
+import { NO_DATA, rate } from "./indicators";
 import type { ReportRepository } from "./repository";
 import { createReportService } from "./service";
 
@@ -33,8 +33,8 @@ const acha = <T extends { chave: string }>(lista: T[], chave: string) =>
 
 describe("taxa", () => {
   it("é nula sem denominador, nunca zero", () => {
-    expect(taxa(0, 0)).toBeNull();
-    expect(taxa(9, 10)).toBe(0.9);
+    expect(rate(0, 0)).toBeNull();
+    expect(rate(9, 10)).toBe(0.9);
   });
 });
 
@@ -83,7 +83,7 @@ describe("indicadores", () => {
     ]) {
       const indicador = acha(lista, chave);
       expect(indicador?.valor).toBeNull();
-      expect(indicador?.indisponivel).toBe(SEM_DADO[chave]);
+      expect(indicador?.indisponivel).toBe(NO_DATA[chave]);
     }
   });
 

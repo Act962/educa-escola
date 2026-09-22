@@ -1,6 +1,6 @@
 import {
+  REFERER_KIND_GRADE,
   REFERER_KIND_LABEL,
-  REFERER_KIND_NOTA,
   REFERER_KINDS,
   REWARD_KIND_LABEL,
   REWARD_KINDS,
@@ -39,7 +39,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
-import { dataDoInstante, inteiro } from "@/lib/format";
+import { instantDateText, integerText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { type RouterOutputs, useTRPC } from "@/utils/trpc";
 
@@ -151,14 +151,14 @@ function Numeros({ visao }: { visao: Visao }) {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard icon={Users} label="Famílias com link" hint="quem pode divulgar">
-          {inteiro(visao.familias)}
+          {integerText(visao.familias)}
         </StatCard>
         <StatCard
           icon={Share2}
           label="Indicações"
           hint={`registradas em ${new Date().getFullYear()}`}
         >
-          {inteiro(visao.indicacoes.length)}
+          {integerText(visao.indicacoes.length)}
         </StatCard>
         <StatCard
           icon={Gift}
@@ -166,10 +166,10 @@ function Numeros({ visao }: { visao: Visao }) {
           tone="success"
           hint="matrícula efetivada"
         >
-          {inteiro(resumo.confirmadas)}
+          {integerText(resumo.confirmadas)}
         </StatCard>
         <StatCard icon={Gift} label="Aguardando" tone="warning" hint="matrícula ainda pendente">
-          {inteiro(resumo.pendentes)}
+          {integerText(resumo.pendentes)}
         </StatCard>
       </div>
     </>
@@ -453,10 +453,10 @@ function Programa({ programa }: { programa: Visao["programa"] }) {
               {/*
                 A consequência jurídica da escolha, ao lado do campo e no
                 momento em que a direção escolhe — não num documento que
-                ninguém abre. Ver `REFERER_KIND_NOTA` no schema do módulo.
+                ninguém abre. Ver `REFERER_KIND_GRADE` no schema do módulo.
               */}
               <Alert variant={field.state.value === "responsavel" ? "info" : "warning"}>
-                <AlertDescription>{REFERER_KIND_NOTA[field.state.value]}</AlertDescription>
+                <AlertDescription>{REFERER_KIND_GRADE[field.state.value]}</AlertDescription>
               </Alert>
             </div>
           )}
@@ -716,7 +716,7 @@ function ListaDeIndicacoes({ indicacoes, ano }: { indicacoes: Indicacao[]; ano: 
                   <TableCell className="font-mono text-meta">{indicacao.codigo}</TableCell>
                   <TableCell>{premio(indicacao.rewardKind, indicacao.rewardValue)}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {dataDoInstante(indicacao.createdAt)}
+                    {instantDateText(indicacao.createdAt)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={situacao.tom}>{situacao.rotulo}</Badge>
@@ -813,7 +813,7 @@ function CartaoDoLink({ painel }: { painel: MeuPainel }) {
             Vale {premio(programa.rewardKind, programa.rewardValue)}, até{" "}
             {programa.rewardCapPerYear}{" "}
             {programa.rewardCapPerYear === 1 ? "indicação" : "indicações"} por ano.
-            {link.expiresAt ? ` O código vale até ${dataDoInstante(link.expiresAt)}.` : ""}
+            {link.expiresAt ? ` O código vale até ${instantDateText(link.expiresAt)}.` : ""}
           </p>
 
           {endereco ? (
@@ -851,10 +851,10 @@ function CartaoDoLink({ painel }: { painel: MeuPainel }) {
       {resumo ? (
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <StatCard icon={Gift} label="Descontos confirmados" tone="success">
-            {inteiro(resumo.confirmadas)}
+            {integerText(resumo.confirmadas)}
           </StatCard>
           <StatCard icon={Share2} label="Aguardando matrícula" tone="warning">
-            {inteiro(resumo.pendentes)}
+            {integerText(resumo.pendentes)}
           </StatCard>
         </div>
       ) : null}
@@ -876,7 +876,7 @@ function CartaoDoLink({ painel }: { painel: MeuPainel }) {
                   className="flex flex-wrap items-center gap-3 border-border border-t py-3 text-corpo first:border-t-0"
                 >
                   <span className="min-w-36 text-muted-foreground">
-                    {dataDoInstante(indicacao.createdAt)}
+                    {instantDateText(indicacao.createdAt)}
                   </span>
                   {/* O nome de quem se matriculou **não** aparece: a família
                       que indicou não precisa saber quem entrou por ela, e

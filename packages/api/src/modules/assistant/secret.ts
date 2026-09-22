@@ -1,5 +1,5 @@
-import { type Cifrado, decrypt, encrypt, parseKey } from "../../media/crypto";
-import { COMANDO_DA_CHAVE } from "./instructions";
+import { decrypt, type Encrypted, encrypt, parseKey } from "../../media/crypto";
+import { KEY_COMMAND } from "./instructions";
 
 /**
  * A credencial do modelo, cifrada com a mesma máquina da foto do aluno.
@@ -20,23 +20,23 @@ import { COMANDO_DA_CHAVE } from "./instructions";
  * manda quem lê procurar defeito onde não há, e o terceiro passo — reiniciar
  * — é o que de fato faltava, porque o `.env` é lido uma vez, na subida.
  */
-export function chaveDoAssistente(raw: string | undefined): Buffer {
+export function assistantKey(raw: string | undefined): Buffer {
   if (!raw) {
     throw new Error(
       "ASSISTANT_ENCRYPTION_KEY não está no ambiente. Rode " +
-        `\`${COMANDO_DA_CHAVE}\` ` +
+        `\`${KEY_COMMAND}\` ` +
         "e reinicie o servidor — o .env é lido só na subida.",
     );
   }
   return parseKey(raw);
 }
 
-export function cifrarCredencial(valor: string, raw: string | undefined): Cifrado {
-  return encrypt(Buffer.from(valor, "utf8"), chaveDoAssistente(raw));
+export function encryptCredential(valor: string, raw: string | undefined): Encrypted {
+  return encrypt(Buffer.from(valor, "utf8"), assistantKey(raw));
 }
 
-export function decifrarCredencial(dados: Cifrado, raw: string | undefined): string {
-  return decrypt(dados, chaveDoAssistente(raw)).toString("utf8");
+export function decryptCredential(dados: Encrypted, raw: string | undefined): string {
+  return decrypt(dados, assistantKey(raw)).toString("utf8");
 }
 
 /**
@@ -46,7 +46,7 @@ export function decifrarCredencial(dados: Cifrado, raw: string | undefined): str
  * própria credencial. Chave curta demais devolve só pontos: mostrar metade de
  * um segredo de oito caracteres seria mostrar metade do segredo.
  */
-export function dicaDaCredencial(valor: string): string {
+export function credentialHint(valor: string): string {
   return valor.length >= 12 ? `••••${valor.slice(-4)}` : "••••";
 }
 
@@ -63,11 +63,11 @@ export function dicaDaCredencial(valor: string): string {
  * falha nossa. Com ela, a tela avisa antes e diz o que fazer — regravar a
  * credencial.
  */
-export function credencialAbre(dados: Cifrado | null, raw: string | undefined): boolean {
+export function credentialOpens(dados: Encrypted | null, raw: string | undefined): boolean {
   if (!dados || !raw) return false;
 
   try {
-    decifrarCredencial(dados, raw);
+    decryptCredential(dados, raw);
     return true;
   } catch {
     return false;
@@ -88,7 +88,7 @@ export function credencialAbre(dados: Cifrado | null, raw: string | undefined): 
  * Nada disso é parte de credencial de provedor nenhum: se um dia for, o valor
  * chega quebrado de propósito e a escola vê o erro na hora de salvar.
  */
-export function limparCredencial(valor: string): string {
+export function clearCredential(valor: string): string {
   const semNome = valor.trim().replace(/^[A-Z][A-Z0-9_]*\s*=\s*/, "");
   return semNome.replace(/^(['"])(.*)\1$/s, "$2").trim();
 }

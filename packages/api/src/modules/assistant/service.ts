@@ -1,20 +1,20 @@
 import type { AppRole } from "@educa-escola/auth";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../errors";
-import { ErroDoModelo, type ModeloDeLinguagem } from "../../integrations/model/client";
+import { type LanguageModel, ModelError } from "../../integrations/model/client";
 import type { AssistantRepository } from "./repository";
 import type { AskInput, UpdateSettingsInput } from "./schema";
 import {
-  cifrarCredencial,
-  credencialAbre,
-  decifrarCredencial,
-  dicaDaCredencial,
-  limparCredencial,
+  clearCredential,
+  credentialHint,
+  credentialOpens,
+  decryptCredential,
+  encryptCredential,
 } from "./secret";
-import { type NivelDeUso, nivelDeUso, nivelMaisGrave } from "./usage";
+import { type UsageLevel, usageLevel, worstLevel } from "./usage";
 
 /** Como a escola encontra o Astro antes de configurar qualquer coisa. */
-export const CONFIGURACAO_PADRAO = {
+export const DEFAULT_SETTINGS = {
   enabled: false,
   providerLabel: null,
   baseUrl: null,
@@ -30,7 +30,7 @@ export const CONFIGURACAO_PADRAO = {
   allowStudents: false,
 };
 
-export interface DepsDoAssistente {
+export interface AssistantDeps {
   now: () => Date;
   chave: string | undefined;
   /** Constrói o cliente com a credencial já decifrada. Injetado para testar. */
@@ -39,7 +39,7 @@ export interface DepsDoAssistente {
     apiKey: string;
     model: string;
     organizationId?: string | null;
-  }) => ModeloDeLinguagem;
+  }) => LanguageModel;
 }
 
 /**
@@ -55,7 +55,7 @@ export interface DepsDoAssistente {
  * linguagem preenche lacuna com plausibilidade, e número plausível sobre
  * frequência de criança é pior que "não sei".
  */
-export function montarInstrucao(input: {
+export function buildInstruction(input: {
   escola: string;
   papel: AppRole;
   nome: string;
@@ -82,7 +82,7 @@ export function montarInstrucao(input: {
   ].join("\n");
 }
 
-export function createAssistantService(repo: AssistantRepository, deps: DepsDoAssistente) {
+export function createAssistantService(repo: AssistantRepository, deps: AssistantDeps) {
   async function configuracaoBruta() {
     return (await repo.find()) ?? null;
   }
@@ -118,9 +118,9 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
       const salva = await configuracaoBruta();
       if (!salva) {
         return {
-          ...CONFIGURACAO_PADRAO,
+          ...DEFAULT_SETTINGS,
           credencialGravada: false,
-          credencialAbre: false,
+          credentialOpens: false,
           chaveDoServidor: !!deps.chave,
         };
       }
@@ -139,7 +139,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
          * lá, íntegro, e não abre mais. A tela avisa antes da primeira
          * pergunta, em vez de a escola descobrir por um erro 500.
          */
-        credencialAbre: credencialAbre(gravada, deps.chave),
+        credentialOpens: credentialOpens(gravada, deps.chave),
         /** Sem a chave do servidor, gravar credencial é recusado. A tela avisa antes. */
         chaveDoServidor: !!deps.chave,
       };
@@ -166,7 +166,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
       // `undefined` mantém a chave; `""` apaga; texto substitui. É o que
       // permite editar o nome do modelo sem redigitar a credencial.
       if (input.apiKey !== undefined) {
-        const valor = limparCredencial(input.apiKey);
+        const valor = clearCredential(input.apiKey);
 
         if (valor === "") {
           patch.apiKeyCipher = null;
@@ -174,11 +174,11 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
           patch.apiKeyTag = null;
           patch.apiKeyHint = null;
         } else {
-          const cifrada = cifrarCredencial(valor, deps.chave);
+          const cifrada = encryptCredential(valor, deps.chave);
           patch.apiKeyCipher = cifrada.cipher;
           patch.apiKeyIv = cifrada.iv;
           patch.apiKeyTag = cifrada.authTag;
-          patch.apiKeyHint = dicaDaCredencial(valor);
+          patch.apiKeyHint = credentialHint(valor);
         }
       }
 
@@ -245,7 +245,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
         );
       }
 
-      const apiKey = decifrarCredencial(
+      const apiKey = decryptCredential(
         { cipher: salva.apiKeyCipher, iv: salva.apiKeyIv, authTag: salva.apiKeyTag },
         deps.chave,
       );
@@ -260,7 +260,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
           })
           .listarModelos();
       } catch (erro) {
-        if (erro instanceof ErroDoModelo) throw new ValidationError(erro.message);
+        if (erro instanceof ModelError) throw new ValidationError(erro.message);
         throw erro;
       }
     },
@@ -279,7 +279,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
     async uso() {
       const salva = await configuracaoBruta();
       const teto = {
-        perguntas: salva?.dailyLimit ?? CONFIGURACAO_PADRAO.dailyLimit,
+        perguntas: salva?.dailyLimit ?? DEFAULT_SETTINGS.dailyLimit,
         tokens: salva?.monthlyTokenBudget ?? null,
       };
 
@@ -288,8 +288,8 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
         repo.usoDesde(inicioDoMes()),
       ]);
 
-      const nivelPerguntas = nivelDeUso(hoje.perguntas, teto.perguntas);
-      const nivelTokens = nivelDeUso(mes.tokens, teto.tokens);
+      const nivelPerguntas = usageLevel(hoje.perguntas, teto.perguntas);
+      const nivelTokens = usageLevel(mes.tokens, teto.tokens);
 
       return {
         ligado: !!salva?.enabled,
@@ -301,7 +301,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
           /** Respostas do mês em que o provedor não informou o consumo. */
           semContagem: mes.semContagem,
         },
-        nivel: nivelMaisGrave(nivelPerguntas, nivelTokens) satisfies NivelDeUso,
+        nivel: worstLevel(nivelPerguntas, nivelTokens) satisfies UsageLevel,
       };
     },
 
@@ -375,7 +375,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
 
       let apiKey: string;
       try {
-        apiKey = decifrarCredencial(
+        apiKey = decryptCredential(
           { cipher: salva.apiKeyCipher, iv: salva.apiKeyIv, authTag: salva.apiKeyTag },
           deps.chave,
         );
@@ -396,7 +396,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
         organizationId: salva.organizationId,
       });
 
-      const sistema = montarInstrucao({
+      const sistema = buildInstruction({
         escola: quem.escola,
         papel: quem.role,
         nome: quem.nome,
@@ -416,7 +416,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
       } catch (erro) {
         // Falha de provedor vira erro de domínio para sair como 4xx com texto
         // legível, em vez de 500 com pilha. Quem lê é a secretaria.
-        if (erro instanceof ErroDoModelo) throw new ValidationError(erro.message);
+        if (erro instanceof ModelError) throw new ValidationError(erro.message);
         throw erro;
       }
     },

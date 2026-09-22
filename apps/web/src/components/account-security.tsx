@@ -12,8 +12,8 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
-import { dispositivoDe } from "@/lib/device";
-import { dataHora } from "@/lib/format";
+import { deviceFrom } from "@/lib/device";
+import { dateTimeText } from "@/lib/format";
 
 /** Mesmo piso do login: o servidor recusa menos que isso de qualquer forma. */
 const MINIMO_DA_SENHA = 8;
@@ -321,14 +321,15 @@ function SessoesAtivas() {
               >
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 font-bold text-corpo">
-                    {dispositivoDe(sessao.userAgent)}
+                    {deviceFrom(sessao.userAgent)}
                     {ehAtual ? <Badge variant="success">Este aparelho</Badge> : null}
                   </p>
                   <p className="text-meta text-muted-foreground">
                     {/* IP inteiro, e não mascarado: é a própria pessoa lendo o
                         próprio acesso, e meio endereço não reconhece nada. */}
                     {sessao.ipAddress ? `${sessao.ipAddress} · ` : ""}
-                    entrou em {dataHora(sessao.createdAt)} · expira em {dataHora(sessao.expiresAt)}
+                    entrou em {dateTimeText(sessao.createdAt)} · expira em{" "}
+                    {dateTimeText(sessao.expiresAt)}
                   </p>
                 </div>
 

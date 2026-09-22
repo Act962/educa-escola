@@ -1,16 +1,16 @@
 import { ConflictError, NotFoundError, ValidationError } from "../../errors";
 import { ENROLLED_STATUSES } from "../student/schema";
-import { identificar, type Veredito } from "./recognition";
+import { identify, type Verdict } from "./recognition";
 import type { GateRepository } from "./repository";
 import type {
-  CadastrarMoldeInput,
-  ExcluirPassagemInput,
-  PassagensInput,
-  RegistrarInput,
+  DeleteEntryInput,
+  EnrollTemplateInput,
+  EntriesInput,
+  RecordEntryInput,
 } from "./schema";
-import { cifrarMolde, decifrarMolde } from "./secret";
+import { decryptTemplate, encryptTemplate } from "./secret";
 
-export interface DepsDaPortaria {
+export interface GateDeps {
   now: () => Date;
   /** A chave de cifragem dos moldes. Vive fora do banco, como a da foto. */
   chave: string | undefined;
@@ -37,7 +37,7 @@ export const VALIDADE_DO_LOTE_MS = 10 * 60 * 1000;
  * Um minuto porque é o que cobre a fila do portão sem cobrir uma ida e volta
  * de verdade: ninguém entra na escola e sai dela em cinquenta segundos.
  */
-export const JANELA_DE_RELEITURA_MS = 60_000;
+export const RESCAN_WINDOW_MS = 60_000;
 
 /**
  * A portaria.
@@ -56,7 +56,7 @@ export const JANELA_DE_RELEITURA_MS = 60_000;
  */
 const LIMITE_DA_LISTA = 300;
 
-export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
+export function createGateService(repo: GateRepository, deps: GateDeps) {
   function inicioDoDia(): Date {
     const agora = deps.now();
     return new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
@@ -115,7 +115,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
 
         alunos.push({
           studentId: molde.studentId,
-          descritor: decifrarMolde(
+          descritor: decryptTemplate(
             { cipher: molde.cipher, iv: molde.iv, authTag: molde.authTag },
             deps.chave,
           ),
@@ -135,7 +135,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
      *
      * Existe ao lado do lote porque o tablet nem sempre pode comparar: lote
      * vencido, memória perdida numa recarga, ou aparelho fraco demais para
-     * segurar os moldes. O caminho é o mesmo e a regra é a mesma — `identificar`
+     * segurar os moldes. O caminho é o mesmo e a regra é a mesma — `identify`
      * é a única implementação, nos dois lados.
      */
     async identificarRosto(entrada: { descritor: number[]; extractor: string }) {
@@ -147,12 +147,12 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
         );
       }
 
-      const veredito = identificar(entrada.descritor, alunos);
+      const veredito = identify(entrada.descritor, alunos);
       return this.cartaoDoVeredito(veredito);
     },
 
     /** Traduz o veredito em algo que a tela possa mostrar sem decidir nada. */
-    async cartaoDoVeredito(veredito: Veredito) {
+    async cartaoDoVeredito(veredito: Verdict) {
       if (veredito.tipo !== "reconhecido") {
         // Ambíguo e desconhecido dão o mesmo resultado na tela de propósito:
         // "não identificado, use a carteirinha". Dizer "você parece com outro
@@ -163,7 +163,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
       const aluno = await repo.findStudent(veredito.studentId);
       if (!aluno) return { encontrado: false as const, motivo: "ninguem" as const };
 
-      return { encontrado: true as const, aluno, distancia: veredito.distancia };
+      return { encontrado: true as const, aluno, distancia: veredito.distance };
     },
 
     /** O caminho da carteirinha: o QR carrega o número de matrícula. */
@@ -190,7 +190,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
      * tela mostra o cartão do mesmo jeito, porque para quem está no portão
      * nada deu errado.
      */
-    async registrar(input: RegistrarInput & { deviceLabel?: string | null }) {
+    async registrar(input: RecordEntryInput & { deviceLabel?: string | null }) {
       const aluno = await repo.findStudent(input.studentId);
       if (!aluno) throw new NotFoundError("Aluno não encontrado nesta escola.");
 
@@ -215,8 +215,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
        * de quem está dentro mentindo justamente no dia em que alguém precisar
        * dela.
        */
-      const repetida =
-        !!ultima && agora.getTime() - ultima.occurredAt.getTime() < JANELA_DE_RELEITURA_MS;
+      const repetida = !!ultima && agora.getTime() - ultima.occurredAt.getTime() < RESCAN_WINDOW_MS;
 
       if (!repetida) {
         await repo.recordEntry({
@@ -247,7 +246,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
      * reconhecimento na entrada. A checagem é aqui e não na tela porque tela
      * se contorna.
      */
-    async cadastrarMolde(input: CadastrarMoldeInput) {
+    async cadastrarMolde(input: EnrollTemplateInput) {
       const aluno = await repo.findStudent(input.studentId);
       if (!aluno) throw new NotFoundError("Aluno não encontrado nesta escola.");
 
@@ -258,7 +257,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
         );
       }
 
-      const cifrado = cifrarMolde(input.descritor, deps.chave);
+      const cifrado = encryptTemplate(input.descritor, deps.chave);
       await repo.saveTemplate({
         studentId: input.studentId,
         cipher: cifrado.cipher,
@@ -299,7 +298,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
      * Sem `dia`, hoje: quem abre a tela quer o movimento de agora, e obrigar a
      * escolher data antes de ver qualquer coisa é ruído no caminho comum.
      */
-    async passagens(input: PassagensInput) {
+    async passagens(input: EntriesInput) {
       const desde = input.dia ? diaCivil(input.dia) : inicioDoDia();
       return repo.listEntries({
         desde,
@@ -317,7 +316,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
      * chamou, o efeito é o mesmo, e sobrescrever o autor apagaria justamente
      * o registro que uma conferência vai procurar.
      */
-    async excluir(input: ExcluirPassagemInput) {
+    async excluir(input: DeleteEntryInput) {
       const removida = await repo.softDelete(input.id, deps.actor.userId, deps.now());
       if (!removida) {
         throw new NotFoundError("Esta passagem não existe ou já foi excluída.");

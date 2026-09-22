@@ -8,7 +8,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, ExternalLink, Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { appOrbitaDe } from "@/lib/orbita-apps";
+import { orbitaAppFor } from "@/lib/orbita-apps";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_app/apps/$appKey")({
@@ -76,7 +76,7 @@ async function respondeu(endereco: string): Promise<boolean> {
 function AppEmbutido() {
   const { appKey } = Route.useParams();
   const trpc = useTRPC();
-  const app = appOrbitaDe(appKey);
+  const app = orbitaAppFor(appKey);
 
   const [estado, setEstado] = useState<Estado>("pedindo");
   const [url, setUrl] = useState<string | null>(null);

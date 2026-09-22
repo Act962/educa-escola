@@ -14,7 +14,7 @@
  * extratores diferentes, e a conta devolveria um número com aparência de
  * resposta. Por isso é erro, e não um valor grande.
  */
-export function distancia(a: readonly number[], b: readonly number[]): number {
+export function distance(a: readonly number[], b: readonly number[]): number {
   if (a.length !== b.length) {
     throw new Error(
       `Descritores de tamanhos diferentes (${a.length} e ${b.length}) não se comparam.`,
@@ -43,7 +43,7 @@ export function distancia(a: readonly number[], b: readonly number[]): number {
  *   para mudar num commit de uma linha depois de medir na escola.
  * Alternativas: por escola, em configuração · por extrator, numa tabela.
  */
-export const LIMIAR_PADRAO = 0.6;
+export const DEFAULT_THRESHOLD = 0.6;
 
 /**
  * A margem que separa "é ele" de "é parecido com ele".
@@ -53,15 +53,15 @@ export const LIMIAR_PADRAO = 0.6;
  * palite. Nesse caso é melhor não reconhecer: a carteirinha resolve em dois
  * segundos, e liberar a criança errada não se desfaz.
  */
-export const MARGEM_MINIMA = 0.05;
+export const MINIMUM_MARGIN = 0.05;
 
-export interface MoldeConhecido {
+export interface KnownTemplate {
   studentId: string;
   descritor: readonly number[];
 }
 
-export type Veredito =
-  | { tipo: "reconhecido"; studentId: string; distancia: number }
+export type Verdict =
+  | { tipo: "reconhecido"; studentId: string; distance: number }
   | { tipo: "ninguem"; melhorDistancia: number | null }
   | { tipo: "ambiguo"; melhorDistancia: number; diferenca: number };
 
@@ -73,16 +73,16 @@ export type Veredito =
  * vetorial só passa a valer com dezenas de milhares numa instalação — e aí a
  * assinatura desta função não muda.
  */
-export function identificar(
+export function identify(
   rosto: readonly number[],
-  conhecidos: readonly MoldeConhecido[],
-  limiar = LIMIAR_PADRAO,
-): Veredito {
+  conhecidos: readonly KnownTemplate[],
+  limiar = DEFAULT_THRESHOLD,
+): Verdict {
   let melhor: { studentId: string; d: number } | null = null;
   let segundo = Number.POSITIVE_INFINITY;
 
   for (const molde of conhecidos) {
-    const d = distancia(rosto, molde.descritor);
+    const d = distance(rosto, molde.descritor);
     if (!melhor || d < melhor.d) {
       segundo = melhor?.d ?? segundo;
       melhor = { studentId: molde.studentId, d };
@@ -96,9 +96,9 @@ export function identificar(
   }
 
   const diferenca = segundo - melhor.d;
-  if (Number.isFinite(segundo) && segundo <= limiar && diferenca < MARGEM_MINIMA) {
+  if (Number.isFinite(segundo) && segundo <= limiar && diferenca < MINIMUM_MARGIN) {
     return { tipo: "ambiguo", melhorDistancia: melhor.d, diferenca };
   }
 
-  return { tipo: "reconhecido", studentId: melhor.studentId, distancia: melhor.d };
+  return { tipo: "reconhecido", studentId: melhor.studentId, distance: melhor.d };
 }

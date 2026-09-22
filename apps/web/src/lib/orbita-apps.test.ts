@@ -1,7 +1,7 @@
 import { APP_KEYS } from "@educa-escola/api/modules/orbita/schema";
 import { describe, expect, it } from "vitest";
 
-import { APPS_ORBITA, appOrbitaDe } from "./orbita-apps";
+import { ORBITA_APPS, orbitaAppFor } from "./orbita-apps";
 
 /**
  * A lista da tela e a do servidor têm de coincidir, menos as exceções abaixo.
@@ -20,7 +20,7 @@ const NATIVOS = ["astro"];
 
 describe("catálogo de apps do Órbita", () => {
   it("cobre todas as chaves do servidor, menos as que viraram tela nativa", () => {
-    const naTela = APPS_ORBITA.map((app) => app.key).sort();
+    const naTela = ORBITA_APPS.map((app) => app.key).sort();
     const esperadas = [...APP_KEYS].filter((chave) => !NATIVOS.includes(chave)).sort();
 
     expect(naTela).toEqual(esperadas);
@@ -28,17 +28,17 @@ describe("catálogo de apps do Órbita", () => {
 
   it("nenhum app nativo aparece no catálogo", () => {
     for (const nativo of NATIVOS) {
-      expect(appOrbitaDe(nativo)).toBeNull();
+      expect(orbitaAppFor(nativo)).toBeNull();
     }
   });
 
   it("não repete chave", () => {
-    const chaves = APPS_ORBITA.map((app) => app.key);
+    const chaves = ORBITA_APPS.map((app) => app.key);
     expect(new Set(chaves).size).toBe(chaves.length);
   });
 
   it("todo app tem nome, resumo e descrição em português", () => {
-    for (const app of APPS_ORBITA) {
+    for (const app of ORBITA_APPS) {
       expect(app.nome.length).toBeGreaterThan(0);
       expect(app.resumo.length).toBeGreaterThan(0);
       // Descrição é o que a direção lê para decidir se vale o custo — uma
@@ -49,7 +49,7 @@ describe("catálogo de apps do Órbita", () => {
   });
 
   it("acha por chave e devolve nulo para o que não existe", () => {
-    expect(appOrbitaDe("linnker")?.nome).toBe("Linnker");
-    expect(appOrbitaDe("nao-existe")).toBeNull();
+    expect(orbitaAppFor("linnker")?.nome).toBe("Linnker");
+    expect(orbitaAppFor("nao-existe")).toBeNull();
   });
 });

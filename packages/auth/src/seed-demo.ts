@@ -16,23 +16,23 @@ import { eq } from "drizzle-orm";
 
 import { auth } from "./index";
 import {
-  ALUNA_COM_ACESSO,
   absencesFor,
   assignTeachers,
   birthDateOf,
   buildClassrooms,
+  DEMO_TEACHER,
   DEMO_TERM,
   DEMO_YEAR,
   type DemoClassroom,
-  DIRETORA,
-  DISCIPLINAS,
-  NOTAS_DO_ROTEIRO,
   type Person,
-  PROFESSOR_DEMO,
-  PROFESSORES,
-  SECRETARIA,
+  PRINCIPAL,
+  SCRIPTED_GRADES,
+  SECRETARY,
+  STUDENT_WITH_ACCESS,
+  SUBJECTS,
   scoreFor,
   spreadIndexes,
+  TEACHERS,
   timetableOf,
 } from "./seed-demo-data";
 
@@ -72,7 +72,7 @@ const DIAS_PARA_FRENTE = 7;
  * em vez de uma linha só.
  */
 const CHAMADAS_EM_ATRASO: Record<string, number> = {
-  [PROFESSOR_DEMO.email]: 1,
+  [DEMO_TEACHER.email]: 1,
   "helena.diniz@dompedroii.edu.br": 4,
   "tiago.pecanha@dompedroii.edu.br": 3,
   "douglas.prata@dompedroii.edu.br": 2,
@@ -176,17 +176,17 @@ export async function seedDemoSchool(): Promise<SeedResult> {
   }
 
   // ---- Pessoas ----
-  const people: Person[] = [DIRETORA, SECRETARIA, ...PROFESSORES];
+  const people: Person[] = [PRINCIPAL, SECRETARY, ...TEACHERS];
   const userIds = new Map<string, string>();
   for (const person of people) {
     userIds.set(person.email, await ensureUser(db, person));
   }
   userIds.set(
-    ALUNA_COM_ACESSO.email,
-    await ensureUser(db, { ...ALUNA_COM_ACESSO, role: "student" }),
+    STUDENT_WITH_ACCESS.email,
+    await ensureUser(db, { ...STUDENT_WITH_ACCESS, role: "student" }),
   );
 
-  for (const person of [...people, { ...ALUNA_COM_ACESSO, role: "student" as const }]) {
+  for (const person of [...people, { ...STUDENT_WITH_ACCESS, role: "student" as const }]) {
     const userId = userIds.get(person.email) as string;
     const already = await db.query.member.findFirst({
       where: (table, { and: both, eq: is }) =>
@@ -204,7 +204,7 @@ export async function seedDemoSchool(): Promise<SeedResult> {
 
   // ---- Disciplinas e turmas ----
   const subjectIds = new Map<string, string>();
-  for (const name of DISCIPLINAS) {
+  for (const name of SUBJECTS) {
     const [row] = await db.insert(subject).values({ schoolId, name }).returning({ id: subject.id });
     subjectIds.set(name, (row as { id: string }).id);
   }
@@ -226,8 +226,8 @@ export async function seedDemoSchool(): Promise<SeedResult> {
       schoolId,
       classroomId,
       userId:
-        person.name === ALUNA_COM_ACESSO.name
-          ? (userIds.get(ALUNA_COM_ACESSO.email) as string)
+        person.name === STUDENT_WITH_ACCESS.name
+          ? (userIds.get(STUDENT_WITH_ACCESS.email) as string)
           : null,
       id: crypto.randomUUID(),
       name: person.name,
@@ -306,15 +306,15 @@ export async function seedDemoSchool(): Promise<SeedResult> {
   return {
     schoolId,
     logins: [
-      { perfil: "Gestão (diretora)", email: DIRETORA.email, senha: DEMO_PASSWORD },
-      { perfil: "Professor", email: PROFESSOR_DEMO.email, senha: DEMO_PASSWORD },
-      { perfil: "Aluna", email: ALUNA_COM_ACESSO.email, senha: DEMO_PASSWORD },
+      { perfil: "Gestão (diretora)", email: PRINCIPAL.email, senha: DEMO_PASSWORD },
+      { perfil: "Professor", email: DEMO_TEACHER.email, senha: DEMO_PASSWORD },
+      { perfil: "Aluna", email: STUDENT_WITH_ACCESS.email, senha: DEMO_PASSWORD },
     ],
     counts: {
       turmas: turmas.length,
       alunos,
-      professores: PROFESSORES.length,
-      disciplinas: DISCIPLINAS.length,
+      professores: TEACHERS.length,
+      disciplinas: SUBJECTS.length,
       aulas: lessonRows.length,
       chamadas,
       notas,
@@ -396,7 +396,7 @@ function buildLessons(input: {
 
   const recordedAt = new Date();
   const recordedByClassroom = new Map<string, string[]>();
-  const diario = [...(pastByTeacher.get(PROFESSOR_DEMO.email) ?? [])]
+  const diario = [...(pastByTeacher.get(DEMO_TEACHER.email) ?? [])]
     .sort((a, b) => a.order.localeCompare(b.order))
     .slice(-(CONTEUDOS.length + 1), -1)
     .map((aula) => aula.id);
@@ -449,12 +449,12 @@ async function seedAssessments(input: {
   for (const [turmaIndex, turma] of turmas.entries()) {
     const classroomId = classroomIds.get(turma.name) as string;
 
-    for (const [subjectIndex, subjectName] of DISCIPLINAS.entries()) {
+    for (const [subjectIndex, subjectName] of SUBJECTS.entries()) {
       const teacherEmail = assignment.get(`${turma.name}|${subjectName}`);
       const teacherId = teacherEmail ? userIds.get(teacherEmail) : undefined;
       if (!teacherId) continue;
 
-      const doRoteiro = turma.name === "8º A" && subjectName === PROFESSOR_DEMO.subject;
+      const doRoteiro = turma.name === "8º A" && subjectName === DEMO_TEACHER.subject;
 
       /**
        * A Prova 2 fica em rascunho — e com lançamento faltando — no 8º A de
@@ -465,7 +465,7 @@ async function seedAssessments(input: {
        */
       const pendente =
         doRoteiro ||
-        (teacherEmail !== PROFESSOR_DEMO.email && (turmaIndex * 5 + subjectIndex) % 13 === 0);
+        (teacherEmail !== DEMO_TEACHER.email && (turmaIndex * 5 + subjectIndex) % 13 === 0);
 
       const definicoes = [
         {
@@ -524,7 +524,7 @@ async function seedAssessments(input: {
         // não está mais na sala.
         if (person.status === "transferido") return;
 
-        const escritas = doRoteiro ? NOTAS_DO_ROTEIRO[person.registration] : undefined;
+        const escritas = doRoteiro ? SCRIPTED_GRADES[person.registration] : undefined;
 
         /**
          * Só a Prova 2 fica sem lançamento, e só nas duas últimas carteiras:

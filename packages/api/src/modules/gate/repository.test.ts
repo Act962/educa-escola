@@ -11,7 +11,7 @@ import {
   createTestUser,
 } from "../../testing/fixtures";
 import { createGateRepository } from "./repository";
-import { cifrarMolde } from "./secret";
+import { encryptTemplate } from "./secret";
 
 const CHAVE = Buffer.alloc(32, 9).toString("base64");
 
@@ -61,7 +61,7 @@ describe("createGateRepository", () => {
   it("guarda o molde cifrado e o devolve com o extrator", async () => {
     await withRollback(async (tx) => {
       const c = await cenario(tx);
-      const cifrado = cifrarMolde([0.1, 0.2, 0.3], CHAVE);
+      const cifrado = encryptTemplate([0.1, 0.2, 0.3], CHAVE);
 
       await c.repo.saveTemplate({
         studentId: c.aluno.id,
@@ -96,8 +96,8 @@ describe("createGateRepository", () => {
         enrolledByUserId: c.operador.id,
       };
 
-      await c.repo.saveTemplate({ ...base, ...cifrarMolde([0, 0, 0], CHAVE) });
-      await c.repo.saveTemplate({ ...base, ...cifrarMolde([1, 1, 1], CHAVE) });
+      await c.repo.saveTemplate({ ...base, ...encryptTemplate([0, 0, 0], CHAVE) });
+      await c.repo.saveTemplate({ ...base, ...encryptTemplate([1, 1, 1], CHAVE) });
 
       expect(await c.repo.listTemplates()).toHaveLength(1);
     });
@@ -119,7 +119,7 @@ describe("createGateRepository", () => {
       for (const id of [c.aluno.id, saiu.id]) {
         await c.repo.saveTemplate({
           studentId: id,
-          ...cifrarMolde([0, 0, 0], CHAVE),
+          ...encryptTemplate([0, 0, 0], CHAVE),
           dimensions: 3,
           extractor: "ext-a",
           enrolledByUserId: c.operador.id,
@@ -138,7 +138,7 @@ describe("createGateRepository", () => {
 
       await a.repo.saveTemplate({
         studentId: a.aluno.id,
-        ...cifrarMolde([0, 0, 0], CHAVE),
+        ...encryptTemplate([0, 0, 0], CHAVE),
         dimensions: 3,
         extractor: "ext-a",
         enrolledByUserId: a.operador.id,

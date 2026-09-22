@@ -18,7 +18,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { BookOpen, Check, Pencil, Plus, X } from "lucide-react";
 import { useState } from "react";
 
-import { inteiro } from "@/lib/format";
+import { integerText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -275,10 +275,10 @@ function SerieDaGrade({ serie, disciplinas, aoPor, aoTirar, ocupado }: SerieProp
           {serie.gradeLevel}º ano · {STAGE_LABEL[serie.stage]}
         </CardEyebrow>
         <span className="text-meta text-muted-foreground">
-          {inteiro(serie.turmas)} turma{serie.turmas > 1 ? "s" : ""}
+          {integerText(serie.turmas)} turma{serie.turmas > 1 ? "s" : ""}
         </span>
         <span className="ml-auto font-bold text-corpo">
-          {inteiro(serie.aulasPorSemana)} aulas por semana
+          {integerText(serie.aulasPorSemana)} aulas por semana
         </span>
       </div>
 
@@ -297,7 +297,7 @@ function SerieDaGrade({ serie, disciplinas, aoPor, aoTirar, ocupado }: SerieProp
               <BookOpen size={16} strokeWidth={1.7} aria-hidden className="text-muted-foreground" />
               <span className="min-w-0 flex-1 truncate font-bold">{disciplina.nome}</span>
               <span className="text-muted-foreground">
-                {inteiro(disciplina.aulasPorSemana)} aula
+                {integerText(disciplina.aulasPorSemana)} aula
                 {disciplina.aulasPorSemana > 1 ? "s" : ""}/semana
               </span>
               <Button

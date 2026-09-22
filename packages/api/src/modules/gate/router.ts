@@ -5,12 +5,12 @@ import { permitted, router } from "../../index";
 import type { Membership, TenantContext } from "../../trpc/tenant";
 import { createGateRepository } from "./repository";
 import {
-  cadastrarMoldeInput,
-  excluirPassagemInput,
-  identificarInput,
-  passagensInput,
-  porMatriculaInput,
-  registrarInput,
+  byRegistrationInput,
+  deleteEntryInput,
+  enrollTemplateInput,
+  entriesInput,
+  identifyInput,
+  recordEntryInput,
 } from "./schema";
 import { createGateService } from "./service";
 
@@ -43,27 +43,27 @@ export const gateRouter = router({
 
   /** Identifica no servidor, para quando o tablet não puder comparar. */
   identificar: permitted({ gate: ["operate"] })
-    .input(identificarInput)
+    .input(identifyInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).identificarRosto(input)),
 
   /** O caminho da carteirinha, que é o que nunca falha. */
   porMatricula: permitted({ gate: ["operate"] })
-    .input(porMatriculaInput)
+    .input(byRegistrationInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).porMatricula(input.registration)),
 
   registrar: permitted({ gate: ["operate"] })
-    .input(registrarInput)
+    .input(recordEntryInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).registrar(input)),
 
   cadastrarMolde: permitted({ gate: ["enroll_face"] })
-    .input(cadastrarMoldeInput)
+    .input(enrollTemplateInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).cadastrarMolde(input)),
 
   situacao: permitted({ gate: ["read"] }).query(({ ctx }) => serviceFor(ctx).situacao()),
 
   /** As passagens de um dia, com filtro por aluno e a lista de excluídas. */
   passagens: permitted({ gate: ["read"] })
-    .input(passagensInput)
+    .input(entriesInput)
     .query(({ ctx, input }) => serviceFor(ctx).passagens(input)),
 
   /**
@@ -74,6 +74,6 @@ export const gateRouter = router({
    * criança.
    */
   excluirPassagem: permitted({ gate: ["delete_entry"] })
-    .input(excluirPassagemInput)
+    .input(deleteEntryInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).excluir(input)),
 });

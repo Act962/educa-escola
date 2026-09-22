@@ -5,7 +5,7 @@ import { and, asc, count, eq, inArray } from "drizzle-orm";
 import type { TenantContext } from "../../trpc/tenant";
 
 /** Papéis que enxergam a escola inteira. É o que a tela chama de "acesso total". */
-export const PAPEIS_DE_GESTAO = ["owner", "admin"] as const;
+export const MANAGEMENT_ROLES = ["owner", "admin"] as const;
 
 /**
  * Único lugar do módulo que monta query.
@@ -74,7 +74,7 @@ export function createSettingsRepository(db: DbHandle, tenant: TenantContext) {
         .where(
           and(
             eq(member.organizationId, tenant.schoolId),
-            inArray(member.role, [...PAPEIS_DE_GESTAO]),
+            inArray(member.role, [...MANAGEMENT_ROLES]),
           ),
         )
         .orderBy(asc(member.role), asc(user.name));

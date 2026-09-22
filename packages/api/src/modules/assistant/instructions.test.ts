@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { COMANDO_DA_CHAVE } from "./instructions";
+import { KEY_COMMAND } from "./instructions";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 
@@ -29,9 +29,9 @@ describe("instrucoes", () => {
    * que estava errada.
    */
   it("o comando não usa `echo >>`", () => {
-    expect(COMANDO_DA_CHAVE).toContain("printf");
-    expect(COMANDO_DA_CHAVE).not.toMatch(/^echo/);
-    expect(COMANDO_DA_CHAVE).toContain("\\n");
-    expect(COMANDO_DA_CHAVE).toContain("apps/web/.env");
+    expect(KEY_COMMAND).toContain("printf");
+    expect(KEY_COMMAND).not.toMatch(/^echo/);
+    expect(KEY_COMMAND).toContain("\\n");
+    expect(KEY_COMMAND).toContain("apps/web/.env");
   });
 });

@@ -3,8 +3,8 @@ import { NotFoundError } from "../../errors";
 import { CURRENT_TERM_VERSION } from "../enrollment/schema";
 import { ENROLLED_STATUSES } from "../student/schema";
 import { MINIMUM_ATTENDANCE_RATE } from "../student/service";
-import { PENDENCIAS_PARA_ATRASO } from "../teacher/service";
-import { PAPEIS_DE_GESTAO, type SettingsRepository } from "./repository";
+import { PENDING_FOR_OVERDUE } from "../teacher/service";
+import { MANAGEMENT_ROLES, type SettingsRepository } from "./repository";
 import type { UpdateSchoolInput } from "./schema";
 
 /**
@@ -78,7 +78,7 @@ export function regrasEmVigor(): RegraEmVigor[] {
     {
       chave: "pendencias_para_atraso",
       titulo: "Pendências que marcam um professor como atrasado",
-      valor: `${PENDENCIAS_PARA_ATRASO} ou mais`,
+      valor: `${PENDING_FOR_OVERDUE} ou mais`,
       porque: "É limiar de acompanhamento da coordenação, não avaliação de desempenho (§10.6).",
       onde: "teacher/service.ts",
     },
@@ -100,7 +100,7 @@ export function regrasEmVigor(): RegraEmVigor[] {
   ];
 }
 
-export interface VisaoDasConfiguracoes {
+export interface SettingsView {
   escola: NonNullable<Awaited<ReturnType<SettingsRepository["find"]>>>;
   acessos: { role: string; total: number }[];
   administradores: Awaited<ReturnType<SettingsRepository["administrators"]>>;
@@ -109,7 +109,7 @@ export interface VisaoDasConfiguracoes {
 
 export function createSettingsService(repo: SettingsRepository) {
   return {
-    async overview(): Promise<VisaoDasConfiguracoes> {
+    async overview(): Promise<SettingsView> {
       const [escola, porPapel, administradores] = await Promise.all([
         repo.find(),
         repo.countByRole(),
@@ -140,4 +140,4 @@ export function createSettingsService(repo: SettingsRepository) {
 }
 
 export type SettingsService = ReturnType<typeof createSettingsService>;
-export { PAPEIS_DE_GESTAO };
+export { MANAGEMENT_ROLES };

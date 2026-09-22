@@ -4,10 +4,10 @@ import { Progress, ProgressLabel, ProgressValue } from "@educa-escola/ui/compone
 import { EmptyState, ListSkeleton } from "@educa-escola/ui/integra/states";
 import { Sparkles } from "lucide-react";
 
-import { inteiro } from "@/lib/format";
+import { integerText } from "@/lib/format";
 
 /** O que o servidor devolve em comum para aluno e professor. */
-export interface PontosDoSujeito {
+export interface SubjectPoints {
   pontos: number;
   nivel: { ordem: number; nome: string; minimo: number };
   proximo: { nivel: { nome: string; minimo: number }; faltam: number } | null;
@@ -28,7 +28,7 @@ export interface PontosDoSujeito {
  * de zero até o próximo degrau fica quase cheia o tempo todo nos níveis altos
  * e não informa nada.
  */
-export function progressoNoNivel(dados: PontosDoSujeito): number {
+export function levelProgress(dados: SubjectPoints): number {
   if (!dados.proximo) return 100;
   const faixa = dados.proximo.nivel.minimo - dados.nivel.minimo;
   if (faixa <= 0) return 100;
@@ -46,14 +46,14 @@ export function PointsSummary({
   ano,
   children,
 }: {
-  dados: PontosDoSujeito;
+  dados: SubjectPoints;
   ano: number;
   children?: React.ReactNode;
 }) {
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline gap-3">
-        <span className="font-extrabold text-4xl tracking-[-1px]">{inteiro(dados.pontos)}</span>
+        <span className="font-extrabold text-4xl tracking-[-1px]">{integerText(dados.pontos)}</span>
         <span className="text-corpo text-muted-foreground">pontos em {ano}</span>
         <Badge variant="info" className="ml-auto">
           <Sparkles size={14} strokeWidth={1.8} aria-hidden />
@@ -61,10 +61,10 @@ export function PointsSummary({
         </Badge>
       </div>
 
-      <Progress value={progressoNoNivel(dados)}>
+      <Progress value={levelProgress(dados)}>
         <ProgressLabel>
           {dados.proximo
-            ? `Faltam ${inteiro(dados.proximo.faltam)} para ${dados.proximo.nivel.nome}`
+            ? `Faltam ${integerText(dados.proximo.faltam)} para ${dados.proximo.nivel.nome}`
             : "Último nível alcançado"}
         </ProgressLabel>
         <ProgressValue />
@@ -82,7 +82,7 @@ export function PointsSummary({
  * e não só no banco. Número que ninguém consegue conferir vira número que
  * ninguém acredita.
  */
-export function PointsStatement({ dados }: { dados: PontosDoSujeito }) {
+export function PointsStatement({ dados }: { dados: SubjectPoints }) {
   if (dados.extrato.length === 0) {
     return (
       <Card>

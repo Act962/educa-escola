@@ -13,7 +13,7 @@ import type { TeacherFilters } from "./schema";
  * é exatamente onde esse limite seria atravessado sem querer.
  */
 
-export interface DocenteNaLista {
+export interface TeacherListItem {
   userId: string;
   name: string;
   email: string;
@@ -24,7 +24,7 @@ export interface DocenteNaLista {
   chamadasPendentes: number;
   /** Lançamentos de nota que faltam. */
   notasPendentes: number;
-  situacao: Situacao;
+  situacao: Situation;
 }
 
 /**
@@ -34,21 +34,21 @@ export interface DocenteNaLista {
  * está sem alocação — dizer "em dia" para ele esconderia o problema real, que
  * é a grade não ter sido montada.
  */
-export type Situacao = "em_dia" | "atencao" | "atrasado" | "sem_turma";
+export type Situation = "em_dia" | "atencao" | "atrasado" | "sem_turma";
 
 /** A partir de quantas pendências a situação deixa de ser "atenção". */
-export const PENDENCIAS_PARA_ATRASO = 3;
+export const PENDING_FOR_OVERDUE = 3;
 
-export function situacaoDe(input: {
+export function situationOf(input: {
   aulas: number;
   chamadasPendentes: number;
   notasPendentes: number;
-}): Situacao {
+}): Situation {
   if (input.aulas === 0) return "sem_turma";
 
   const total = input.chamadasPendentes + input.notasPendentes;
   if (total === 0) return "em_dia";
-  return total >= PENDENCIAS_PARA_ATRASO ? "atrasado" : "atencao";
+  return total >= PENDING_FOR_OVERDUE ? "atrasado" : "atencao";
 }
 
 export function createTeacherService(repo: TeacherRepository) {
@@ -74,7 +74,7 @@ export function createTeacherService(repo: TeacherRepository) {
       const porChamada = new Map(chamadas.map((linha) => [linha.teacherId, linha.pendentes]));
       const porNota = new Map(notas.map((linha) => [linha.teacherId, linha.faltando]));
 
-      const linhas: DocenteNaLista[] = docentes.map((docente) => {
+      const linhas: TeacherListItem[] = docentes.map((docente) => {
         const dele = porCarga.get(docente.userId);
         const base = {
           aulas: dele?.aulas ?? 0,
@@ -89,7 +89,7 @@ export function createTeacherService(repo: TeacherRepository) {
           turmas: dele?.turmas ?? 0,
           disciplinas: dele?.disciplinas ?? 0,
           ...base,
-          situacao: situacaoDe(base),
+          situacao: situationOf(base),
         };
       });
 
@@ -137,19 +137,19 @@ export function createTeacherService(repo: TeacherRepository) {
         ...base,
         aulasRegistradas: dele?.registradas ?? 0,
         alunos,
-        situacao: situacaoDe(base),
+        situacao: situationOf(base),
         // Uma linha por turma, com as disciplinas que ele dá nela: a leitura
         // natural é "no 8º A ele dá Matemática e Física", não uma lista de
         // pares turma+disciplina repetindo a turma.
-        turmas: agruparPorTurma(alocacoes),
-        frequenciaDasTurmas: taxa(frequencia.comparecimentos, frequencia.registros),
+        turmas: groupByClassroom(alocacoes),
+        frequenciaDasTurmas: rate(frequencia.comparecimentos, frequencia.registros),
       };
     },
   };
 }
 
 /** Agrupa as alocações por turma. `null` de frequência quando não há registro. */
-export function agruparPorTurma(
+export function groupByClassroom(
   alocacoes: { classroomId: string; classroomName: string; subjectName: string }[],
 ) {
   const porTurma = new Map<string, { classroomId: string; nome: string; disciplinas: string[] }>();
@@ -171,7 +171,7 @@ export function agruparPorTurma(
  * Taxa de 0 a 1. **`null` sem registro, não zero** — é a mesma leitura que a
  * frequência do aluno faz: sem aula registrada não existe frequência.
  */
-export function taxa(parte: number, total: number): number | null {
+export function rate(parte: number, total: number): number | null {
   if (total <= 0) return null;
   return parte / total;
 }

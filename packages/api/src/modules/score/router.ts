@@ -5,7 +5,7 @@ import type { TenantContext } from "../../trpc/tenant";
 import { createStudentRepository } from "../student/repository";
 import { createStudentService } from "../student/service";
 import { createScoreRepository } from "./repository";
-import { apurarInput, scoreYearInput } from "./schema";
+import { scoreYearInput, tallyInput } from "./schema";
 import { createScoreService } from "./service";
 
 function serviceFor(ctx: { db: DbHandle; tenant: TenantContext }) {
@@ -64,6 +64,6 @@ export const scoreRouter = router({
    *   que a chamada é salva.
    */
   apurar: permitted({ score: ["apurar"] })
-    .input(apurarInput)
+    .input(tallyInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).apurar(input.academicYear)),
 });

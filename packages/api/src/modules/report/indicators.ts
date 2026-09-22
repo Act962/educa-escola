@@ -10,7 +10,7 @@
  * um zero de fachada.
  */
 
-export type ChaveDeIndicador =
+export type IndicatorKey =
   | "alunos_ativos"
   | "taxa_ocupacao"
   | "taxa_frequencia"
@@ -22,8 +22,8 @@ export type ChaveDeIndicador =
   | "inadimplencia"
   | "rematricula";
 
-export interface Indicador {
-  chave: ChaveDeIndicador;
+export interface Indicator {
+  chave: IndicatorKey;
   rotulo: string;
   /** Como a §15.4 define a conta. Fica na tela: número sem fórmula é fé. */
   formula: string;
@@ -40,7 +40,7 @@ export interface Indicador {
  * Cada linha aqui é uma dívida conhecida, não um esquecimento. Sai da lista no
  * dia em que o módulo que falta existir.
  */
-export const SEM_DADO: Record<string, string> = {
+export const NO_DATA: Record<string, string> = {
   taxa_ocupacao:
     "A turma não guarda capacidade de vagas (§3.1). Sem o denominador, qualquer taxa seria inventada.",
   taxa_aprovacao:
@@ -53,7 +53,7 @@ export const SEM_DADO: Record<string, string> = {
     "Precisa comparar matrículas de dois anos letivos, e a escola ainda não tem histórico de dois anos aqui.",
 };
 
-export interface DadosDosIndicadores {
+export interface IndicatorData {
   alunosNaSala: number;
   /** Frequência geral da escola, de 0 a 1. `null` sem aula registrada. */
   frequenciaGeral: number | null;
@@ -62,29 +62,29 @@ export interface DadosDosIndicadores {
 }
 
 /** Frequência mínima da LDB, repetida aqui só como rótulo de fórmula. */
-export const MINIMO_DE_FREQUENCIA = 0.75;
+export const MINIMUM_ATTENDANCE = 0.75;
 
-export function montarIndicadores(dados: DadosDosIndicadores): Indicador[] {
+export function buildIndicators(dados: IndicatorData): Indicator[] {
   const disponivel = (
-    chave: ChaveDeIndicador,
+    chave: IndicatorKey,
     rotulo: string,
     formula: string,
     valor: number | null,
-    formato: Indicador["formato"],
-  ): Indicador => ({ chave, rotulo, formula, valor, formato });
+    formato: Indicator["formato"],
+  ): Indicator => ({ chave, rotulo, formula, valor, formato });
 
   const faltando = (
-    chave: ChaveDeIndicador,
+    chave: IndicatorKey,
     rotulo: string,
     formula: string,
-    formato: Indicador["formato"],
-  ): Indicador => ({
+    formato: Indicator["formato"],
+  ): Indicator => ({
     chave,
     rotulo,
     formula,
     valor: null,
     formato,
-    indisponivel: SEM_DADO[chave],
+    indisponivel: NO_DATA[chave],
   });
 
   return [
@@ -111,7 +111,7 @@ export function montarIndicadores(dados: DadosDosIndicadores): Indicador[] {
     disponivel(
       "alunos_em_risco",
       "Alunos em risco",
-      `Frequência abaixo de ${MINIMO_DE_FREQUENCIA * 100}% (LDB, art. 24, VI)`,
+      `Frequência abaixo de ${MINIMUM_ATTENDANCE * 100}% (LDB, art. 24, VI)`,
       dados.alunosEmRisco,
       "inteiro",
     ),
@@ -141,7 +141,7 @@ export function montarIndicadores(dados: DadosDosIndicadores): Indicador[] {
 }
 
 /** Taxa de 0 a 1. `null` sem denominador — nunca zero. */
-export function taxa(parte: number, total: number): number | null {
+export function rate(parte: number, total: number): number | null {
   if (total <= 0) return null;
   return parte / total;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { limparCredencial } from "./secret";
+import { clearCredential } from "./secret";
 
 /**
  * Quem cola a credencial quase sempre cola de um `.env`, e o `.env` traz o
@@ -10,17 +10,17 @@ import { limparCredencial } from "./secret";
  */
 describe("limparCredencial", () => {
   it("tira o nome da variável colado junto", () => {
-    expect(limparCredencial("OPENAI_API_KEY=sk-proj-abc123")).toBe("sk-proj-abc123");
-    expect(limparCredencial("ASSISTANT_KEY = sk-abc")).toBe("sk-abc");
+    expect(clearCredential("OPENAI_API_KEY=sk-proj-abc123")).toBe("sk-proj-abc123");
+    expect(clearCredential("ASSISTANT_KEY = sk-abc")).toBe("sk-abc");
   });
 
   it("tira aspas, que o .env aceita nas duas formas", () => {
-    expect(limparCredencial('OPENAI_API_KEY="sk-proj-abc"')).toBe("sk-proj-abc");
-    expect(limparCredencial("'sk-proj-abc'")).toBe("sk-proj-abc");
+    expect(clearCredential('OPENAI_API_KEY="sk-proj-abc"')).toBe("sk-proj-abc");
+    expect(clearCredential("'sk-proj-abc'")).toBe("sk-proj-abc");
   });
 
   it("tira espaço e quebra de linha que o navegador trouxe junto", () => {
-    expect(limparCredencial("  sk-proj-abc\n")).toBe("sk-proj-abc");
+    expect(clearCredential("  sk-proj-abc\n")).toBe("sk-proj-abc");
   });
 
   /**
@@ -29,7 +29,7 @@ describe("limparCredencial", () => {
    * `=` no meio perderia o começo — e o erro seria silencioso.
    */
   it("não confunde a própria credencial com nome de variável", () => {
-    expect(limparCredencial("sk-proj-ab=cd")).toBe("sk-proj-ab=cd");
-    expect(limparCredencial("Bearer=x")).toBe("Bearer=x");
+    expect(clearCredential("sk-proj-ab=cd")).toBe("sk-proj-ab=cd");
+    expect(clearCredential("Bearer=x")).toBe("Bearer=x");
   });
 });

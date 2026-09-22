@@ -1,5 +1,5 @@
 import { ValidationError } from "../../errors";
-import { indicadoresDe } from "./indicators";
+import { indicatorsFor } from "./indicators";
 import type { LeaderboardLookup, LeaderboardRepository } from "./repository";
 
 /**
@@ -24,7 +24,7 @@ export function createLeaderboardService(deps: {
         displayName: adesao?.displayName ?? null,
         // Os indicadores aparecem mesmo sem adesão: a direção precisa ver o
         // que seria publicado **antes** de decidir publicar.
-        indicadores: indicadoresDe(contagens),
+        indicadores: indicatorsFor(contagens),
       };
     },
 
@@ -49,7 +49,7 @@ export function createLeaderboardService(deps: {
         throw new ValidationError("A escola não aderiu ao placar entre escolas.");
       }
 
-      const indicadores = indicadoresDe(await deps.repo.contagens(academicYear));
+      const indicadores = indicatorsFor(await deps.repo.contagens(academicYear));
       return deps.repo.publish({
         displayName: adesao.displayName,
         academicYear,

@@ -16,7 +16,7 @@ import z from "zod";
 
 import { AccountSecurity } from "@/components/account-security";
 import { authClient } from "@/lib/auth-client";
-import { dataDoInstante, inteiro, situacaoMatricula, turno } from "@/lib/format";
+import { instantDateText, integerText, shiftText, studentStatusBadge } from "@/lib/format";
 import { roleLabel } from "@/lib/navigation";
 import { useSchoolContext } from "@/lib/school-context";
 import { type RouterOutputs, useTRPC } from "@/utils/trpc";
@@ -177,8 +177,8 @@ function Identificacao({ perfil }: { perfil: PerfilCarregado }) {
             valor={roleLabel(perfil.role)}
             nota="Definido pelo vínculo. Não se altera por esta tela."
           />
-          <CampoFixo rotulo="Na escola desde" valor={dataDoInstante(perfil.naEscolaDesde)} />
-          <CampoFixo rotulo="Conta criada em" valor={dataDoInstante(perfil.contaCriadaEm)} />
+          <CampoFixo rotulo="Na escola desde" valor={instantDateText(perfil.naEscolaDesde)} />
+          <CampoFixo rotulo="Conta criada em" valor={instantDateText(perfil.contaCriadaEm)} />
         </div>
 
         <form.Subscribe
@@ -260,13 +260,13 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
         <h2 className="font-extrabold text-lg tracking-[-0.3px]">Sua carga em {year}</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
           <StatCard icon={LayoutGrid} label="Turmas" hint="com aula na grade">
-            {inteiro(vinculo.turmas)}
+            {integerText(vinculo.turmas)}
           </StatCard>
           <StatCard icon={BookOpen} label="Disciplinas" hint="que você leciona">
-            {inteiro(vinculo.disciplinas)}
+            {integerText(vinculo.disciplinas)}
           </StatCard>
           <StatCard icon={CalendarDays} label="Aulas no ano" hint="previstas na grade">
-            {inteiro(vinculo.aulas)}
+            {integerText(vinculo.aulas)}
           </StatCard>
         </div>
         {/* Zero não é erro: professor recém-vinculado ainda não entrou na
@@ -280,7 +280,7 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
     );
   }
 
-  const situacao = vinculo.situacao ? situacaoMatricula(vinculo.situacao) : null;
+  const situacao = vinculo.situacao ? studentStatusBadge(vinculo.situacao) : null;
 
   return (
     <Card className="flex flex-col gap-4">
@@ -297,7 +297,7 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <CampoFixo rotulo="Número de matrícula" valor={vinculo.matricula} />
             <CampoFixo rotulo="Turma" valor={vinculo.turma ?? "Ainda sem turma"} />
-            <CampoFixo rotulo="Turno" valor={vinculo.turno ? turno(vinculo.turno) : "—"} />
+            <CampoFixo rotulo="Turno" valor={vinculo.turno ? shiftText(vinculo.turno) : "—"} />
             <div className="flex flex-col gap-1 rounded-control bg-muted px-4 py-3">
               <span className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
                 Situação

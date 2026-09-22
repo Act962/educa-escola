@@ -1,10 +1,10 @@
 import { longDate } from "@educa-escola/api/dates";
 import {
-  EFEITO_SUGERIDO,
   EVENT_TYPE_LABEL,
   EVENT_TYPES,
   type EventScope,
   type EventType,
+  SUGGESTED_EFFECT,
 } from "@educa-escola/api/modules/calendar/schema";
 import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components/alert";
 import { Badge } from "@educa-escola/ui/components/badge";
@@ -29,9 +29,9 @@ import { EmptyState } from "@educa-escola/ui/integra/states";
 import { Check, Pencil, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { DateField } from "@/components/date-field";
-import { alvoDe, TargetField, type Turma } from "@/components/target-field";
+import { type ClassroomOption, TargetField, targetOf } from "@/components/target-field";
 
-export interface EventoDoDia {
+export interface DayEvent {
   id: string;
   title: string;
   description: string | null;
@@ -75,8 +75,8 @@ export function DayPanel({
   /** ISO do dia, ou `null` quando nada está aberto. */
   dia: string | null;
   intencao: "ver" | "criar";
-  eventos: EventoDoDia[];
-  turmas: Turma[];
+  eventos: DayEvent[];
+  turmas: ClassroomOption[];
   /** Turma já escolhida no filtro da tela. `null` é a escola inteira. */
   turmaPadrao: string | null;
   aberto: boolean;
@@ -218,11 +218,11 @@ export function DayPanel({
                               // O efeito segue o tipo escolhido, como na
                               // criação: trocar "evento" por "recesso" e o dia
                               // continuar letivo seria a edição mentindo.
-                              dayEffect: EFEITO_SUGERIDO[editando.type],
+                              dayEffect: SUGGESTED_EFFECT[editando.type],
                               title: editando.title,
                               startsOn: evento.startsOn,
                               endsOn: editando.endsOn || undefined,
-                              ...alvoDe(editando.turmaId),
+                              ...targetOf(editando.turmaId),
                             });
                             setEditando(null);
                           }}
@@ -357,11 +357,11 @@ export function DayPanel({
               dia &&
               aoCriar({
                 type: tipo,
-                dayEffect: EFEITO_SUGERIDO[tipo],
+                dayEffect: SUGGESTED_EFFECT[tipo],
                 title: titulo,
                 startsOn: dia,
                 endsOn: fim || undefined,
-                ...alvoDe(turmaId),
+                ...targetOf(turmaId),
               })
             }
             disabled={ocupado || titulo.trim().length < 2 || !dia}
@@ -371,7 +371,8 @@ export function DayPanel({
           </Button>
 
           <p className="text-meta text-muted-foreground">
-            {EVENT_TYPE_LABEL[tipo]} entra como “{EFEITO_LABEL[EFEITO_SUGERIDO[tipo]].toLowerCase()}
+            {EVENT_TYPE_LABEL[tipo]} entra como “
+            {EFEITO_LABEL[SUGGESTED_EFFECT[tipo]].toLowerCase()}
             ”.
           </p>
 

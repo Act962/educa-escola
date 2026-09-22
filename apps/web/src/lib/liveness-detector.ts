@@ -1,4 +1,4 @@
-import type { Quadro } from "./face-extractor";
+import type { Frame } from "./face-extractor";
 
 /**
  * "É gente de verdade na frente da câmera, ou uma reprodução?"
@@ -34,7 +34,7 @@ const CAMINHO_DOS_PESOS = "/modelos-de-vivacidade/";
  * porta: cai na carteirinha, que é o caminho que nunca falha. Por isso o
  * ajuste, se vier, é para cima.
  */
-export const PISO_DE_VIVACIDADE = 0.5;
+export const LIVENESS_FLOOR = 0.5;
 
 /**
  * Prazo máximo de uma avaliação.
@@ -44,9 +44,9 @@ export const PISO_DE_VIVACIDADE = 0.5;
  * portão, "não respondeu" tem de virar "recusado" — e recusar aqui não barra
  * ninguém, manda para a carteirinha.
  */
-export const PRAZO_DA_AVALIACAO_MS = 4000;
+export const LIVENESS_TIMEOUT_MS = 4000;
 
-export interface Veredito {
+export interface Verdict {
   /** 0 a 1: quanto o modelo acha que não é reprodução. */
   real: number;
   /** 0 a 1: quanto o modelo acha que há vida no quadro. */
@@ -54,15 +54,15 @@ export interface Veredito {
   aprovado: boolean;
 }
 
-export interface DetectorDeVivacidade {
+export interface LivenessDetector {
   readonly disponivel: boolean;
   preparar(): Promise<void>;
   /** `null` quando não há rosto no quadro, ou quando o modelo não carregou. */
-  avaliar(quadro: Quadro): Promise<Veredito | null>;
+  avaliar(quadro: Frame): Promise<Verdict | null>;
 }
 
 /** Sem o modelo, a portaria recusa o rosto e pede a carteirinha. */
-export const DETECTOR_AUSENTE: DetectorDeVivacidade = {
+export const MISSING_DETECTOR: LivenessDetector = {
   disponivel: false,
   preparar: async () => undefined,
   avaliar: async () => null,
@@ -125,7 +125,7 @@ async function carregar(): Promise<Instancia | null> {
   return carregando;
 }
 
-export const detectorDeVivacidade: DetectorDeVivacidade = {
+export const livenessDetector: LivenessDetector = {
   disponivel: true,
 
   async preparar() {
@@ -145,7 +145,7 @@ export const detectorDeVivacidade: DetectorDeVivacidade = {
      */
     const saida = await Promise.race([
       human.detect(quadro as HTMLVideoElement),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), PRAZO_DA_AVALIACAO_MS)),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), LIVENESS_TIMEOUT_MS)),
     ]);
     if (!saida) return { real: 0, vivo: 0, aprovado: false };
 
@@ -156,8 +156,8 @@ export const detectorDeVivacidade: DetectorDeVivacidade = {
     const vivo = rosto.live ?? 0;
     // Os dois, e não o melhor dos dois: são modelos independentes olhando
     // sinais diferentes, e exigir os dois é o que torna a barreira dupla.
-    return { real, vivo, aprovado: real >= PISO_DE_VIVACIDADE && vivo >= PISO_DE_VIVACIDADE };
+    return { real, vivo, aprovado: real >= LIVENESS_FLOOR && vivo >= LIVENESS_FLOOR };
   },
 };
 
-export const vivacidadeDisponivel = (): boolean => detectorDeVivacidade.disponivel;
+export const livenessAvailable = (): boolean => livenessDetector.disponivel;

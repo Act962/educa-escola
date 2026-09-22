@@ -29,7 +29,7 @@ import { ChevronLeft, ChevronRight, ScanFace, Search } from "lucide-react";
 import { useState } from "react";
 
 import { FaceIdentification } from "@/components/face-identification";
-import { inteiro, percentualCurto, situacaoMatricula, turno } from "@/lib/format";
+import { integerText, shiftText, shortPercentText, studentStatusBadge } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_app/alunos")({
@@ -136,7 +136,7 @@ function Alunos() {
         <CardEyebrow>Alunos</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Alunos</h1>
         <p className="text-corpo text-muted-foreground">
-          {alunos.data ? `${inteiro(alunos.data.total)} matriculados` : "Carregando…"}
+          {alunos.data ? `${integerText(alunos.data.total)} matriculados` : "Carregando…"}
         </p>
       </div>
 
@@ -228,7 +228,7 @@ function Alunos() {
             </TableHeader>
             <TableBody>
               {itens.map((aluno) => {
-                const situacao = situacaoMatricula(aluno.status);
+                const situacao = studentStatusBadge(aluno.status);
                 const alerta = aluno.belowMinimumAttendance;
 
                 return (
@@ -249,7 +249,9 @@ function Alunos() {
                       </span>
                     </TableCell>
                     <TableCell className="font-bold">{aluno.classroomName ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{turno(aluno.shift)}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {shiftText(aluno.shift)}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {aluno.guardianName ?? "—"}
                     </TableCell>
@@ -259,7 +261,7 @@ function Alunos() {
                         alerta && "text-danger",
                       )}
                     >
-                      {percentualCurto(aluno.attendanceRate)}
+                      {shortPercentText(aluno.attendanceRate)}
                     </TableCell>
                     <TableCell className="text-right">
                       {alerta ? (
@@ -298,7 +300,7 @@ function Alunos() {
         {total > 0 ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-corpo text-muted-foreground tabular-nums">
-              {primeiro}–{ultimo} de {inteiro(total)} alunos
+              {primeiro}–{ultimo} de {integerText(total)} alunos
             </p>
             <div className="flex items-center gap-2">
               <Button

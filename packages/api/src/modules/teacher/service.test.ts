@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 import { NotFoundError } from "../../errors";
 import type { TeacherRepository } from "./repository";
 import {
-  agruparPorTurma,
   createTeacherService,
-  PENDENCIAS_PARA_ATRASO,
-  situacaoDe,
-  taxa,
+  groupByClassroom,
+  PENDING_FOR_OVERDUE,
+  rate,
+  situationOf,
 } from "./service";
 
 const AGORA = new Date("2026-09-22T12:00:00Z");
@@ -63,18 +63,18 @@ describe("situacaoDe", () => {
    * montada.
    */
   it("sem aula é sem turma, não em dia", () => {
-    expect(situacaoDe({ aulas: 0, chamadasPendentes: 0, notasPendentes: 0 })).toBe("sem_turma");
+    expect(situationOf({ aulas: 0, chamadasPendentes: 0, notasPendentes: 0 })).toBe("sem_turma");
   });
 
   it("sem pendência é em dia", () => {
-    expect(situacaoDe({ aulas: 10, chamadasPendentes: 0, notasPendentes: 0 })).toBe("em_dia");
+    expect(situationOf({ aulas: 10, chamadasPendentes: 0, notasPendentes: 0 })).toBe("em_dia");
   });
 
   it("soma chamada e nota para decidir a gravidade", () => {
-    const quase = PENDENCIAS_PARA_ATRASO - 1;
-    expect(situacaoDe({ aulas: 10, chamadasPendentes: quase, notasPendentes: 0 })).toBe("atencao");
+    const quase = PENDING_FOR_OVERDUE - 1;
+    expect(situationOf({ aulas: 10, chamadasPendentes: quase, notasPendentes: 0 })).toBe("atencao");
     expect(
-      situacaoDe({ aulas: 10, chamadasPendentes: 1, notasPendentes: PENDENCIAS_PARA_ATRASO - 1 }),
+      situationOf({ aulas: 10, chamadasPendentes: 1, notasPendentes: PENDING_FOR_OVERDUE - 1 }),
     ).toBe("atrasado");
   });
 });
@@ -82,14 +82,14 @@ describe("situacaoDe", () => {
 describe("taxa", () => {
   /** Sem registro a frequência é indefinida, não 0% — como no boletim. */
   it("é nula sem registro, e não zero", () => {
-    expect(taxa(0, 0)).toBeNull();
-    expect(taxa(9, 10)).toBe(0.9);
+    expect(rate(0, 0)).toBeNull();
+    expect(rate(9, 10)).toBe(0.9);
   });
 });
 
 describe("agruparPorTurma", () => {
   it("junta as disciplinas de cada turma, sem repetir", () => {
-    const turmas = agruparPorTurma([
+    const turmas = groupByClassroom([
       { classroomId: "t1", classroomName: "8º A", subjectName: "Matemática" },
       { classroomId: "t1", classroomName: "8º A", subjectName: "Física" },
       { classroomId: "t1", classroomName: "8º A", subjectName: "Matemática" },

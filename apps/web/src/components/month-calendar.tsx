@@ -1,4 +1,4 @@
-import { somarDias } from "@educa-escola/api/modules/calendar/holidays";
+import { addDays } from "@educa-escola/api/modules/calendar/holidays";
 import { EVENT_TYPE_LABEL, type EventType } from "@educa-escola/api/modules/calendar/schema";
 import { Button } from "@educa-escola/ui/components/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -25,7 +25,7 @@ const MESES = [
 /** Quantos eventos cabem na célula antes de virar "+N". */
 const MAX_VISIVEL = 3;
 
-export interface EventoDoCalendario {
+export interface CalendarEntry {
   id: string;
   title: string;
   type: string;
@@ -59,10 +59,10 @@ function diaDaSemana(iso: string): number {
  * Seis linhas fixas e não "quantas couberem": uma grade que muda de altura
  * conforme o mês faz a página pular a cada navegação, e o olho perde o lugar.
  */
-export function celulasDoMes(mes: string): string[] {
+export function monthCells(mes: string): string[] {
   const primeiro = inicioDoMes(mes);
-  const inicio = somarDias(primeiro, -diaDaSemana(primeiro));
-  return Array.from({ length: 42 }, (_, i) => somarDias(inicio, i));
+  const inicio = addDays(primeiro, -diaDaSemana(primeiro));
+  return Array.from({ length: 42 }, (_, i) => addDays(inicio, i));
 }
 
 /**
@@ -72,8 +72,8 @@ export function celulasDoMes(mes: string): string[] {
  * cada célula, e não só na primeira: um recesso de duas semanas que só marca
  * a segunda-feira faz a escola achar que tem aula na terça.
  */
-export function eventosPorDia(eventos: EventoDoCalendario[]): Map<string, EventoDoCalendario[]> {
-  const mapa = new Map<string, EventoDoCalendario[]>();
+export function eventsByDay(eventos: CalendarEntry[]): Map<string, CalendarEntry[]> {
+  const mapa = new Map<string, CalendarEntry[]>();
 
   for (const evento of eventos) {
     let dia = evento.startsOn;
@@ -84,7 +84,7 @@ export function eventosPorDia(eventos: EventoDoCalendario[]): Map<string, Evento
       const doDia = mapa.get(dia);
       if (doDia) doDia.push(evento);
       else mapa.set(dia, [evento]);
-      dia = somarDias(dia, 1);
+      dia = addDays(dia, 1);
       volta += 1;
     }
   }
@@ -106,7 +106,7 @@ export function MonthCalendar({
   aoAbrirDia,
   turmaEmFoco = null,
 }: {
-  eventos: EventoDoCalendario[];
+  eventos: CalendarEntry[];
   ano: number;
   /** Fora do período letivo a célula fica apagada. */
   periodo: { startsOn: string; endsOn: string } | null;
@@ -136,8 +136,8 @@ export function MonthCalendar({
     hoje.startsWith(String(ano)) ? inicioDoMes(hoje) : `${ano}-02-01`,
   );
 
-  const celulas = useMemo(() => celulasDoMes(mes), [mes]);
-  const porDia = useMemo(() => eventosPorDia(eventos), [eventos]);
+  const celulas = useMemo(() => monthCells(mes), [mes]);
+  const porDia = useMemo(() => eventsByDay(eventos), [eventos]);
   const { ano: anoDoCursor, mes: mesDoCursor } = partes(mes);
 
   return (
@@ -161,7 +161,7 @@ export function MonthCalendar({
             variant="ghost"
             size="icon-sm"
             aria-label="Mês anterior"
-            onClick={() => setMes(inicioDoMes(somarDias(mes, -1)))}
+            onClick={() => setMes(inicioDoMes(addDays(mes, -1)))}
           >
             <ChevronLeft size={16} strokeWidth={1.8} aria-hidden />
           </Button>
@@ -169,7 +169,7 @@ export function MonthCalendar({
             variant="ghost"
             size="icon-sm"
             aria-label="Próximo mês"
-            onClick={() => setMes(inicioDoMes(somarDias(`${mes.slice(0, 8)}28`, 7)))}
+            onClick={() => setMes(inicioDoMes(addDays(`${mes.slice(0, 8)}28`, 7)))}
           >
             <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
           </Button>

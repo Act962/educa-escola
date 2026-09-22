@@ -33,13 +33,13 @@ import { ChevronLeft, ChevronRight, LayoutGrid, List, Plus, Search } from "lucid
 import { useState } from "react";
 import { EnrollmentsBoard } from "@/components/enrollments-board";
 import {
-  inteiro,
-  parentesco,
-  prazo,
-  situacaoEnrollment,
-  situacaoLink,
-  telefoneMascarado,
-  turno,
+  deadlineText,
+  enrollmentStatusBadge,
+  integerText,
+  linkStatusBadge,
+  maskedPhoneText,
+  relationshipText,
+  shiftText,
 } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
@@ -167,7 +167,7 @@ function Matriculas() {
           <p className="text-corpo text-muted-foreground">
             {pendentes === 0
               ? `Nenhuma pendência no ano letivo de ${ANO_LETIVO}.`
-              : `${inteiro(pendentes)} aguardando ação · ano letivo de ${ANO_LETIVO}`}
+              : `${integerText(pendentes)} aguardando ação · ano letivo de ${ANO_LETIVO}`}
           </p>
         </div>
         <Button render={<Link to="/matriculas/nova" />}>
@@ -309,7 +309,7 @@ function Matriculas() {
           <>
             <Table className="min-w-[62rem]">
               <TableCaption>
-                O código é série e turno — `6M` é 6º ano da manhã. Ele é calculado a partir da
+                O código é série e shiftText — `6M` é 6º ano da manhã. Ele é calculado a partir da
                 turma, então acompanha o aluno quando ela muda. O telefone aparece parcial: a ficha
                 completa está no detalhe.
               </TableCaption>
@@ -327,9 +327,9 @@ function Matriculas() {
               </TableHeader>
               <TableBody>
                 {itens.map((item) => {
-                  const situacao = situacaoEnrollment(item.status);
-                  const link = situacaoLink(item.linkStatus);
-                  const restante = prazo(item.expiresAt);
+                  const situacao = enrollmentStatusBadge(item.status);
+                  const link = linkStatusBadge(item.linkStatus);
+                  const restante = deadlineText(item.expiresAt);
                   const urgente =
                     item.status === "pendente" &&
                     (restante === "vence hoje" || restante === "vencido");
@@ -351,7 +351,9 @@ function Matriculas() {
                       </TableCell>
                       <TableCell>
                         <div className="text-corpo">{item.classroomName ?? "A definir"}</div>
-                        <div className="text-meta text-muted-foreground">{turno(item.shift)}</div>
+                        <div className="text-meta text-muted-foreground">
+                          {shiftText(item.shift)}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {item.classCode ? (
@@ -365,9 +367,11 @@ function Matriculas() {
                       <TableCell>
                         <div className="text-corpo">{item.guardianName ?? "—"}</div>
                         <div className="text-meta text-muted-foreground">
-                          {item.guardianRelationship ? parentesco(item.guardianRelationship) : "—"}
+                          {item.guardianRelationship
+                            ? relationshipText(item.guardianRelationship)
+                            : "—"}
                           {" · "}
-                          {telefoneMascarado(item.guardianPhone)}
+                          {maskedPhoneText(item.guardianPhone)}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -410,7 +414,7 @@ function Matriculas() {
             <div className="flex items-center justify-between gap-4">
               <span className="text-meta text-muted-foreground">
                 {page * POR_PAGINA + 1}–{Math.min((page + 1) * POR_PAGINA, total)} de{" "}
-                {inteiro(total)} matrículas
+                {integerText(total)} matrículas
               </span>
               <div className="flex gap-2">
                 <Button

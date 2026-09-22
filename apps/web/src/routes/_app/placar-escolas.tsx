@@ -10,7 +10,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ClipboardCheck, FileCheck2, ShieldCheck, Users } from "lucide-react";
 import { useState } from "react";
 
-import { inteiro } from "@/lib/format";
+import { integerText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -82,16 +82,16 @@ function PlacarEntreEscolas() {
         <>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
             <StatCard icon={ClipboardCheck} label="Chamada no prazo" hint="de 0 a 100">
-              {inteiro(situacao.indicadores.chamadaNoPrazo)}
+              {integerText(situacao.indicadores.chamadaNoPrazo)}
             </StatCard>
             <StatCard icon={FileCheck2} label="Notas sem pendência" hint="de 0 a 100">
-              {inteiro(situacao.indicadores.notasSemPendencia)}
+              {integerText(situacao.indicadores.notasSemPendencia)}
             </StatCard>
             <StatCard icon={Users} label="Frequência média" hint="de 0 a 100">
-              {inteiro(situacao.indicadores.frequenciaMedia)}
+              {integerText(situacao.indicadores.frequenciaMedia)}
             </StatCard>
             <StatCard icon={ShieldCheck} label="Total" hint="soma dos três">
-              {inteiro(situacao.indicadores.points)}
+              {integerText(situacao.indicadores.points)}
             </StatCard>
           </div>
 

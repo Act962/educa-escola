@@ -19,7 +19,7 @@ import { Link } from "@tanstack/react-router";
 import { AlertTriangle, ClipboardList, Clock, PenLine } from "lucide-react";
 
 import type { CurrentUser } from "@/components/app-shell";
-import { primeiroNome, saudacao } from "@/lib/format";
+import { firstName, greeting } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -50,7 +50,7 @@ export function TeacherDashboard({ me }: { me: CurrentUser }) {
           </Avatar>
           <div className="flex flex-col gap-2">
             <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
-              {saudacao()}, {primeiroNome(me.name)}
+              {greeting()}, {firstName(me.name)}
             </h1>
             <p className="max-w-xl text-corpo text-muted-foreground">
               Você tem <strong className="text-foreground">{aulas.length} aulas</strong> hoje

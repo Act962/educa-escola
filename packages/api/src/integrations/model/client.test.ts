@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createClienteCompativel, ErroDoModelo } from "./client";
+import { createCompatibleClient, ModelError } from "./client";
 
 const config = { baseUrl: "https://api.exemplo.com/v1", apiKey: "sk-segreda", model: "modelo-x" };
 
@@ -36,7 +36,7 @@ describe("createClienteCompativel", () => {
     });
     vi.stubGlobal("fetch", fetchFalso);
 
-    const saida = await createClienteCompativel(config).responder(pedido);
+    const saida = await createCompatibleClient(config).responder(pedido);
 
     const [url, init = {}] = fetchFalso.mock.calls[0] ?? [];
     expect(url).toBe("https://api.exemplo.com/v1/chat/completions");
@@ -55,7 +55,7 @@ describe("createClienteCompativel", () => {
     const fetchFalso = respondeCom({ choices: [{ message: { content: "ok" } }] });
     vi.stubGlobal("fetch", fetchFalso);
 
-    await createClienteCompativel({ ...config, baseUrl: "https://api.exemplo.com/v1//" }).responder(
+    await createCompatibleClient({ ...config, baseUrl: "https://api.exemplo.com/v1//" }).responder(
       pedido,
     );
 
@@ -67,7 +67,7 @@ describe("createClienteCompativel", () => {
     const fetchFalso = respondeCom({ choices: [{ message: { content: "ok" } }] });
     vi.stubGlobal("fetch", fetchFalso);
 
-    await createClienteCompativel(config).responder(pedido);
+    await createCompatibleClient(config).responder(pedido);
 
     const [, init = {}] = fetchFalso.mock.calls[0] ?? [];
     const corpo = JSON.parse(init.body as string);
@@ -83,7 +83,7 @@ describe("createClienteCompativel", () => {
     const fetchFalso = respondeCom({ choices: [{ message: { content: "ok" } }] });
     vi.stubGlobal("fetch", fetchFalso);
 
-    await createClienteCompativel({ ...config, organizationId: "org-oqUIj123" }).responder(pedido);
+    await createCompatibleClient({ ...config, organizationId: "org-oqUIj123" }).responder(pedido);
 
     const [, init = {}] = fetchFalso.mock.calls[0] ?? [];
     expect((init.headers as Record<string, string>)["openai-organization"]).toBe("org-oqUIj123");
@@ -95,7 +95,7 @@ describe("createClienteCompativel", () => {
       const fetchFalso = respondeCom({ choices: [{ message: { content: "ok" } }] });
       vi.stubGlobal("fetch", fetchFalso);
 
-      await createClienteCompativel({ ...config, organizationId }).responder(pedido);
+      await createCompatibleClient({ ...config, organizationId }).responder(pedido);
 
       const [, init = {}] = fetchFalso.mock.calls[0] ?? [];
       expect(init.headers as Record<string, string>).not.toHaveProperty("openai-organization");
@@ -117,7 +117,7 @@ describe("createClienteCompativel", () => {
 
     for (const [status, esperado] of casos) {
       vi.stubGlobal("fetch", respondeCom({ error: "x" }, status));
-      await expect(createClienteCompativel(config).responder(pedido)).rejects.toThrow(esperado);
+      await expect(createCompatibleClient(config).responder(pedido)).rejects.toThrow(esperado);
     }
   });
 
@@ -132,7 +132,7 @@ describe("createClienteCompativel", () => {
       respondeCom({ error: { message: "input was: Alunos ativos 289, Júlia com 67%" } }, 400),
     );
 
-    const erro: Error = await createClienteCompativel(config)
+    const erro: Error = await createCompatibleClient(config)
       .responder(pedido)
       .then(() => new Error("não deveria ter respondido"))
       .catch((e: Error) => e);
@@ -155,7 +155,7 @@ describe("createClienteCompativel", () => {
       ),
     );
 
-    const erro: Error = await createClienteCompativel(config)
+    const erro: Error = await createCompatibleClient(config)
       .responder(pedido)
       .then(() => new Error("não deveria ter respondido"))
       .catch((e: Error) => e);
@@ -168,7 +168,7 @@ describe("createClienteCompativel", () => {
   it("descarta o que vier no lugar do código e for longo demais", async () => {
     vi.stubGlobal("fetch", respondeCom({ error: { code: "x".repeat(200) } }, 401));
 
-    await expect(createClienteCompativel(config).responder(pedido)).rejects.toThrow(
+    await expect(createCompatibleClient(config).responder(pedido)).rejects.toThrow(
       /credencial\. Confira a chave nas configurações\.$/,
     );
   });
@@ -176,7 +176,7 @@ describe("createClienteCompativel", () => {
   it("recusa resposta em formato desconhecido", async () => {
     vi.stubGlobal("fetch", respondeCom({ resultado: "oi" }));
 
-    await expect(createClienteCompativel(config).responder(pedido)).rejects.toThrow(
+    await expect(createCompatibleClient(config).responder(pedido)).rejects.toThrow(
       /formato que não reconheço/,
     );
   });
@@ -190,12 +190,12 @@ describe("createClienteCompativel", () => {
       }),
     );
 
-    const erro: ErroDoModelo = await createClienteCompativel(config)
+    const erro: ModelError = await createCompatibleClient(config)
       .responder(pedido)
-      .then(() => new ErroDoModelo("não deveria ter respondido", false))
-      .catch((e: ErroDoModelo) => e);
+      .then(() => new ModelError("não deveria ter respondido", false))
+      .catch((e: ModelError) => e);
 
-    expect(erro).toBeInstanceOf(ErroDoModelo);
+    expect(erro).toBeInstanceOf(ModelError);
     expect(erro.daConfiguracao).toBe(true);
     expect(erro.message).toMatch(/Confira o endereço/);
   });
@@ -208,7 +208,7 @@ describe("createClienteCompativel", () => {
       }),
     );
 
-    await expect(createClienteCompativel(config).responder(pedido)).rejects.toThrow(
+    await expect(createCompatibleClient(config).responder(pedido)).rejects.toThrow(
       /não respondeu em 30 segundos/,
     );
   });
@@ -218,7 +218,7 @@ describe("createClienteCompativel", () => {
     const fetchFalso = respondeCom({ choices: [{ message: { content: "ok" } }] });
     vi.stubGlobal("fetch", fetchFalso);
 
-    await createClienteCompativel(config).responder(pedido);
+    await createCompatibleClient(config).responder(pedido);
 
     const [url, init = {}] = fetchFalso.mock.calls[0] ?? [];
     expect(url).not.toContain("sk-segreda");
@@ -237,7 +237,7 @@ describe("listarModelos", () => {
     });
     vi.stubGlobal("fetch", fetchFalso);
 
-    const lista = await createClienteCompativel(config).listarModelos();
+    const lista = await createCompatibleClient(config).listarModelos();
 
     expect(fetchFalso.mock.calls[0]?.[0]).toBe("https://api.exemplo.com/v1/models");
     expect(lista).toEqual(["gpt-4o", "gpt-4o-mini", "o4-mini"]);
@@ -247,7 +247,7 @@ describe("listarModelos", () => {
     const fetchFalso = respondeCom({ data: [{ id: "m" }] });
     vi.stubGlobal("fetch", fetchFalso);
 
-    await createClienteCompativel({ ...config, organizationId: "org-x" }).listarModelos();
+    await createCompatibleClient({ ...config, organizationId: "org-x" }).listarModelos();
 
     const [, init = {}] = fetchFalso.mock.calls[0] ?? [];
     const headers = init.headers as Record<string, string>;
@@ -259,7 +259,7 @@ describe("listarModelos", () => {
   it("descarta entrada sem id", async () => {
     vi.stubGlobal("fetch", respondeCom({ data: [{ id: "bom" }, {}, { id: "" }] }));
 
-    expect(await createClienteCompativel(config).listarModelos()).toEqual(["bom"]);
+    expect(await createCompatibleClient(config).listarModelos()).toEqual(["bom"]);
   });
 
   /**
@@ -269,7 +269,7 @@ describe("listarModelos", () => {
   it("manda digitar à mão quando não vem nada", async () => {
     vi.stubGlobal("fetch", respondeCom({ data: [] }));
 
-    await expect(createClienteCompativel(config).listarModelos()).rejects.toThrow(
+    await expect(createCompatibleClient(config).listarModelos()).rejects.toThrow(
       /Digite o nome do modelo à mão/,
     );
   });
@@ -277,6 +277,6 @@ describe("listarModelos", () => {
   it("traduz o status como no resto do cliente", async () => {
     vi.stubGlobal("fetch", respondeCom({}, 401));
 
-    await expect(createClienteCompativel(config).listarModelos()).rejects.toThrow(/credencial/i);
+    await expect(createCompatibleClient(config).listarModelos()).rejects.toThrow(/credencial/i);
   });
 });

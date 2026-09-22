@@ -17,7 +17,7 @@ import z from "zod";
 import { AstroSettings } from "@/components/astro-settings";
 import { DateField } from "@/components/date-field";
 import { authClient } from "@/lib/auth-client";
-import { dataDoInstante, inteiro } from "@/lib/format";
+import { instantDateText, integerText } from "@/lib/format";
 import { roleLabel } from "@/lib/navigation";
 import { useSchoolContext } from "@/lib/school-context";
 import { type RouterOutputs, useTRPC } from "@/utils/trpc";
@@ -170,7 +170,7 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
           <CardEyebrow>Instituição</CardEyebrow>
           <p className="truncate font-extrabold text-lg tracking-[-0.3px]">{escola.name}</p>
           <p className="text-apoio text-muted-foreground">
-            No Órbita Edu desde {dataDoInstante(escola.criadaEm)}
+            No Órbita Edu desde {instantDateText(escola.criadaEm)}
           </p>
         </div>
       </div>
@@ -310,10 +310,10 @@ function AnoLetivo() {
           {contagem ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
               <StatCard icon={CalendarDays} label="Dias letivos" hint="úteis − perdidos + repostos">
-                {inteiro(contagem.letivos)}
+                {integerText(contagem.letivos)}
               </StatCard>
               <StatCard icon={CalendarDays} label="Mínimo exigido" hint="LDB, art. 24, I">
-                {inteiro(contagem.minimo)}
+                {integerText(contagem.minimo)}
               </StatCard>
               <StatCard
                 icon={CalendarDays}
@@ -321,7 +321,7 @@ function AnoLetivo() {
                 hint={contagem.cumpreOMinimo ? "mínimo cumprido" : "para cumprir o mínimo"}
                 tone={contagem.cumpreOMinimo ? undefined : "warning"}
               >
-                {inteiro(contagem.faltam)}
+                {integerText(contagem.faltam)}
               </StatCard>
             </div>
           ) : (
@@ -532,7 +532,7 @@ function Acessos({ visao }: { visao: Visao }) {
               {roleLabel(papel)}
             </span>
             <span className="font-extrabold text-xl tracking-[-0.4px]">
-              {inteiro(porPapel.get(papel) ?? 0)}
+              {integerText(porPapel.get(papel) ?? 0)}
             </span>
           </div>
         ))}
@@ -571,7 +571,7 @@ function Acessos({ visao }: { visao: Visao }) {
                         vínculo criado às 21h em Brasília apareceria no dia
                         seguinte. Formatar no fuso de quem lê não tem esse
                         buraco. */}
-                    desde {dataDoInstante(pessoa.desde)}
+                    desde {instantDateText(pessoa.desde)}
                   </span>
                   <Badge variant={pessoa.role === "owner" ? "info" : "neutral"}>
                     {roleLabel(pessoa.role === "owner" ? "owner" : "admin")}

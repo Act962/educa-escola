@@ -6,7 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { SendHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { COR_DA_FAIXA, faixaDeUso, porcentagemDoTeto } from "@/lib/usage-meter";
+import { BAND_COLOR, percentOfCap, usageBand } from "@/lib/usage-meter";
 import { useTRPC } from "@/utils/trpc";
 
 interface Fala {
@@ -51,7 +51,7 @@ export function Astro() {
     staleTime: 60_000,
   });
 
-  const porcentagem = porcentagemDoTeto(uso.data?.tokens.usados ?? 0, uso.data?.tokens.teto);
+  const porcentagem = percentOfCap(uso.data?.tokens.usados ?? 0, uso.data?.tokens.teto);
 
   useEffect(() => {
     if (!aberto) return;
@@ -134,7 +134,7 @@ function Anel({ porcentagem }: { porcentagem: number }) {
         strokeWidth="3"
         strokeLinecap="round"
         strokeDasharray={`${(volta * porcentagem) / 100} ${volta}`}
-        className={`transition-all ${COR_DA_FAIXA[faixaDeUso(porcentagem)]}`}
+        className={`transition-all ${BAND_COLOR[usageBand(porcentagem)]}`}
       />
     </svg>
   );

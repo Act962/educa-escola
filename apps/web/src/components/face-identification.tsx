@@ -16,9 +16,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, CameraOff, Check, IdCard, Lock, Trash2, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { extratorDeRosto, NOME_DO_EXTRATOR, rostoDisponivel } from "@/lib/face-extractor";
-import { dataHora } from "@/lib/format";
-import { detectorDeVivacidade, vivacidadeDisponivel } from "@/lib/liveness-detector";
+import { EXTRACTOR_NAME, faceAvailable, faceExtractor } from "@/lib/face-extractor";
+import { dateTimeText } from "@/lib/format";
+import { livenessAvailable, livenessDetector } from "@/lib/liveness-detector";
 import { useTRPC } from "@/utils/trpc";
 
 const MOTIVOS = [
@@ -109,7 +109,7 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
         await cadastrarMolde.mutateAsync({
           studentId,
           descritor: codigos,
-          extractor: NOME_DO_EXTRATOR,
+          extractor: EXTRACTOR_NAME,
         });
         toast.success("Foto e rosto cadastrados. A portaria já reconhece.");
       } catch {
@@ -415,10 +415,10 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
             <dl className="flex min-w-48 flex-1 flex-col gap-2.5">
               <Linha rotulo="Autorizado por">{dados.consent?.actorName ?? "—"}</Linha>
               <Linha rotulo="Termo">{dados.consent?.termVersion ?? "—"}</Linha>
-              <Linha rotulo="Autorizado em">{dataHora(dados.consent?.grantedAt)}</Linha>
+              <Linha rotulo="Autorizado em">{dateTimeText(dados.consent?.grantedAt)}</Linha>
               {dados.photo ? (
                 <>
-                  <Linha rotulo="Capturada em">{dataHora(dados.photo.capturedAt)}</Linha>
+                  <Linha rotulo="Capturada em">{dateTimeText(dados.photo.capturedAt)}</Linha>
                   <Linha rotulo="Na catraca">
                     {dados.photo.syncedAt ? "sincronizada" : "aguardando envio"}
                   </Linha>
@@ -506,8 +506,8 @@ function Captura({
 
   /* Carrega o modelo enquanto a pessoa se posiciona, não no clique. */
   useEffect(() => {
-    if (rostoDisponivel()) void extratorDeRosto.preparar();
-    if (vivacidadeDisponivel()) void detectorDeVivacidade.preparar();
+    if (faceAvailable()) void faceExtractor.preparar();
+    if (livenessAvailable()) void livenessDetector.preparar();
   }, []);
 
   useEffect(() => {
@@ -572,13 +572,13 @@ function Captura({
        * passaria a reconhecer a foto, não a pessoa. A vivacidade é conferida
        * aqui pelo mesmo motivo que no portão, e antes de qualquer gravação.
        */
-      const vida = vivacidadeDisponivel() ? await detectorDeVivacidade.avaliar(canvas) : null;
+      const vida = livenessAvailable() ? await livenessDetector.avaliar(canvas) : null;
       if (vida && !vida.aprovado) {
         setReproducao(true);
         setCodigos(null);
         return;
       }
-      setCodigos(rostoDisponivel() ? await extratorDeRosto.extrair(canvas) : null);
+      setCodigos(faceAvailable() ? await faceExtractor.extrair(canvas) : null);
     } finally {
       setLendoRosto(false);
     }
@@ -637,7 +637,7 @@ function Captura({
               ? "Isto parece uma foto de uma foto — tela ou papel. Capture a pessoa na frente da câmera."
               : codigos
                 ? "Rosto reconhecido: ele vai abrir a portaria."
-                : rostoDisponivel()
+                : faceAvailable()
                   ? "Não foi possível ler o rosto nesta foto. Ela vale para a ficha; no portão, use a carteirinha."
                   : "A leitura de rosto não está disponível. No portão, use a carteirinha."}
         </p>

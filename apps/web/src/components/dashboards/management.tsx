@@ -24,7 +24,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ClipboardCheck, GraduationCap, LayoutGrid, Users } from "lucide-react";
 
-import { inteiro, percentual, percentualCurto } from "@/lib/format";
+import { integerText, percentText, shortPercentText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -66,25 +66,25 @@ export function ManagementDashboard() {
           hint={dados ? `${dados.students.pendingDocuments} com documentação pendente` : undefined}
           tone="info"
         >
-          {dados ? inteiro(dados.students.active) : "—"}
+          {dados ? integerText(dados.students.active) : "—"}
         </StatCard>
         <StatCard icon={LayoutGrid} label="Turmas" tone="neutral">
-          {dados ? inteiro(dados.classrooms) : "—"}
+          {dados ? integerText(dados.classrooms) : "—"}
         </StatCard>
         <StatCard icon={Users} label="Professores" tone="neutral">
-          {dados ? inteiro(dados.teachers) : "—"}
+          {dados ? integerText(dados.teachers) : "—"}
         </StatCard>
         <StatCard
           icon={ClipboardCheck}
           label="Frequência média"
-          hint={dados ? `mínimo de ${percentualCurto(dados.minimumAttendanceRate)}` : undefined}
+          hint={dados ? `mínimo de ${shortPercentText(dados.minimumAttendanceRate)}` : undefined}
           tone={
             dados?.attendanceRate && dados.attendanceRate < dados.minimumAttendanceRate
               ? "danger"
               : "success"
           }
         >
-          {dados ? percentual(dados.attendanceRate) : "—"}
+          {dados ? percentText(dados.attendanceRate) : "—"}
         </StatCard>
       </div>
 

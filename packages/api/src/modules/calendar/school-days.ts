@@ -15,13 +15,13 @@
 /** Sábado e domingo não são letivos por padrão. Reposição pode reverter. */
 const FIM_DE_SEMANA = new Set([0, 6]);
 
-export interface EventoQueAfetaODia {
+export interface DayAffectingEvent {
   startsOn: string;
   endsOn: string;
   dayEffect: "nenhum" | "nao_letivo" | "letivo_extra";
 }
 
-export interface ContagemDeDiasLetivos {
+export interface SchoolDayCount {
   /** Dias úteis no período, antes de qualquer evento. */
   diasUteis: number;
   /** Dias úteis perdidos para feriado, recesso ou férias. */
@@ -37,7 +37,7 @@ export interface ContagemDeDiasLetivos {
 }
 
 /** "2026-02-05" -> dia da semana (0 domingo). Meio-dia UTC: nunca vira o dia. */
-export function diaDaSemana(data: string): number {
+export function dayOfWeek(data: string): number {
   const [ano, mes, dia] = data.split("-").map(Number);
   return new Date(Date.UTC(ano ?? 1970, (mes ?? 1) - 1, dia ?? 1, 12)).getUTCDay();
 }
@@ -57,8 +57,8 @@ export function* diasEntre(inicio: string, fim: string): Generator<string> {
   }
 }
 
-export function ehDiaUtil(data: string): boolean {
-  return !FIM_DE_SEMANA.has(diaDaSemana(data));
+export function isWeekday(data: string): boolean {
+  return !FIM_DE_SEMANA.has(dayOfWeek(data));
 }
 
 /**
@@ -69,12 +69,12 @@ export function ehDiaUtil(data: string): boolean {
  * durações de evento em vez de marcar dias num conjunto. O erro daria um total
  * menor que o real e mandaria a escola repor aula que não devia.
  */
-export function contarDiasLetivos(input: {
+export function countSchoolDays(input: {
   startsOn: string;
   endsOn: string;
   minimo: number;
-  eventos: EventoQueAfetaODia[];
-}): ContagemDeDiasLetivos {
+  eventos: DayAffectingEvent[];
+}): SchoolDayCount {
   const naoLetivos = new Set<string>();
   const extras = new Set<string>();
 
@@ -89,7 +89,7 @@ export function contarDiasLetivos(input: {
   let repostos = 0;
 
   for (const dia of diasEntre(input.startsOn, input.endsOn)) {
-    const util = ehDiaUtil(dia);
+    const util = isWeekday(dia);
     if (util) diasUteis += 1;
 
     // Reposição vence o feriado: se a escola marcou aula naquele dia, houve

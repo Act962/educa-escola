@@ -19,4 +19,4 @@
  *
  * O `\n` da frente custa, no pior caso, uma linha em branco.
  */
-export const COMANDO_DA_CHAVE = `printf '\\nASSISTANT_ENCRYPTION_KEY=%s\\n' "$(openssl rand -base64 32)" >> apps/web/.env`;
+export const KEY_COMMAND = `printf '\\nASSISTANT_ENCRYPTION_KEY=%s\\n' "$(openssl rand -base64 32)" >> apps/web/.env`;

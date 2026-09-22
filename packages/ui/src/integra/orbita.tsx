@@ -54,7 +54,7 @@ function Svg({
 }
 
 /** Símbolo do Órbita Edu, sem olhos. É a marca do ecossistema. */
-export function OrbitaIcone({ className, comHalo, titulo }: MarcaProps) {
+export function OrbitaIcon({ className, comHalo, titulo }: MarcaProps) {
   return (
     <Svg viewBox="0 0 30441.09 30288.51" className={className} titulo={titulo}>
       {comHalo ? (
@@ -117,7 +117,7 @@ export function OrbitaAstro({ className, comHalo, titulo }: MarcaProps) {
 }
 
 /** Assinatura completa, com o nome ao lado do símbolo. */
-export function OrbitaMarca({ className, comHalo, titulo }: MarcaProps) {
+export function OrbitaBrand({ className, comHalo, titulo }: MarcaProps) {
   return (
     <Svg viewBox="0 0 64683.48 30161.34" className={className} titulo={titulo}>
       {comHalo ? (
