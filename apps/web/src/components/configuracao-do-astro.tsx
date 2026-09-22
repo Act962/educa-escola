@@ -479,7 +479,7 @@ function Formulario({
                     ? "Configure ASSISTANT_ENCRYPTION_KEY no servidor primeiro"
                     : atual.credencialGravada
                       ? "Deixe em branco para manter a atual"
-                      : "Cole a chave do provedor"
+                      : "Cole só o valor da chave, sem OPENAI_API_KEY="
                 }
               />
               <p className="text-meta text-muted-foreground">

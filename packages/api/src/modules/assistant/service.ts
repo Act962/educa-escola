@@ -4,7 +4,13 @@ import { ConflictError, NotFoundError, ValidationError } from "../../errors";
 import { ErroDoModelo, type ModeloDeLinguagem } from "../../integrations/modelo/cliente";
 import type { AssistantRepository } from "./repository";
 import type { AskInput, UpdateSettingsInput } from "./schema";
-import { cifrarCredencial, credencialAbre, decifrarCredencial, dicaDaCredencial } from "./segredo";
+import {
+  cifrarCredencial,
+  credencialAbre,
+  decifrarCredencial,
+  dicaDaCredencial,
+  limparCredencial,
+} from "./segredo";
 
 /** Como a escola encontra o Astro antes de configurar qualquer coisa. */
 export const CONFIGURACAO_PADRAO = {
@@ -142,7 +148,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
       // `undefined` mantém a chave; `""` apaga; texto substitui. É o que
       // permite editar o nome do modelo sem redigitar a credencial.
       if (input.apiKey !== undefined) {
-        const valor = input.apiKey.trim();
+        const valor = limparCredencial(input.apiKey);
 
         if (valor === "") {
           patch.apiKeyCipher = null;

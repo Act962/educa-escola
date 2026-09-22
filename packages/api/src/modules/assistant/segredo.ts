@@ -73,3 +73,22 @@ export function credencialAbre(dados: Cifrado | null, raw: string | undefined): 
     return false;
   }
 }
+
+/**
+ * Limpa o que veio do campo antes de cifrar.
+ *
+ * A credencial costuma ser copiada de um arquivo `.env`, e junto vem o nome da
+ * variável: `OPENAI_API_KEY=sk-proj-…`. Cifrado assim, o valor fica íntegro,
+ * abre certinho, e o provedor responde `invalid_api_key` — um erro que aponta
+ * para a chave quando o defeito é a colagem, e que já custou uma investigação
+ * inteira aqui.
+ *
+ * Tira também aspas em volta, porque o `.env` aceita as duas formas, e
+ * qualquer espaço ou quebra de linha que o navegador tenha trazido junto.
+ * Nada disso é parte de credencial de provedor nenhum: se um dia for, o valor
+ * chega quebrado de propósito e a escola vê o erro na hora de salvar.
+ */
+export function limparCredencial(valor: string): string {
+  const semNome = valor.trim().replace(/^[A-Z][A-Z0-9_]*\s*=\s*/, "");
+  return semNome.replace(/^(['"])(.*)\1$/s, "$2").trim();
+}
