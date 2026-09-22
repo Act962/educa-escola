@@ -23,6 +23,13 @@
         "MEDIA_ENCRYPTION_KEY",
         "ORBITA_BASE_URL",
         "ASSISTANT_ENCRYPTION_KEY",
+        "STORAGE_DRIVER",
+        "R2_ACCOUNT_ID",
+        "R2_ACCESS_KEY_ID",
+        "R2_SECRET_ACCESS_KEY",
+        "R2_BUCKET",
+        "R2_ENDPOINT",
+        "R2_TEST_BUCKET",
         "NODE_ENV"
       ]
     },
@@ -37,6 +44,13 @@
         "MEDIA_ENCRYPTION_KEY",
         "ORBITA_BASE_URL",
         "ASSISTANT_ENCRYPTION_KEY",
+        "STORAGE_DRIVER",
+        "R2_ACCOUNT_ID",
+        "R2_ACCESS_KEY_ID",
+        "R2_SECRET_ACCESS_KEY",
+        "R2_BUCKET",
+        "R2_ENDPOINT",
+        "R2_TEST_BUCKET",
         "NODE_ENV"
       ]
     },
