@@ -151,7 +151,7 @@ mídia é backup inútil para as fotos.
 2. Nos logs do container, a sequência esperada é:
 
    ```
-   [migrate] 17 migration(s) aplicada(s); 17 no total.
+   [migrate] N migration(s) aplicada(s); N no total.   (no primeiro deploy, N = todas)
    ➜ Listening on: http://localhost:3001/ (all interfaces)
    ```
 
