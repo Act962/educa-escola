@@ -99,6 +99,13 @@
       "when": 1790087511246,
       "tag": "0013_organizacao-do-modelo",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790090064864,
+      "tag": "0014_brief_thor",
+      "breakpoints": true
     }
   ]
 }

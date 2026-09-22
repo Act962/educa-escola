@@ -30,15 +30,31 @@ export function createAssistantRepository(db: DbHandle, tenant: TenantContext) {
       return row as NonNullable<typeof row>;
     },
 
-    /** Quantas perguntas a escola fez desde um instante. Alimenta o teto. */
-    async countUsageSince(desde: Date) {
+    /**
+     * O consumo da escola desde um instante: perguntas, tokens e o que não foi
+     * contado.
+     *
+     * Os três saem da mesma varredura porque são a mesma linha — dois
+     * `select` sobre o mesmo intervalo pagariam o índice duas vezes para
+     * responder à mesma pergunta.
+     *
+     * `semContagem` existe porque `tokens` é anulável: provedor que não
+     * devolve `usage` não avança o orçamento, e um orçamento que parece
+     * intacto sem estar é pior que orçamento nenhum. A tela nomeia quantas
+     * respostas ficaram de fora em vez de deixar a conta parecer exata.
+     */
+    async usoDesde(desde: Date) {
       const [row] = await db
-        .select({ total: sql<number>`count(*)::int` })
+        .select({
+          perguntas: sql<number>`count(*)::int`,
+          tokens: sql<number>`coalesce(sum(${assistantUsage.tokens}), 0)::int`,
+          semContagem: sql<number>`count(*) filter (where ${assistantUsage.tokens} is null)::int`,
+        })
         .from(assistantUsage)
         .where(
           and(eq(assistantUsage.schoolId, tenant.schoolId), gte(assistantUsage.askedAt, desde)),
         );
-      return row?.total ?? 0;
+      return row ?? { perguntas: 0, tokens: 0, semContagem: 0 };
     },
 
     async recordUsage(data: { userId: string; role: string; tokens: number | null }) {

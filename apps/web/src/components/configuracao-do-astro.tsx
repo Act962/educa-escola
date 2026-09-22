@@ -84,6 +84,7 @@ function Formulario({
     chaveDoServidor: boolean;
     maxTokens: number;
     dailyLimit: number;
+    monthlyTokenBudget: number | null;
     allowTeachers: boolean;
     allowStudents: boolean;
   };
@@ -135,6 +136,10 @@ function Formulario({
       apiKey: "",
       maxTokens: String(atual.maxTokens),
       dailyLimit: String(atual.dailyLimit),
+      // Vazio é "sem orçamento", e é assim que a escola o apaga. Um zero no
+      // campo seria lido como teto zero, que pararia o Astro na primeira
+      // pergunta.
+      monthlyTokenBudget: atual.monthlyTokenBudget === null ? "" : String(atual.monthlyTokenBudget),
       allowTeachers: atual.allowTeachers,
       allowStudents: atual.allowStudents,
     },
@@ -156,6 +161,12 @@ function Formulario({
         dailyLimit: z
           .string()
           .refine((v) => Number(v) >= 1 && Number(v) <= 10000, "Entre 1 e 10000"),
+        monthlyTokenBudget: z
+          .string()
+          .refine(
+            (v) => v === "" || Number(v) >= 1000,
+            "Deixe em branco para não ter teto, ou informe ao menos 1000",
+          ),
         allowTeachers: z.boolean(),
         allowStudents: z.boolean(),
       }),
@@ -173,6 +184,7 @@ function Formulario({
         ...(value.apiKey.trim() ? { apiKey: value.apiKey.trim() } : {}),
         maxTokens: Number(value.maxTokens),
         dailyLimit: Number(value.dailyLimit),
+        monthlyTokenBudget: value.monthlyTokenBudget ? Number(value.monthlyTokenBudget) : null,
         allowTeachers: value.allowTeachers,
         allowStudents: value.allowStudents,
       } as never);
@@ -536,6 +548,38 @@ function Formulario({
                 />
                 <p className="text-meta text-muted-foreground">
                   Em tokens. Resposta mais longa custa mais.
+                </p>
+                {field.state.meta.errors.map((erro) => (
+                  <p key={erro?.message} className="text-danger text-meta">
+                    {erro?.message}
+                  </p>
+                ))}
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="monthlyTokenBudget">
+            {(field) => (
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <Label htmlFor={field.name}>Orçamento de tokens no mês</Label>
+                <Input
+                  id={field.name}
+                  inputMode="numeric"
+                  placeholder="Em branco: sem teto de tokens"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) =>
+                    field.handleChange(e.target.value.replace(/\D/g, "").slice(0, 9))
+                  }
+                />
+                {/*
+                  O teto diário conta perguntas; este conta consumo, que é o
+                  que a fatura cobra. Uma pergunta cara e uma barata ocupam a
+                  mesma linha do teto diário e pesos diferentes aqui.
+                */}
+                <p className="text-meta text-muted-foreground">
+                  Ao alcançá-lo, o Astro para de responder até o dia 1º. O consumo aparece na barra
+                  lateral. Conta só o que o provedor informa.
                 </p>
                 {field.state.meta.errors.map((erro) => (
                   <p key={erro?.message} className="text-danger text-meta">

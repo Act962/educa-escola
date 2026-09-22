@@ -96,6 +96,15 @@ export const assistantRouter = router({
     serviceFor(ctx).modelosDisponiveis(),
   ),
 
+  /**
+   * O consumo da escola. Da direção, como a configuração.
+   *
+   * Quanto a escola gasta com o modelo é número de custo, não de sala de
+   * aula: quem vê é quem assina. Professor e aluno recebem o que lhes serve —
+   * quantas perguntas ainda cabem hoje — na própria resposta do Astro.
+   */
+  uso: permitted({ assistant: ["manage"] }).query(({ ctx }) => serviceFor(ctx).uso()),
+
   situacao: schoolProcedure.query(({ ctx }) => serviceFor(ctx).situacao(ctx.membership.role)),
 
   perguntar: schoolProcedure.input(askInput).mutation(async ({ ctx, input }) => {

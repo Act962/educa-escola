@@ -25,6 +25,14 @@ export const updateSettingsInput = z.object({
   apiKey: z.string().max(400).optional(),
   maxTokens: z.number().int().min(64).max(4000),
   dailyLimit: z.number().int().min(1).max(10_000),
+  /**
+   * Teto de tokens no mês. `null` é "sem orçamento declarado".
+   *
+   * O mínimo é alto de propósito: orçamento menor que umas poucas respostas
+   * esgotaria no primeiro uso, e a direção leria isso como defeito do Astro
+   * em vez de como o número que ela digitou.
+   */
+  monthlyTokenBudget: z.number().int().min(1_000).max(100_000_000).nullable().optional(),
   allowTeachers: z.boolean(),
   allowStudents: z.boolean(),
 });

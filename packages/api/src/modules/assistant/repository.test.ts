@@ -70,10 +70,14 @@ describe("createAssistantRepository", () => {
         await repo.recordUsage({ userId: conta.id, role: "owner", tokens: 10 });
       }
 
-      expect(await repo.countUsageSince(ontem)).toBe(3);
+      expect(await repo.usoDesde(ontem)).toEqual({ perguntas: 3, tokens: 30, semContagem: 0 });
       // Janela que começa no futuro não conta nada: é o que faz o teto zerar
       // à meia-noite em vez de acumular para sempre.
-      expect(await repo.countUsageSince(new Date(Date.now() + 60_000))).toBe(0);
+      expect(await repo.usoDesde(new Date(Date.now() + 60_000))).toEqual({
+        perguntas: 0,
+        tokens: 0,
+        semContagem: 0,
+      });
     });
   });
 
@@ -91,9 +95,11 @@ describe("createAssistantRepository", () => {
       });
 
       const ontem = new Date(Date.now() - 86_400_000);
-      expect(await createAssistantRepository(tx, { schoolId: b.id }).countUsageSince(ontem)).toBe(
-        0,
-      );
+      expect(await createAssistantRepository(tx, { schoolId: b.id }).usoDesde(ontem)).toEqual({
+        perguntas: 0,
+        tokens: 0,
+        semContagem: 0,
+      });
     });
   });
 
@@ -107,7 +113,13 @@ describe("createAssistantRepository", () => {
 
       await repo.recordUsage({ userId: conta.id, role: "teacher", tokens: null });
 
-      expect(await repo.countUsageSince(new Date(Date.now() - 60_000))).toBe(1);
+      // A pergunta conta para o teto diário; o token não entra no orçamento,
+      // e `semContagem` é o que impede o mês de parecer mais barato do que foi.
+      expect(await repo.usoDesde(new Date(Date.now() - 60_000))).toEqual({
+        perguntas: 1,
+        tokens: 0,
+        semContagem: 1,
+      });
     });
   });
 });

@@ -11,6 +11,7 @@ import {
   dicaDaCredencial,
   limparCredencial,
 } from "./segredo";
+import { type NivelDeUso, nivelDeUso, nivelMaisGrave } from "./uso";
 
 /** Como a escola encontra o Astro antes de configurar qualquer coisa. */
 export const CONFIGURACAO_PADRAO = {
@@ -22,6 +23,7 @@ export const CONFIGURACAO_PADRAO = {
   apiKeyHint: null,
   maxTokens: 600,
   dailyLimit: 200,
+  monthlyTokenBudget: null,
   allowTeachers: true,
   // Desligado para aluno: é o público que a escola precisa decidir
   // conscientemente, não herdar de um padrão.
@@ -91,6 +93,18 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
     return new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
   }
 
+  /**
+   * O mês corrente começa no dia 1.
+   *
+   * Mês de calendário e não trinta dias corridos: o orçamento existe para a
+   * direção comparar com a fatura, e a fatura do provedor fecha por mês.
+   * Janela deslizante daria um número que não bate com nenhum extrato.
+   */
+  function inicioDoMes(): Date {
+    const agora = deps.now();
+    return new Date(agora.getFullYear(), agora.getMonth(), 1);
+  }
+
   return {
     /**
      * O que a tela de configuração mostra. **Nunca a credencial.**
@@ -140,6 +154,10 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
         organizationId: input.organizationId?.trim() || null,
         maxTokens: input.maxTokens,
         dailyLimit: input.dailyLimit,
+        // `null` é escolha, não omissão: apagar o campo devolve a escola ao
+        // estado de "não declarei orçamento", e o Astro volta a ser barrado
+        // só pelo teto diário.
+        monthlyTokenBudget: input.monthlyTokenBudget ?? null,
         allowTeachers: input.allowTeachers,
         allowStudents: input.allowStudents,
         updatedByUserId: userId,
@@ -247,6 +265,46 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
       }
     },
 
+    /**
+     * O consumo da escola, para o painel da barra lateral.
+     *
+     * Devolve os dois tetos juntos porque o alerta é um só: a direção precisa
+     * saber que *alguma coisa* está acabando, e ver qual — não ler duas
+     * porcentagens e decidir qual delas importa.
+     *
+     * É `assistant: ["manage"]` no router. Gasto da escola é número de
+     * direção; professor e aluno recebem o que lhes serve — quantas perguntas
+     * ainda cabem hoje — pela própria resposta do Astro.
+     */
+    async uso() {
+      const salva = await configuracaoBruta();
+      const teto = {
+        perguntas: salva?.dailyLimit ?? CONFIGURACAO_PADRAO.dailyLimit,
+        tokens: salva?.monthlyTokenBudget ?? null,
+      };
+
+      const [hoje, mes] = await Promise.all([
+        repo.usoDesde(inicioDoDia()),
+        repo.usoDesde(inicioDoMes()),
+      ]);
+
+      const nivelPerguntas = nivelDeUso(hoje.perguntas, teto.perguntas);
+      const nivelTokens = nivelDeUso(mes.tokens, teto.tokens);
+
+      return {
+        ligado: !!salva?.enabled,
+        perguntas: { usadas: hoje.perguntas, teto: teto.perguntas, nivel: nivelPerguntas },
+        tokens: {
+          usados: mes.tokens,
+          teto: teto.tokens,
+          nivel: nivelTokens,
+          /** Respostas do mês em que o provedor não informou o consumo. */
+          semContagem: mes.semContagem,
+        },
+        nivel: nivelMaisGrave(nivelPerguntas, nivelTokens) satisfies NivelDeUso,
+      };
+    },
+
     /** O que o botão do Astro precisa saber, sem revelar configuração. */
     async situacao(papel: AppRole) {
       const salva = await configuracaoBruta();
@@ -286,11 +344,33 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
         throw new ValidationError("O Astro está ligado, mas a configuração está incompleta.");
       }
 
-      const usadas = await repo.countUsageSince(inicioDoDia());
-      if (usadas >= salva.dailyLimit) {
+      const hoje = await repo.usoDesde(inicioDoDia());
+      if (hoje.perguntas >= salva.dailyLimit) {
         throw new ConflictError(
           `A escola chegou ao limite de ${salva.dailyLimit} perguntas hoje. O contador zera amanhã.`,
         );
+      }
+
+      /*
+       * O orçamento de tokens barra como o teto diário barra.
+       *
+       * Ele só vale quando a escola declarou um — nulo é "não disse quanto
+       * aceita gastar", e parar o Astro num número que ninguém escolheu seria
+       * inventar a decisão dela.
+       *
+       * A checagem é antes da chamada e sobre o já gasto: não dá para saber o
+       * custo de uma resposta antes de pedi-la, então a última pergunta do mês
+       * passa um pouco do teto. Recusar por estimativa deixaria de fora
+       * perguntas que cabiam.
+       */
+      if (salva.monthlyTokenBudget) {
+        const mes = await repo.usoDesde(inicioDoMes());
+        if (mes.tokens >= salva.monthlyTokenBudget) {
+          throw new ConflictError(
+            `A escola chegou ao orçamento de ${salva.monthlyTokenBudget.toLocaleString("pt-BR")} tokens deste mês. ` +
+              "A direção pode ampliá-lo em Configurações; o contador zera no dia 1º.",
+          );
+        }
       }
 
       let apiKey: string;
@@ -332,7 +412,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
 
         await repo.recordUsage({ userId: quem.userId, role: quem.role, tokens });
 
-        return { texto, restantesHoje: Math.max(0, salva.dailyLimit - usadas - 1) };
+        return { texto, restantesHoje: Math.max(0, salva.dailyLimit - hoje.perguntas - 1) };
       } catch (erro) {
         // Falha de provedor vira erro de domínio para sair como 4xx com texto
         // legível, em vez de 500 com pilha. Quem lê é a secretaria.

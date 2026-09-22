@@ -1,7 +1,7 @@
 import { Button } from "@educa-escola/ui/components/button";
 import { Input } from "@educa-escola/ui/components/input";
 import { OrbitaAstro } from "@educa-escola/ui/integra/orbita";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { SendHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -78,6 +78,7 @@ export function Astro() {
 
 function Painel({ disponivel, ligado }: { disponivel: boolean; ligado: boolean }) {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [falas, setFalas] = useState<Fala[]>([]);
   const [pergunta, setPergunta] = useState("");
   const [restantes, setRestantes] = useState<number | null>(null);
@@ -89,6 +90,10 @@ function Painel({ disponivel, ligado }: { disponivel: boolean; ligado: boolean }
       onSuccess: (saida) => {
         setFalas((atuais) => [...atuais, { de: "astro", texto: saida.texto }]);
         setRestantes(saida.restantesHoje);
+        // A pergunta acabou de mexer no contador da escola. Quem vê o painel
+        // da barra lateral é a direção — para os demais a invalidação não
+        // dispara nada, porque a query nem está montada.
+        queryClient.invalidateQueries({ queryKey: trpc.assistant.uso.queryKey() });
       },
       // O erro entra na conversa em vez de virar um aviso solto: é resposta a
       // uma pergunta, e some do contexto se aparecer noutro canto da tela.

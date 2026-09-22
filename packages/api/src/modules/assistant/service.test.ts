@@ -34,6 +34,7 @@ const configurada = (over: Partial<Linha> = {}): Linha =>
     apiKeyHint: "••••7Z9K",
     maxTokens: 600,
     dailyLimit: 200,
+    monthlyTokenBudget: null,
     allowTeachers: true,
     allowStudents: false,
     updatedByUserId: "u1",
@@ -45,7 +46,7 @@ function fakeRepo(over: Partial<AssistantRepository> = {}): AssistantRepository 
   return {
     find: async () => null,
     save: async (patch) => ({ ...configurada(), ...patch }) as never,
-    countUsageSince: async () => 0,
+    usoDesde: async () => ({ perguntas: 0, tokens: 0, semContagem: 0 }),
     recordUsage: async () => ({ id: "u" }),
     ...over,
   };
@@ -285,7 +286,10 @@ describe("perguntar", () => {
   /** Credencial de modelo sem teto é conta aberta. */
   it("para no teto diário da escola", async () => {
     const s = servico({
-      repo: { find: async () => configurada({ dailyLimit: 5 }), countUsageSince: async () => 5 },
+      repo: {
+        find: async () => configurada({ dailyLimit: 5 }),
+        usoDesde: async () => ({ perguntas: 5, tokens: 0, semContagem: 0 }),
+      },
     });
 
     await expect(
@@ -298,9 +302,9 @@ describe("perguntar", () => {
     const s = servico({
       repo: {
         find: async () => configurada(),
-        countUsageSince: async (desde) => {
+        usoDesde: async (desde) => {
           janelas.push(desde);
-          return 0;
+          return { perguntas: 0, tokens: 0, semContagem: 0 };
         },
       },
     });
@@ -316,7 +320,7 @@ describe("perguntar", () => {
     const s = servico({
       repo: {
         find: async () => configurada({ dailyLimit: 10 }),
-        countUsageSince: async () => 3,
+        usoDesde: async () => ({ perguntas: 3, tokens: 0, semContagem: 0 }),
         recordUsage: async (data) => {
           registros.push(data);
           return { id: "u" };
@@ -595,5 +599,86 @@ describe("chave de cifragem girada", () => {
     await expect(s.perguntar({ pergunta: "oi", fatos: "x" }, quem)).rejects.toThrow(
       /Regrave a credencial/,
     );
+  });
+});
+
+/**
+ * O orçamento do mês é o teto que a escola declara; o diário é o que já
+ * existia. Os dois barram do mesmo jeito, e a barra lateral pinta pelos mesmos
+ * limiares — é por isso que `nivelDeUso` mora fora daqui.
+ */
+describe("orçamento de tokens", () => {
+  /** Janela do dia e janela do mês são consultas distintas sobre a mesma tabela. */
+  const repoComUso = (
+    porJanela: (desde: Date) => { perguntas: number; tokens: number; semContagem: number },
+    linha: Partial<Linha> = {},
+  ): Partial<AssistantRepository> => ({
+    find: async () => configurada(linha),
+    usoDesde: async (desde) => porJanela(desde),
+  });
+
+  const ehDoMes = (desde: Date) => desde.getDate() === 1;
+
+  it("recusa a pergunta quando o mês chegou ao orçamento", async () => {
+    const s = servico({
+      repo: repoComUso(
+        (desde) =>
+          ehDoMes(desde)
+            ? { perguntas: 80, tokens: 50_000, semContagem: 0 }
+            : { perguntas: 4, tokens: 2_400, semContagem: 0 },
+        { monthlyTokenBudget: 50_000 },
+      ),
+    });
+
+    await expect(s.perguntar({ pergunta: "quantos alunos?", fatos: "x" }, quem)).rejects.toThrow(
+      /orçamento de 50.000 tokens/,
+    );
+  });
+
+  /**
+   * Orçamento nulo é "a escola não disse quanto aceita gastar". Parar o Astro
+   * num número que ninguém escolheu seria inventar a decisão dela.
+   */
+  it("sem orçamento declarado, só o teto diário barra", async () => {
+    const s = servico({
+      repo: repoComUso(() => ({ perguntas: 1, tokens: 9_000_000, semContagem: 0 })),
+      modelo: modeloQueResponde(),
+    });
+
+    await expect(s.perguntar({ pergunta: "quantos alunos?", fatos: "x" }, quem)).resolves.toEqual({
+      texto: "Resposta.",
+      restantesHoje: 198,
+    });
+  });
+
+  it("uso devolve as duas janelas, com o pior nível dos dois", async () => {
+    const s = servico({
+      repo: repoComUso(
+        (desde) =>
+          ehDoMes(desde)
+            ? { perguntas: 300, tokens: 96_000, semContagem: 7 }
+            : { perguntas: 10, tokens: 6_000, semContagem: 0 },
+        { dailyLimit: 200, monthlyTokenBudget: 100_000 },
+      ),
+    });
+
+    expect(await s.uso()).toEqual({
+      ligado: true,
+      perguntas: { usadas: 10, teto: 200, nivel: "ok" },
+      tokens: { usados: 96_000, teto: 100_000, nivel: "critico", semContagem: 7 },
+      nivel: "critico",
+    });
+  });
+
+  /** Sem linha gravada, a escola ainda não configurou nada — nem teto de token. */
+  it("uso responde com o padrão quando a escola nunca configurou", async () => {
+    const s = servico({ repo: { find: async () => null } });
+
+    expect(await s.uso()).toEqual({
+      ligado: false,
+      perguntas: { usadas: 0, teto: CONFIGURACAO_PADRAO.dailyLimit, nivel: "ok" },
+      tokens: { usados: 0, teto: null, nivel: "ok", semContagem: 0 },
+      nivel: "ok",
+    });
   });
 });

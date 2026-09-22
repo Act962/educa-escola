@@ -67,6 +67,19 @@ export const assistantSettings = pgTable("assistant_settings", {
    * pessoa porque quem paga é a escola.
    */
   dailyLimit: integer("daily_limit").default(200).notNull(),
+  /**
+   * Teto de tokens no mês. `null` é "a escola ainda não declarou".
+   *
+   * Anulável, e não um número padrão: qualquer valor que eu chutasse aqui
+   * seria arbitrário — o que a escola pode gastar depende do que ela comprou,
+   * e o Astro pararia de responder num limite que ninguém escolheu. Enquanto
+   * for nulo, quem segura a conta é `daily_limit`, que tem padrão.
+   *
+   * O contador só enxerga o que o provedor informa: resposta sem `usage` não
+   * avança o consumo. A tela diz quantas foram, porque um orçamento que
+   * parece intacto e não está é pior que orçamento nenhum.
+   */
+  monthlyTokenBudget: integer("monthly_token_budget"),
   allowTeachers: boolean("allow_teachers").default(true).notNull(),
   allowStudents: boolean("allow_students").default(false).notNull(),
   updatedByUserId: text("updated_by_user_id").references(() => user.id, { onDelete: "set null" }),
