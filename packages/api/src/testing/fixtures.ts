@@ -91,6 +91,8 @@ export async function createTestStudent(
     name?: string;
     registration?: string;
     status?: (typeof student.$inferInsert)["status"];
+    /** Conta de acesso do aluno. Nem todo aluno tem uma — por isso é opcional. */
+    userId?: string;
   },
 ) {
   const [row] = await tx
@@ -98,6 +100,7 @@ export async function createTestStudent(
     .values({
       schoolId: input.schoolId,
       classroomId: input.classroomId ?? null,
+      userId: input.userId ?? null,
       name: input.name ?? "Aluno Teste",
       registration: input.registration ?? `M-${crypto.randomUUID().slice(0, 8)}`,
       status: input.status ?? "ativo",

@@ -45,6 +45,7 @@ export function AppSidebar({
   onSignOut,
 }: AppSidebarProps) {
   const entries = navigationFor(role);
+  const podeConfigurar = role === "owner" || role === "admin";
   const disponiveis = entries.filter((entry) => entry.to);
   const previstos = entries.filter((entry) => !entry.to);
 
@@ -141,17 +142,25 @@ export function AppSidebar({
         <SidebarSeparator className="mx-0" />
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton aria-disabled="true" tooltip="Meu perfil">
+            <SidebarMenuButton tooltip="Meu perfil" render={<Link to="/perfil" />}>
               <UserRound strokeWidth={1.7} aria-hidden />
               <span>Meu perfil</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton aria-disabled="true" tooltip="Configurações">
-              <Settings strokeWidth={1.7} aria-hidden />
-              <span>Configurações</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {/*
+            Configurações é da instituição, não da conta: o servidor exige
+            `organization: ["update"]`, que professor e aluno não têm. Mostrar
+            o item para eles levaria a uma tela de "sem permissão" — esconder
+            aqui é conforto, e a barreira continua sendo o `permitted()`.
+          */}
+          {podeConfigurar ? (
+            <SidebarMenuItem>
+              <SidebarMenuButton tooltip="Configurações" render={<Link to="/configuracoes" />}>
+                <Settings strokeWidth={1.7} aria-hidden />
+                <span>Configurações</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ) : null}
           <SidebarMenuItem>
             <SidebarMenuButton onClick={onSignOut} tooltip="Sair">
               <LogOut strokeWidth={1.7} aria-hidden />
