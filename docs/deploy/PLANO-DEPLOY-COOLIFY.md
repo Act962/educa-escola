@@ -137,6 +137,8 @@ empresa) antes do primeiro cadastro de foto.
 
 ## 8. Primeiro deploy — roteiro
 
+> Versão detalhada, tela a tela: [PASSO-A-PASSO-COOLIFY.md](PASSO-A-PASSO-COOLIFY.md).
+
 1. Provisionar a VPS (sugestão mínima: 4 vCPU, 8 GB RAM, 80 GB SSD; com
    build fora da VPS, 2 vCPU / 4 GB aguenta o início) e instalar o Coolify.
 2. Firewall: só 22 (restrito), 80, 443 e a porta do painel do Coolify
