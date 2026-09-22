@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@educa-escola/ui/components/sidebar";
 import { initialsOf } from "@educa-escola/ui/lib/initials";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +23,23 @@ import { GraduationCap, LogOut, Settings, UserRound } from "lucide-react";
 import { appOrbitaDe } from "@/lib/apps-orbita";
 import { navigationFor } from "@/lib/navigation";
 import { useTRPC } from "@/utils/trpc";
+
+/**
+ * Recolhe a barra depois de navegar.
+ *
+ * Em tela estreita a barra é um `Sheet` por cima do conteúdo: deixá-la aberta
+ * esconde justamente a tela para onde a pessoa acabou de ir. Em tela larga ela
+ * recolhe para os ícones — o caminho de volta continua visível, e o conteúdo
+ * ganha a largura, que é o que a pessoa foi buscar ao clicar.
+ *
+ * Fica num hook porque três listas de itens precisam do mesmo gesto, e um
+ * `onClick` esquecido em uma delas seria um item que se comporta diferente dos
+ * outros sem ninguém saber por quê.
+ */
+function useRecolherAoNavegar() {
+  const { isMobile, setOpen, setOpenMobile } = useSidebar();
+  return () => (isMobile ? setOpenMobile(false) : setOpen(false));
+}
 
 interface AppSidebarProps {
   role: AppRole;
@@ -45,6 +63,7 @@ export function AppSidebar({
   onSignOut,
 }: AppSidebarProps) {
   const entries = navigationFor(role);
+  const recolher = useRecolherAoNavegar();
   const podeConfigurar = role === "owner" || role === "admin";
   const disponiveis = entries.filter((entry) => entry.to);
   const previstos = entries.filter((entry) => !entry.to);
@@ -89,6 +108,7 @@ export function AppSidebar({
                 <SidebarMenuItem key={entry.label}>
                   <SidebarMenuButton
                     tooltip={entry.label}
+                    onClick={recolher}
                     render={<Link to={entry.to as string} params={entry.params ?? {}} />}
                   >
                     <entry.icon strokeWidth={1.7} aria-hidden />
@@ -142,7 +162,11 @@ export function AppSidebar({
         <SidebarSeparator className="mx-0" />
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Meu perfil" render={<Link to="/perfil" />}>
+            <SidebarMenuButton
+              tooltip="Meu perfil"
+              onClick={recolher}
+              render={<Link to="/perfil" />}
+            >
               <UserRound strokeWidth={1.7} aria-hidden />
               <span>Meu perfil</span>
             </SidebarMenuButton>
@@ -155,7 +179,11 @@ export function AppSidebar({
           */}
           {podeConfigurar ? (
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Configurações" render={<Link to="/configuracoes" />}>
+              <SidebarMenuButton
+                tooltip="Configurações"
+                onClick={recolher}
+                render={<Link to="/configuracoes" />}
+              >
                 <Settings strokeWidth={1.7} aria-hidden />
                 <span>Configurações</span>
               </SidebarMenuButton>
@@ -183,6 +211,7 @@ export function AppSidebar({
  */
 function AppsInstalados() {
   const trpc = useTRPC();
+  const recolher = useRecolherAoNavegar();
   const instalados = useQuery({
     ...trpc.orbita.installed.queryOptions(),
     // Quem não tem `app: ["read"]` recebe 403; é resposta esperada, não falha
@@ -205,6 +234,7 @@ function AppsInstalados() {
             <SidebarMenuItem key={app.key}>
               <SidebarMenuButton
                 tooltip={app.nome}
+                onClick={recolher}
                 render={<Link to="/apps/$appKey" params={{ appKey: app.key }} />}
               >
                 <app.icon strokeWidth={1.7} aria-hidden />
