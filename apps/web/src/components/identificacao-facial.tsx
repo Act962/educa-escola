@@ -16,6 +16,7 @@ import { Camera, CameraOff, IdCard, Lock, Trash2, UserRound } from "lucide-react
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { detectorDeVivacidade, vivacidadeDisponivel } from "@/lib/detector-de-vivacidade";
 import { extratorDeRosto, NOME_DO_EXTRATOR, rostoDisponivel } from "@/lib/extrator-de-rosto";
 import { dataHora } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
@@ -321,10 +322,13 @@ function Captura({
   const [previa, setPrevia] = useState<string | null>(null);
   const [codigos, setCodigos] = useState<number[] | null>(null);
   const [lendoRosto, setLendoRosto] = useState(false);
+  /** A imagem parece uma foto de foto — tela de celular, papel impresso. */
+  const [reproducao, setReproducao] = useState(false);
 
   /* Carrega o modelo enquanto a pessoa se posiciona, não no clique. */
   useEffect(() => {
     if (rostoDisponivel()) void extratorDeRosto.preparar();
+    if (vivacidadeDisponivel()) void detectorDeVivacidade.preparar();
   }, []);
 
   useEffect(() => {
@@ -382,7 +386,19 @@ function Captura({
      */
     setLendoRosto(true);
     setPrevia(canvas.toDataURL("image/jpeg", 0.85));
+    setReproducao(false);
     try {
+      /*
+       * Cadastrar a partir de uma reprodução envenenaria o molde: a portaria
+       * passaria a reconhecer a foto, não a pessoa. A vivacidade é conferida
+       * aqui pelo mesmo motivo que no portão, e antes de qualquer gravação.
+       */
+      const vida = vivacidadeDisponivel() ? await detectorDeVivacidade.avaliar(canvas) : null;
+      if (vida && !vida.aprovado) {
+        setReproducao(true);
+        setCodigos(null);
+        return;
+      }
       setCodigos(rostoDisponivel() ? await extratorDeRosto.extrair(canvas) : null);
     } finally {
       setLendoRosto(false);
@@ -438,11 +454,13 @@ function Captura({
         <p className="text-center text-meta text-muted-foreground">
           {lendoRosto
             ? "Lendo o rosto…"
-            : codigos
-              ? "Rosto reconhecido: ele vai abrir a portaria."
-              : rostoDisponivel()
-                ? "Não foi possível ler o rosto nesta foto. Ela vale para a ficha; no portão, use a carteirinha."
-                : "A leitura de rosto não está disponível. No portão, use a carteirinha."}
+            : reproducao
+              ? "Isto parece uma foto de uma foto — tela ou papel. Capture a pessoa na frente da câmera."
+              : codigos
+                ? "Rosto reconhecido: ele vai abrir a portaria."
+                : rostoDisponivel()
+                  ? "Não foi possível ler o rosto nesta foto. Ela vale para a ficha; no portão, use a carteirinha."
+                  : "A leitura de rosto não está disponível. No portão, use a carteirinha."}
         </p>
       ) : null}
 
@@ -454,6 +472,7 @@ function Captura({
               ? () => {
                   setPrevia(null);
                   setCodigos(null);
+                  setReproducao(false);
                 }
               : onCancelar
           }

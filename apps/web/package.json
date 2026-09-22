@@ -25,6 +25,7 @@
     "@trpc/server": "catalog:",
     "@trpc/tanstack-react-query": "^11.18.0",
     "@vladmandic/face-api": "catalog:",
+    "@vladmandic/human": "catalog:",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "lucide-react": "catalog:",

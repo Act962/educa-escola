@@ -27,6 +27,9 @@ catalogs:
     '@vladmandic/face-api':
       specifier: 1.7.15
       version: 1.7.15
+    '@vladmandic/human':
+      specifier: 3.3.6
+      version: 3.3.6
     better-auth:
       specifier: 1.7.1
       version: 1.7.1
@@ -141,6 +144,9 @@ importers:
       '@vladmandic/face-api':
         specifier: 'catalog:'
         version: 1.7.15
+      '@vladmandic/human':
+        specifier: 'catalog:'
+        version: 3.3.6
       better-auth:
         specifier: 'catalog:'
         version: 1.7.1(@tanstack/react-start@1.168.49(crossws@0.4.12(srvx@0.11.22))(esbuild@0.28.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rolldown@1.2.7)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)))(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@5.0.0(@types/node@26.4.1)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)))
@@ -1919,6 +1925,10 @@ packages:
 
   '@vladmandic/face-api@1.7.15':
     resolution: {integrity: sha512-WDMmK3CfNLo8jylWqMoQgf4nIst3M0fzx1dnac96wv/dvMTN4DxC/Pq1DGtduDk1lktCamQ3MIDXFnvrdHTXDw==}
+    engines: {node: '>=14.0.0'}
+
+  '@vladmandic/human@3.3.6':
+    resolution: {integrity: sha512-Nr5mPfq1gQ+uKeXY5uM3Fj8UxvF5CEh2s6txM5wRThqaW0mF9huooOuZSrT8hhGho0hGaXLFdAwfD/2+teCv6A==}
     engines: {node: '>=14.0.0'}
 
   accepts@2.0.0:
@@ -5377,6 +5387,8 @@ snapshots:
   '@vitest/spy@5.0.0': {}
 
   '@vladmandic/face-api@1.7.15': {}
+
+  '@vladmandic/human@3.3.6': {}
 
   accepts@2.0.0:
     dependencies:

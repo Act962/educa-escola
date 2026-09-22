@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CameraOff, Check, ScanFace, TriangleAlert, UserRound, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { detectorDeVivacidade, vivacidadeDisponivel } from "@/lib/detector-de-vivacidade";
 import { extratorDeRosto, rostoDisponivel } from "@/lib/extrator-de-rosto";
 import { useTRPC } from "@/utils/trpc";
 
@@ -180,6 +181,7 @@ export function PortariaQuiosque({
    */
   useEffect(() => {
     if (rostoDisponivel()) void extratorDeRosto.preparar();
+    if (vivacidadeDisponivel()) void detectorDeVivacidade.preparar();
   }, []);
 
   /** Volta a hibernar sozinha: ninguém aperta "ok" numa catraca. */
@@ -319,6 +321,32 @@ export function PortariaQuiosque({
           if (veredito.tipo === "reconhecido") {
             // Só volta a ler quando o quadro esvaziar.
             esperandoSairRef.current = true;
+
+            /*
+             * Reconhecer não basta: o descritor de uma foto é igual ao do
+             * rosto que a originou, e **uma foto na tela do celular abriu esta
+             * portaria** num teste real. A vivacidade é a única coisa entre um
+             * retrato e o portão.
+             *
+             * A checagem vem depois da identificação, e não antes, porque só
+             * custa quando alguém foi de fato reconhecido — quadro de corredor
+             * vazio não paga por ela.
+             */
+            const vida = await detectorDeVivacidade.avaliar(videoRef.current);
+            if (!vivo) return;
+
+            if (!vida?.aprovado) {
+              // A mensagem não acusa ninguém e não ensina o atacante: quem
+              // está ali é uma pessoa que talvez só esteja mal iluminada, e a
+              // carteirinha resolve em dois segundos.
+              setEstado({
+                tipo: "recusado",
+                titulo: "Não foi possível confirmar",
+                detalhe: "Passe a carteirinha no leitor.",
+              });
+              return;
+            }
+
             registrar.mutate({
               studentId: veredito.studentId,
               direction: sentido,
