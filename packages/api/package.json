@@ -15,6 +15,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "catalog:",
     "@educa-escola/auth": "workspace:*",
     "@educa-escola/db": "workspace:*",
     "@educa-escola/env": "workspace:*",

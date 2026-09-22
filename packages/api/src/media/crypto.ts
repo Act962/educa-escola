@@ -13,9 +13,9 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
  * foto de uma criança pela de outra sem que nada acusasse.
  */
 
-const ALGORITMO = "aes-256-gcm";
-const TAMANHO_IV = 12; // 96 bits, o recomendado para GCM
-const TAMANHO_CHAVE = 32; // 256 bits
+const ALGORITHM = "aes-256-gcm";
+const IV_SIZE = 12; // 96 bits, o recomendado para GCM
+const KEY_SIZE = 32; // 256 bits
 
 export interface Encrypted {
   cipher: string;
@@ -39,9 +39,9 @@ export function parseKey(raw: string | undefined): Buffer {
   }
 
   const key = Buffer.from(raw, "base64");
-  if (key.length !== TAMANHO_CHAVE) {
+  if (key.length !== KEY_SIZE) {
     throw new Error(
-      `MEDIA_ENCRYPTION_KEY precisa ter ${TAMANHO_CHAVE} bytes em base64 (tem ${key.length}).`,
+      `MEDIA_ENCRYPTION_KEY precisa ter ${KEY_SIZE} bytes em base64 (tem ${key.length}).`,
     );
   }
 
@@ -50,8 +50,8 @@ export function parseKey(raw: string | undefined): Buffer {
 
 /** IV novo a cada chamada: reusar IV com a mesma chave quebra o GCM. */
 export function encrypt(plaintext: Buffer, key: Buffer): Encrypted {
-  const iv = randomBytes(TAMANHO_IV);
-  const cipher = createCipheriv(ALGORITMO, key, iv);
+  const iv = randomBytes(IV_SIZE);
+  const cipher = createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
 
   return {
@@ -63,15 +63,50 @@ export function encrypt(plaintext: Buffer, key: Buffer): Encrypted {
 
 /** Lança se a etiqueta não bater — isto é, se alguém mexeu no texto cifrado. */
 export function decrypt(data: Encrypted, key: Buffer): Buffer {
-  const decipher = createDecipheriv(ALGORITMO, key, Buffer.from(data.iv, "base64"));
+  const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(data.iv, "base64"));
   decipher.setAuthTag(Buffer.from(data.authTag, "base64"));
   return Buffer.concat([decipher.update(Buffer.from(data.cipher, "base64")), decipher.final()]);
+}
+
+const TAG_SIZE = 16;
+
+/** IV mais etiqueta: o que o envelope acrescenta ao tamanho do arquivo. */
+export const ENVELOPE_SIZE = IV_SIZE + TAG_SIZE;
+
+/**
+ * O mesmo AES-256-GCM, num binário só: `iv ‖ etiqueta ‖ texto cifrado`.
+ *
+ * Existe ao lado de `encrypt` porque o destino é outro. Nas colunas do banco os
+ * três pedaços cabem em três campos de texto; num objeto de bucket não há três
+ * campos — e pendurar o IV e a etiqueta nos metadados do S3 seria pior do que
+ * parece: metadado não é coberto pela etiqueta, some numa cópia entre buckets e
+ * aparece em log de ferramenta. Dentro do corpo, o objeto é autossuficiente:
+ * ou abre inteiro, ou não abre.
+ */
+export function encryptToEnvelope(plaintext: Buffer, key: Buffer): Buffer {
+  const iv = randomBytes(IV_SIZE);
+  const cipher = createCipheriv(ALGORITHM, key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  return Buffer.concat([iv, cipher.getAuthTag(), encrypted]);
+}
+
+/** Lança se a etiqueta não bater, ou se o envelope for curto demais para ter uma. */
+export function decryptEnvelope(envelope: Buffer, key: Buffer): Buffer {
+  if (envelope.length <= ENVELOPE_SIZE) {
+    throw new Error("Envelope cifrado truncado: não cabe IV, etiqueta e conteúdo.");
+  }
+
+  const iv = envelope.subarray(0, IV_SIZE);
+  const tag = envelope.subarray(IV_SIZE, ENVELOPE_SIZE);
+  const decipher = createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(envelope.subarray(ENVELOPE_SIZE)), decipher.final()]);
 }
 
 /** Tamanho máximo aceito de foto. Acima disso é engano ou abuso. */
 export const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
 
-const TIPOS_ACEITOS = ["image/jpeg", "image/png", "image/webp"] as const;
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
 /**
  * Lê o `data:` que a câmera produz.
@@ -84,7 +119,7 @@ export function parseDataUrl(value: string): { bytes: Buffer; contentType: strin
   if (!match) throw new Error("Formato de imagem não reconhecido.");
 
   const [, contentType, base64] = match as unknown as [string, string, string];
-  if (!(TIPOS_ACEITOS as readonly string[]).includes(contentType)) {
+  if (!(ACCEPTED_TYPES as readonly string[]).includes(contentType)) {
     throw new Error("A foto precisa ser JPEG, PNG ou WebP.");
   }
 
