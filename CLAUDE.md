@@ -320,6 +320,14 @@ reconhecimento facial na entrada); **cada leitura vira evento `foto_aberta`**
 (§13.3 pede registro de leitura em documento sensível); e **revogar apaga**,
 mantendo só o registro de que houve consentimento e de que ele foi revogado.
 
+**O sentido da passagem é do portão, nunca de um botão.** `/portaria?sentido=entrada`
+e `?sentido=saida` são dois quiosques — uma câmera em cada portão, que é o
+desenho certo. Sem o parâmetro, o serviço alterna a partir da última passagem
+do dia. A alternância tem um defeito que a câmera dupla resolve e ela não:
+releitura na fila viraria "saiu da escola". Por isso **duas leituras do mesmo
+aluno em menos de um minuto são a mesma passagem**, independentemente do
+sentido — ninguém entra na escola e sai dela em cinquenta segundos.
+
 **A portaria é um fato à parte da chamada.** `school_entry` guarda a passagem
 no portão — aluno, horário, direção e método (`rosto`, `carteirinha`,
 `manual`). O professor vê "entrou às 7h12" ao lado do nome e continua sendo

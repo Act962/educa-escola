@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@educa-escola/ui/components/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@educa-escola/ui/components/sheet";
 import {
   Table,
   TableBody,
@@ -24,9 +25,10 @@ import { initialsOf } from "@educa-escola/ui/lib/initials";
 import { cn } from "@educa-escola/ui/lib/utils";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ScanFace, Search } from "lucide-react";
 import { useState } from "react";
 
+import { IdentificacaoFacial } from "@/components/identificacao-facial";
 import { inteiro, percentualCurto, situacaoMatricula, turno } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
@@ -77,6 +79,8 @@ function Alunos() {
   const [shift, setShift] = useState<Turno>(TODAS);
   const [atRisk, setAtRisk] = useState(false);
   const [page, setPage] = useState(0);
+  /** O aluno cujo painel de identificação está aberto. */
+  const [rosto, setRosto] = useState<{ id: string; nome: string } | null>(null);
 
   /**
    * Todo filtro volta para a primeira página.
@@ -219,6 +223,7 @@ function Alunos() {
                 <TableHead>Responsável</TableHead>
                 <TableHead className="text-right">Frequência</TableHead>
                 <TableHead className="text-right">Situação</TableHead>
+                <TableHead className="text-right">Rosto</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -263,6 +268,23 @@ function Alunos() {
                         <Badge variant={situacao.tone}>{situacao.label}</Badge>
                       )}
                     </TableCell>
+                    {/*
+                      O painel abre aqui, e não numa página do aluno: a
+                      secretaria recadastra rosto em lote, um atrás do outro,
+                      e navegar para ir e voltar a cada criança é o que faz
+                      esse trabalho não ser feito.
+                    */}
+                    <TableCell className="text-right">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="min-h-8 px-3 text-meta"
+                        onClick={() => setRosto({ id: aluno.id, nome: aluno.name })}
+                      >
+                        <ScanFace size={16} strokeWidth={1.7} aria-hidden />
+                        Rosto
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -304,6 +326,21 @@ function Alunos() {
           </div>
         ) : null}
       </Card>
+
+      {/*
+        `IdentificacaoFacial` é o mesmo painel da matrícula — consentimento,
+        captura, cadastro do molde e revogação. Ele já é o CRUD do rosto; o que
+        faltava era a secretaria alcançá-lo sem passar pela ficha de matrícula,
+        que é onde ele nasceu.
+      */}
+      <Sheet open={!!rosto} onOpenChange={(aberto) => !aberto && setRosto(null)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>{rosto?.nome}</SheetTitle>
+          </SheetHeader>
+          {rosto ? <IdentificacaoFacial studentId={rosto.id} /> : null}
+        </SheetContent>
+      </Sheet>
     </>
   );
 }

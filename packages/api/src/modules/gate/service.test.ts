@@ -196,7 +196,12 @@ describe("registrar", () => {
     expect(gravadas).toHaveLength(0);
   });
 
-  it("a saída logo depois da entrada é gravada, porque é outra direção", async () => {
+  /**
+   * Ninguém entra na escola e sai dela em cinco segundos. Uma segunda leitura
+   * tão perto é a fila do portão, e gravá-la como saída faria a lista de quem
+   * está dentro mentir.
+   */
+  it("a leitura logo depois da entrada não vira saída, nem com sentido declarado", async () => {
     const gravadas: unknown[] = [];
     const s = servico({
       repo: {
@@ -211,8 +216,30 @@ describe("registrar", () => {
       },
     });
 
-    await s.registrar({ studentId: "a1", direction: "saida", method: "carteirinha" });
-    expect(gravadas).toHaveLength(1);
+    const saida = await s.registrar({ studentId: "a1", direction: "saida", method: "carteirinha" });
+
+    expect(saida.repetida).toBe(true);
+    expect(gravadas).toHaveLength(0);
+  });
+
+  /** Passada a janela, a saída é saída de verdade. */
+  it("a saída no fim do turno é gravada", async () => {
+    const gravadas: { direction: string }[] = [];
+    const s = servico({
+      repo: {
+        lastEntryOf: async () => ({
+          direction: "entrada" as const,
+          occurredAt: new Date(AGORA.getTime() - 4 * 3_600_000),
+        }),
+        recordEntry: async (data) => {
+          gravadas.push(data);
+          return { id: "e1", occurredAt: data.occurredAt };
+        },
+      },
+    });
+
+    await s.registrar({ studentId: "a1", method: "rosto" });
+    expect(gravadas[0]?.direction).toBe("saida");
   });
 
   it("aluno com matrícula inativa não passa, e a mensagem diz o que fazer", async () => {
@@ -280,5 +307,79 @@ describe("cadastrarMolde", () => {
       s.cadastrarMolde({ studentId: "a1", descritor: [0, 1], extractor: "ext-a" }),
     ).rejects.toThrow(/MEDIA_ENCRYPTION_KEY/);
     expect(gravados).toHaveLength(0);
+  });
+});
+
+/**
+ * Ninguém na portaria aperta botão de sentido. Câmera de entrada e câmera de
+ * saída é o desenho certo; onde houver só uma, o sentido alterna.
+ */
+describe("sentido da passagem", () => {
+  const comUltima = (
+    ultima: { direction: "entrada" | "saida"; minutosAtras: number } | null,
+    gravadas: { direction: string }[],
+  ): Partial<GateRepository> => ({
+    lastEntryOf: async () =>
+      ultima
+        ? {
+            direction: ultima.direction,
+            occurredAt: new Date(AGORA.getTime() - ultima.minutosAtras * 60_000),
+          }
+        : null,
+    recordEntry: async (data) => {
+      gravadas.push(data);
+      return { id: "e1", occurredAt: data.occurredAt };
+    },
+  });
+
+  it("sem passagem hoje, a primeira leitura é entrada", async () => {
+    const gravadas: { direction: string }[] = [];
+    const s = servico({ repo: comUltima(null, gravadas) });
+
+    const saida = await s.registrar({ studentId: "a1", method: "rosto" });
+
+    expect(saida.direction).toBe("entrada");
+    expect(gravadas[0]?.direction).toBe("entrada");
+  });
+
+  it("depois de entrar, a próxima é saída", async () => {
+    const gravadas: { direction: string }[] = [];
+    const s = servico({ repo: comUltima({ direction: "entrada", minutosAtras: 240 }, gravadas) });
+
+    expect((await s.registrar({ studentId: "a1", method: "rosto" })).direction).toBe("saida");
+  });
+
+  it("depois de sair, entra de novo", async () => {
+    const gravadas: { direction: string }[] = [];
+    const s = servico({ repo: comUltima({ direction: "saida", minutosAtras: 60 }, gravadas) });
+
+    expect((await s.registrar({ studentId: "a1", method: "rosto" })).direction).toBe("entrada");
+  });
+
+  /**
+   * O portão que declara sentido tem a palavra final. É o que a câmera dupla
+   * resolve e a alternância não: releitura na fila viraria "saiu da escola".
+   */
+  it("o sentido declarado pelo portão vence a alternância", async () => {
+    const gravadas: { direction: string }[] = [];
+    const s = servico({ repo: comUltima({ direction: "entrada", minutosAtras: 240 }, gravadas) });
+
+    const saida = await s.registrar({ studentId: "a1", direction: "entrada", method: "rosto" });
+
+    expect(saida.direction).toBe("entrada");
+    expect(gravadas[0]?.direction).toBe("entrada");
+  });
+
+  /** A fila relê a mesma pessoa. Dentro de um minuto, nada é gravado. */
+  it("a releitura imediata não vira saída", async () => {
+    const gravadas: { direction: string }[] = [];
+    const s = servico({ repo: comUltima({ direction: "entrada", minutosAtras: 0.2 }, gravadas) });
+
+    const saida = await s.registrar({ studentId: "a1", method: "rosto" });
+
+    // A alternância diria "saida"; a janela impede que isso vire linha no
+    // banco. É a diferença entre a fila do portão e o aluno ter ido embora.
+    expect(gravadas).toHaveLength(0);
+    expect(saida.repetida).toBe(true);
   });
 });

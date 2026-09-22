@@ -21,7 +21,14 @@ export const porMatriculaInput = z.object({
 
 export const registrarInput = z.object({
   studentId: z.string().min(1),
-  direction: z.enum(["entrada", "saida"]),
+  /**
+   * Ausente quando o portão não declara sentido.
+   *
+   * Câmera de entrada e câmera de saída é o desenho certo, e aí cada uma manda
+   * o seu sentido. Onde houver só uma, o serviço alterna a partir da última
+   * passagem do dia — ninguém na portaria vai apertar botão.
+   */
+  direction: z.enum(["entrada", "saida"]).optional(),
   method: z.enum(["rosto", "carteirinha", "manual"]),
   /** Qual tablet. Texto livre porque quem nomeia é a escola. */
   deviceLabel: z.string().trim().max(60).nullable().optional(),

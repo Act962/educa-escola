@@ -27,6 +27,14 @@ export interface DepsDaPortaria {
 export const VALIDADE_DO_LOTE_MS = 10 * 60 * 1000;
 
 /**
+ * Duas leituras do mesmo aluno dentro desta janela são a mesma passagem.
+ *
+ * Um minuto porque é o que cobre a fila do portão sem cobrir uma ida e volta
+ * de verdade: ninguém entra na escola e sai dela em cinquenta segundos.
+ */
+export const JANELA_DE_RELEITURA_MS = 60_000;
+
+/**
  * A portaria.
  *
  * Duas regras atravessam tudo aqui. **Passagem não é chamada** — o registro
@@ -137,11 +145,19 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
     /**
      * Grava a passagem.
      *
-     * A direção é conferida contra a última passagem do dia: duas entradas
-     * seguidas quase sempre são o mesmo aluno lido duas vezes na fila, e
-     * gravar as duas estragaria a conta de quem está dentro. A segunda leitura
-     * dentro de um minuto é ignorada em silêncio — a tela mostra o cartão do
-     * mesmo jeito, porque para quem está no portão nada deu errado.
+     * **O sentido é do portão, não de um botão.** Câmera de entrada manda
+     * `entrada`, câmera de saída manda `saida`. Onde houver só uma câmera, o
+     * sentido vem da alternância: sem passagem hoje, entrou; a anterior foi
+     * entrada, agora é saída; foi saída, entrou de novo.
+     *
+     * A alternância tem um defeito que a câmera dupla resolve e ela não: uma
+     * releitura minutos depois da chegada vira "saiu da escola". A janela de
+     * repetição abaixo cobre a fila; acima dela, quem garante é ter as duas
+     * câmeras.
+     *
+     * A segunda leitura igual dentro de um minuto é ignorada em silêncio — a
+     * tela mostra o cartão do mesmo jeito, porque para quem está no portão
+     * nada deu errado.
      */
     async registrar(input: RegistrarInput & { deviceLabel?: string | null }) {
       const aluno = await repo.findStudent(input.studentId);
@@ -155,14 +171,26 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
 
       const agora = deps.now();
       const ultima = await repo.lastEntryOf(input.studentId, inicioDoDia());
+      const direcao = input.direction ?? (ultima?.direction === "entrada" ? "saida" : "entrada");
+
+      /*
+       * Duas leituras do mesmo aluno em menos de um minuto são a fila, não uma
+       * ida e volta: ninguém entra na escola e sai dela em cinquenta segundos.
+       *
+       * A regra ignora o sentido de propósito. A primeira versão comparava com
+       * `ultima.direction`, e na alternância isso nunca batia — porque ali o
+       * sentido já vem invertido por construção. O resultado era o pior caso
+       * possível: releitura na fila gravada como "saiu da escola", e a lista
+       * de quem está dentro mentindo justamente no dia em que alguém precisar
+       * dela.
+       */
       const repetida =
-        ultima?.direction === input.direction &&
-        agora.getTime() - ultima.occurredAt.getTime() < 60_000;
+        !!ultima && agora.getTime() - ultima.occurredAt.getTime() < JANELA_DE_RELEITURA_MS;
 
       if (!repetida) {
         await repo.recordEntry({
           studentId: input.studentId,
-          direction: input.direction,
+          direction: direcao,
           method: input.method,
           operatorUserId: deps.actor.userId,
           deviceLabel: input.deviceLabel ?? null,
@@ -172,7 +200,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
 
       return {
         aluno,
-        direction: input.direction,
+        direction: direcao,
         method: input.method,
         occurredAt: agora,
         /** `true` quando a leitura foi ignorada por repetição. */

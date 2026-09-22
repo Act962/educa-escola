@@ -36,6 +36,16 @@ export interface ExtratorDeRosto {
   /** Carrega o modelo. Chamado uma vez, na abertura do quiosque. */
   preparar(): Promise<void>;
   /**
+   * Há alguém na frente da câmera?
+   *
+   * É o sensor que acorda a portaria, e existe separado de `extrair` porque
+   * custa uma fração dele: aqui roda só o detector, e não os pontos do rosto
+   * nem a rede que gera o descritor. Numa portaria vazia — que é o estado
+   * quase o tempo todo — é a diferença entre o tablet esquentando à toa e o
+   * tablet esperando quieto.
+   */
+  temRosto(quadro: HTMLVideoElement): Promise<boolean>;
+  /**
    * Os códigos do rosto que estiver no quadro, ou `null` se não houver rosto.
    *
    * `null` é resposta legítima e frequente: a maior parte dos quadros de uma
@@ -54,6 +64,7 @@ export const EXTRATOR_AUSENTE: ExtratorDeRosto = {
   nome: "nenhum",
   disponivel: false,
   preparar: async () => undefined,
+  temRosto: async () => false,
   extrair: async () => null,
 };
 
@@ -89,6 +100,14 @@ async function carregar(): Promise<FaceApi | null> {
   return carregando;
 }
 
+/**
+ * Vídeo sem quadro ainda: `readyState` baixo devolveria tensor vazio e a
+ * biblioteca estouraria dentro do laço da câmera.
+ */
+function quadroPronto(quadro: HTMLVideoElement): boolean {
+  return quadro.readyState >= 2 && quadro.videoWidth > 0;
+}
+
 export const extratorDeRosto: ExtratorDeRosto = {
   nome: NOME_DO_EXTRATOR,
   disponivel: true,
@@ -97,11 +116,20 @@ export const extratorDeRosto: ExtratorDeRosto = {
     await carregar();
   },
 
+  async temRosto(quadro) {
+    const api = await carregar();
+    if (!api || !quadroPronto(quadro)) return false;
+
+    const achado = await api.detectSingleFace(
+      quadro,
+      new api.TinyFaceDetectorOptions({ scoreThreshold: CONFIANCA_MINIMA }),
+    );
+    return !!achado;
+  },
+
   async extrair(quadro) {
     const api = await carregar();
-    // Vídeo sem quadro ainda: `readyState` baixo devolveria tensor vazio e a
-    // biblioteca estouraria dentro do laço da câmera.
-    if (!api || quadro.readyState < 2 || quadro.videoWidth === 0) return null;
+    if (!api || !quadroPronto(quadro)) return null;
 
     const achado = await api
       .detectSingleFace(

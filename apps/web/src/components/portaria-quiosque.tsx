@@ -1,10 +1,7 @@
 import { identificar } from "@educa-escola/api/modules/gate/reconhecimento";
-import { Button } from "@educa-escola/ui/components/button";
-import { Input } from "@educa-escola/ui/components/input";
-import { SegmentedControl } from "@educa-escola/ui/integra/segmented";
 import { cn } from "@educa-escola/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CameraOff, Check, IdCard, ScanEye, TriangleAlert, UserRound, Users } from "lucide-react";
+import { CameraOff, Check, ScanFace, TriangleAlert, UserRound, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { extratorDeRosto, rostoDisponivel } from "@/lib/extrator-de-rosto";
@@ -19,8 +16,15 @@ interface Cartao {
   shift: string;
 }
 
+/**
+ * Os quatro estados do portão.
+ *
+ * `hibernando` é o estado normal: uma portaria passa quase o dia inteiro sem
+ * ninguém na frente. `lendo` só existe enquanto há rosto no quadro.
+ */
 type Estado =
-  | { tipo: "aguardando" }
+  | { tipo: "hibernando" }
+  | { tipo: "lendo" }
   | {
       tipo: "liberado";
       cartao: Cartao;
@@ -30,17 +34,35 @@ type Estado =
     }
   | { tipo: "recusado"; titulo: string; detalhe: string };
 
-/** Quanto tempo o resultado fica na tela antes de voltar ao repouso. */
+/** Quanto tempo o resultado fica na tela antes de voltar a hibernar. */
 const TEMPO_DO_CARTAO_MS = 4000;
 
 /**
- * Intervalo entre leituras da câmera.
+ * Intervalo do sensor de presença.
  *
- * A extração custa dezenas de milissegundos e segura a thread da tela. Ler a
- * cada quadro deixaria o vídeo travado — e vídeo travado numa portaria parece
- * defeito, mesmo quando o reconhecimento está funcionando.
+ * Meio segundo é imperceptível para quem chega andando e deixa o tablet
+ * quieto o resto do tempo. O sensor roda só o detector, que custa uma fração
+ * da extração.
  */
-const INTERVALO_DA_LEITURA_MS = 350;
+const INTERVALO_DO_SENSOR_MS = 500;
+
+/**
+ * Intervalo da leitura, com rosto já na frente.
+ *
+ * A extração segura a thread da tela por dezenas de milissegundos. Ler a cada
+ * quadro deixaria o vídeo travado — e vídeo travado numa portaria parece
+ * defeito, mesmo com o reconhecimento funcionando.
+ */
+const INTERVALO_DA_LEITURA_MS = 300;
+
+/**
+ * Quanto tempo insistir antes de desistir do rosto.
+ *
+ * Sem isso, quem não é reconhecido fica olhando a câmera para sempre. Seis
+ * segundos é o bastante para alguém se posicionar, e curto o bastante para a
+ * fila não parar.
+ */
+const PACIENCIA_MS = 6000;
 
 const hora = (d: Date) =>
   d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }).replace(":", "h");
@@ -48,56 +70,45 @@ const hora = (d: Date) =>
 /**
  * A portaria, em modo quiosque.
  *
- * O fluxo é o de catraca de academia: **ninguém toca em nada**. A câmera fica
- * ligada, o rosto é lido ao se aproximar, o cartão aparece por quatro segundos
- * e a tela volta ao repouso sozinha.
+ * **Ninguém toca em nada, e não há botão nenhum.** A tela hiberna com
+ * "Aproxime o rosto"; o sensor vê alguém e abre a câmera; o rosto é lido, o
+ * cartão aparece por quatro segundos e ela volta a hibernar.
  *
- * Duas regras que a tela cumpre e não negocia:
+ * O sentido da passagem é do portão, não de um botão: `sentido` vem da URL,
+ * para a câmera da entrada e a da saída serem dois quiosques. Sem ele, o
+ * servidor alterna a partir da última passagem do dia.
  *
- * - **A carteirinha é o modo que nunca falha.** Rosto não reconhecido, lote
- *   vencido, câmera negada, biblioteca ausente — todo caminho que dá errado
- *   termina pedindo o QR, nunca barrando a criança na porta.
- * - **A recusa não expõe ninguém.** "Não identificado" cobre rosto
- *   desconhecido e rosto ambíguo, e nunca diz "sua família não autorizou" na
- *   frente da fila.
+ * A carteirinha continua sendo a rede de segurança, e também sem ninguém
+ * digitar: o campo é invisível e mantém o foco, porque leitor de QR se
+ * comporta como teclado. Quem precisa dele é justamente quem a câmera não
+ * reconheceu.
  */
-export function PortariaQuiosque({ deviceLabel }: { deviceLabel: string }) {
+export function PortariaQuiosque({
+  deviceLabel,
+  sentido,
+}: {
+  deviceLabel: string;
+  sentido?: "entrada" | "saida";
+}) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const [estado, setEstado] = useState<Estado>({ tipo: "aguardando" });
+  const [estado, setEstado] = useState<Estado>({ tipo: "hibernando" });
   const [erroDaCamera, setErroDaCamera] = useState<string | null>(null);
-  const [matricula, setMatricula] = useState("");
-  /**
-   * Entrada ou saída, escolhido por quem abre o quiosque.
-   *
-   * Não é inferido da última passagem do aluno: uma releitura minutos depois
-   * da chegada viraria "saiu da escola", e aí a lista de quem está dentro
-   * passa a mentir justamente no dia em que alguém precisar dela. Portão de
-   * escola tem turno — entrada na chegada, saída na dispensa —, e quem sabe
-   * disso é a pessoa no portão.
-   */
-  const [direcao, setDirecao] = useState<"entrada" | "saida">("entrada");
   const [agora, setAgora] = useState(() => new Date());
-  /**
-   * Quanto custou a última leitura, em milissegundos.
-   *
-   * Fica na tela porque "está rápido?" não se responde por palpite: o custo é
-   * da extração e depende do tablet, não do nosso código. Com o número à
-   * vista, a escola compara aparelhos antes de comprar — e se estiver ruim, o
-   * caminho é reduzir a resolução do quadro, não trocar a arquitetura.
-   */
   const [msDaLeitura, setMsDaLeitura] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const leitorRef = useRef<HTMLInputElement>(null);
+  /** Quando o rosto apareceu. Alimenta a paciência antes de desistir. */
+  const desdeRef = useRef<number>(0);
 
   const situacao = useQuery({ ...trpc.gate.situacao.queryOptions(), refetchInterval: 30_000 });
 
   /**
    * O lote de moldes.
    *
-   * `refetchInterval` é o que faz uma revogação chegar ao portão: o servidor
-   * devolve `validoAte`, e a tela busca de novo antes de vencer. Nada disso é
-   * gravado em disco — recarregar a página busca tudo outra vez, e o tablet
-   * não fica com biometria de criança em repouso.
+   * Nada disso é gravado em disco — recarregar a página busca outra vez, e o
+   * tablet não fica com biometria de criança em repouso. O prazo do lote é o
+   * que faz uma revogação chegar ao portão.
    */
   const lote = useQuery({
     ...trpc.gate.lote.queryOptions(),
@@ -132,13 +143,13 @@ export function PortariaQuiosque({ deviceLabel }: { deviceLabel: string }) {
           setEstado({
             tipo: "recusado",
             titulo: "Carteirinha não reconhecida",
-            detalhe: "Confira o número ou chame a secretaria.",
+            detalhe: "Chame a secretaria.",
           });
           return;
         }
         registrar.mutate({
           studentId: saida.aluno.studentId,
-          direction: direcao,
+          direction: sentido,
           method: "carteirinha",
           deviceLabel,
         });
@@ -152,22 +163,21 @@ export function PortariaQuiosque({ deviceLabel }: { deviceLabel: string }) {
     return () => clearInterval(t);
   }, []);
 
-  /** Volta ao repouso sozinha: ninguém aperta "ok" numa catraca. */
-  useEffect(() => {
-    if (estado.tipo === "aguardando") return;
-    const t = setTimeout(() => setEstado({ tipo: "aguardando" }), TEMPO_DO_CARTAO_MS);
-    return () => clearTimeout(t);
-  }, [estado]);
-
   /*
-   * Carrega o modelo na abertura, não na primeira pessoa que chegar.
-   *
-   * São megabytes: pagar isso quando alguém já está na frente da câmera
-   * pareceria a portaria travada justo na hora de usar.
+   * Carrega o modelo na abertura, não na primeira pessoa que chegar. São
+   * megabytes: pagar isso com alguém já na frente da câmera pareceria a
+   * portaria travada justo na hora de usar.
    */
   useEffect(() => {
     if (rostoDisponivel()) void extratorDeRosto.preparar();
   }, []);
+
+  /** Volta a hibernar sozinha: ninguém aperta "ok" numa catraca. */
+  useEffect(() => {
+    if (estado.tipo !== "liberado" && estado.tipo !== "recusado") return;
+    const t = setTimeout(() => setEstado({ tipo: "hibernando" }), TEMPO_DO_CARTAO_MS);
+    return () => clearTimeout(t);
+  }, [estado]);
 
   useEffect(() => {
     let stream: MediaStream | undefined;
@@ -188,49 +198,113 @@ export function PortariaQuiosque({ deviceLabel }: { deviceLabel: string }) {
     };
   }, []);
 
+  /**
+   * O foco vive no campo invisível da carteirinha.
+   *
+   * Leitor de QR é um teclado: ele "digita" o número e aperta Enter. Sem foco
+   * garantido, a leitura se perde — e ninguém na portaria vai clicar num campo
+   * antes de passar o crachá.
+   */
+  useEffect(() => {
+    const focar = () => leitorRef.current?.focus();
+    focar();
+    const t = setInterval(focar, 2000);
+    document.addEventListener("click", focar);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("click", focar);
+    };
+  }, []);
+
   const moldes = lote.data?.alunos ?? [];
   const loteVencido = lote.data ? new Date(lote.data.validoAte) < agora : false;
   const rostoLigado = rostoDisponivel() && !erroDaCamera && moldes.length > 0 && !loteVencido;
 
   /**
-   * O laço de leitura.
+   * O sensor de presença, que é o que acorda a portaria.
    *
-   * Roda enquanto a tela está em repouso e para assim que alguém é
-   * reconhecido: continuar lendo enquanto o cartão está na tela releria a
-   * mesma pessoa, que o servidor já descartaria por repetição — e gastaria
-   * processador do tablet à toa.
+   * Roda só enquanto a tela hiberna, e só o detector — não os pontos do rosto
+   * nem a rede do descritor. Numa portaria vazia, que é o estado quase o dia
+   * inteiro, é a diferença entre o tablet esquentando à toa e esperando
+   * quieto.
+   */
+  useEffect(() => {
+    if (!rostoLigado || estado.tipo !== "hibernando") return;
+
+    let vivo = true;
+    let ocupado = false;
+
+    const olhar = async () => {
+      if (!vivo || ocupado || !videoRef.current) return;
+      ocupado = true;
+      try {
+        if (await extratorDeRosto.temRosto(videoRef.current)) {
+          if (!vivo) return;
+          desdeRef.current = performance.now();
+          setEstado({ tipo: "lendo" });
+        }
+      } finally {
+        ocupado = false;
+      }
+    };
+
+    const t = setInterval(olhar, INTERVALO_DO_SENSOR_MS);
+    return () => {
+      vivo = false;
+      clearInterval(t);
+    };
+  }, [rostoLigado, estado.tipo]);
+
+  /**
+   * A leitura, com alguém já na frente da câmera.
    *
    * A comparação usa `identificar`, a **mesma** função do servidor. Duas
    * implementações do mesmo limiar divergiriam, e a divergência apareceria
    * como "no tablet abre, no servidor não".
    */
   useEffect(() => {
-    if (!rostoLigado || estado.tipo !== "aguardando" || registrar.isPending) return;
+    if (estado.tipo !== "lendo" || registrar.isPending) return;
 
     let vivo = true;
-    let emLeitura = false;
+    let ocupado = false;
 
     const ler = async () => {
-      if (!vivo || emLeitura || !videoRef.current) return;
-      emLeitura = true;
+      if (!vivo || ocupado || !videoRef.current) return;
+      ocupado = true;
       try {
         const comecou = performance.now();
         const descritor = await extratorDeRosto.extrair(videoRef.current);
         if (!vivo) return;
         setMsDaLeitura(Math.round(performance.now() - comecou));
-        if (!descritor) return;
 
-        const veredito = identificar(descritor, moldes);
-        if (veredito.tipo !== "reconhecido") return;
+        if (descritor) {
+          const veredito = identificar(descritor, moldes);
+          if (veredito.tipo === "reconhecido") {
+            registrar.mutate({
+              studentId: veredito.studentId,
+              direction: sentido,
+              method: "rosto",
+              deviceLabel,
+            });
+            return;
+          }
+        }
 
-        registrar.mutate({
-          studentId: veredito.studentId,
-          direction: direcao,
-          method: "rosto",
-          deviceLabel,
-        });
+        // Desistiu: ou ninguém foi reconhecido, ou a pessoa saiu da frente.
+        // A carteirinha resolve, e insistir para sempre pararia a fila.
+        if (performance.now() - desdeRef.current > PACIENCIA_MS) {
+          setEstado(
+            descritor
+              ? {
+                  tipo: "recusado",
+                  titulo: "Não identificado",
+                  detalhe: "Passe a carteirinha no leitor.",
+                }
+              : { tipo: "hibernando" },
+          );
+        }
       } finally {
-        emLeitura = false;
+        ocupado = false;
       }
     };
 
@@ -239,55 +313,40 @@ export function PortariaQuiosque({ deviceLabel }: { deviceLabel: string }) {
       vivo = false;
       clearInterval(t);
     };
-  }, [rostoLigado, estado.tipo, registrar, moldes, direcao, deviceLabel]);
+  }, [estado.tipo, registrar, moldes, sentido, deviceLabel]);
+
+  const acordada = estado.tipo !== "hibernando";
 
   return (
     <div className="flex min-h-svh flex-col gap-4 bg-kiosk p-4 sm:p-6">
+      {/*
+        Invisível e sempre em foco: leitor de QR se comporta como teclado, e
+        ninguém na portaria vai clicar num campo antes de passar o crachá.
+      */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const campo = leitorRef.current;
+          const valor = campo?.value.trim();
+          if (campo) campo.value = "";
+          if (valor) porMatricula.mutate({ registration: valor });
+        }}
+      >
+        <input
+          ref={leitorRef}
+          className="sr-only"
+          aria-label="Leitor de carteirinha"
+          autoComplete="off"
+        />
+      </form>
+
       <Palco
         estado={estado}
         videoRef={videoRef}
         erroDaCamera={erroDaCamera}
         rostoLigado={rostoLigado}
+        acordada={acordada}
       />
-
-      <SegmentedControl
-        label="O portão está registrando"
-        value={direcao}
-        onChange={setDirecao}
-        options={[
-          { value: "entrada", label: "Entrada", tone: "success" },
-          { value: "saida", label: "Saída", tone: "warning" },
-        ]}
-      />
-
-      {/*
-        A carteirinha fica sempre visível, e não escondida atrás de um botão
-        "não me reconheceu": quem precisa dela é justamente quem a tela acabou
-        de não reconhecer, e caçar botão na frente da fila é o que trava o
-        portão.
-      */}
-      <form
-        className="flex flex-wrap items-center gap-3 rounded-card bg-kiosk-soft p-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const valor = matricula.trim();
-          if (!valor) return;
-          porMatricula.mutate({ registration: valor });
-          setMatricula("");
-        }}
-      >
-        <IdCard size={26} strokeWidth={1.6} className="text-kiosk-foreground/60" aria-hidden />
-        <Input
-          value={matricula}
-          onChange={(e) => setMatricula(e.target.value)}
-          placeholder="Número da carteirinha"
-          aria-label="Número da carteirinha"
-          className="min-w-40 flex-1 bg-kiosk text-card text-kiosk-foreground"
-        />
-        <Button type="submit" disabled={porMatricula.isPending || registrar.isPending}>
-          Liberar
-        </Button>
-      </form>
 
       <footer className="flex flex-wrap items-center justify-between gap-3 rounded-card bg-kiosk-soft px-5 py-3 text-kiosk-foreground/70">
         <span className="flex items-center gap-2 text-card">
@@ -300,23 +359,28 @@ export function PortariaQuiosque({ deviceLabel }: { deviceLabel: string }) {
         {rostoLigado && msDaLeitura !== null ? (
           <span className="text-apoio tabular-nums">leitura em {msDaLeitura} ms</span>
         ) : null}
-        <span className="text-apoio">{deviceLabel}</span>
+        <span className="text-apoio">
+          {deviceLabel}
+          {sentido ? ` · ${sentido === "saida" ? "saída" : "entrada"}` : null}
+        </span>
       </footer>
     </div>
   );
 }
 
-/** O centro da tela: câmera em repouso, cartão do aluno, ou a recusa. */
+/** O centro da tela: hibernação, câmera aberta, cartão do aluno ou recusa. */
 function Palco({
   estado,
   videoRef,
   erroDaCamera,
   rostoLigado,
+  acordada,
 }: {
   estado: Estado;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   erroDaCamera: string | null;
   rostoLigado: boolean;
+  acordada: boolean;
 }) {
   const borda =
     estado.tipo === "liberado"
@@ -328,85 +392,94 @@ function Palco({
   return (
     <div
       className={cn(
-        "flex flex-1 flex-col items-center justify-center gap-6 rounded-card border-4 bg-kiosk-soft p-6 text-center sm:flex-row sm:text-left",
+        "flex flex-1 flex-col items-center justify-center gap-6 rounded-card border-4 bg-kiosk-soft p-6 text-center",
         borda,
       )}
     >
-      <div className="grid size-48 shrink-0 place-items-center overflow-hidden rounded-card bg-kiosk sm:size-56">
-        {estado.tipo === "liberado" ? (
-          // A foto cadastrada **não** aparece aqui: a tela fica ligada num
-          // corredor por onde passa qualquer um, e o nome já identifica quem
-          // a catraca liberou. Conferência com foto é tela da secretaria.
-          <UserRound size={78} strokeWidth={1.2} className="text-kiosk-foreground/70" aria-hidden />
-        ) : erroDaCamera ? (
-          <CameraOff size={54} strokeWidth={1.6} className="text-warning" aria-hidden />
-        ) : (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            aria-label="Imagem da câmera"
-            className="size-full object-cover"
-          >
-            <track kind="captions" />
-          </video>
+      {/*
+        O vídeo fica montado o tempo todo, mesmo hibernando: é dele que o
+        sensor lê. Desmontar exigiria reabrir a câmera a cada pessoa, e o
+        navegador leva quase um segundo nisso — tempo que a fila sente.
+      */}
+      <div
+        className={cn(
+          "grid shrink-0 place-items-center overflow-hidden rounded-card bg-kiosk transition-all",
+          acordada ? "size-64 sm:size-80" : "size-0 opacity-0",
         )}
+      >
+        {estado.tipo === "liberado" ? (
+          // A foto cadastrada **não** aparece aqui: a tela fica num corredor
+          // por onde passa qualquer um, e o nome já identifica quem passou.
+          <UserRound size={92} strokeWidth={1.2} className="text-kiosk-foreground/70" aria-hidden />
+        ) : null}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          aria-label="Imagem da câmera"
+          className={cn("size-full object-cover", estado.tipo === "liberado" && "hidden")}
+        >
+          <track kind="captions" />
+        </video>
       </div>
 
-      <div className="min-w-0">
-        {estado.tipo === "liberado" ? (
-          <>
-            <p className="font-bold text-card text-success uppercase tracking-[0.7px]">
-              {estado.direction === "saida" ? "Saída registrada" : "Entrada liberada"}
+      {estado.tipo === "liberado" ? (
+        <div>
+          <p className="font-bold text-card text-success uppercase tracking-[0.7px]">
+            {estado.direction === "saida" ? "Saída registrada" : "Entrada liberada"}
+          </p>
+          <p className="mt-1 break-words font-extrabold text-4xl text-kiosk-foreground">
+            {estado.cartao.name}
+          </p>
+          <p className="mt-2 text-card text-kiosk-foreground/70">
+            {[estado.cartao.classroomName, estado.cartao.shift, estado.cartao.registration]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+          <p className="mt-3 flex items-center justify-center gap-2 text-card text-success">
+            <Check size={20} strokeWidth={2.2} aria-hidden />
+            {hora(estado.hora)} · {estado.metodo}
+          </p>
+        </div>
+      ) : estado.tipo === "recusado" ? (
+        <div>
+          <p className="font-bold text-card text-warning uppercase tracking-[0.7px]">
+            <TriangleAlert
+              size={18}
+              strokeWidth={2}
+              aria-hidden
+              className="mr-2 inline align-[-3px]"
+            />
+            {estado.titulo}
+          </p>
+          <p className="mt-2 text-3xl text-kiosk-foreground">{estado.detalhe}</p>
+        </div>
+      ) : estado.tipo === "lendo" ? (
+        <p className="text-card text-kiosk-foreground/70">Lendo…</p>
+      ) : (
+        <div className="flex flex-col items-center gap-5">
+          {erroDaCamera ? (
+            <CameraOff size={58} strokeWidth={1.5} className="text-warning" aria-hidden />
+          ) : (
+            <ScanFace
+              size={72}
+              strokeWidth={1.2}
+              className="text-kiosk-foreground/40"
+              aria-hidden
+            />
+          )}
+          <p className="font-extrabold text-4xl text-kiosk-foreground sm:text-5xl">
+            {rostoLigado ? "Aproxime o rosto da tela" : "Passe a carteirinha no leitor"}
+          </p>
+          {erroDaCamera ? (
+            <p className="max-w-lg text-card text-kiosk-foreground/60">
+              A câmera não abriu. Em rede, o tablet precisa estar em HTTPS — a carteirinha continua
+              funcionando.
             </p>
-            <p className="mt-1 break-words font-extrabold text-3xl text-kiosk-foreground">
-              {estado.cartao.name}
-            </p>
-            <p className="mt-1 text-card text-kiosk-foreground/70">
-              {[estado.cartao.classroomName, estado.cartao.shift, estado.cartao.registration]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-            <p className="mt-3 flex items-center justify-center gap-2 text-card text-success sm:justify-start">
-              <Check size={20} strokeWidth={2.2} aria-hidden />
-              Registrado às {hora(estado.hora)} · {estado.metodo}
-            </p>
-          </>
-        ) : estado.tipo === "recusado" ? (
-          <>
-            <p className="font-bold text-card text-warning uppercase tracking-[0.7px]">
-              <TriangleAlert
-                size={18}
-                strokeWidth={2}
-                aria-hidden
-                className="mr-2 inline align-[-3px]"
-              />
-              {estado.titulo}
-            </p>
-            <p className="mt-2 text-2xl text-kiosk-foreground">{estado.detalhe}</p>
-          </>
-        ) : (
-          <>
-            <p className="font-extrabold text-3xl text-kiosk-foreground">
-              {rostoLigado ? "Aproxime o rosto" : "Encoste a carteirinha"}
-            </p>
-            <p className="mt-2 text-card text-kiosk-foreground/70">
-              {erroDaCamera
-                ? "A câmera não abriu. Em rede, o tablet precisa estar em HTTPS — a carteirinha continua funcionando."
-                : rostoLigado
-                  ? "ou encoste a carteirinha no leitor"
-                  : "o reconhecimento por rosto está indisponível agora"}
-            </p>
-            {rostoLigado ? (
-              <p className="mt-3 flex items-center justify-center gap-2 text-apoio text-kiosk-foreground/50 sm:justify-start">
-                <ScanEye size={17} strokeWidth={1.7} aria-hidden />
-                {extratorDeRosto.nome}
-              </p>
-            ) : null}
-          </>
-        )}
-      </div>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

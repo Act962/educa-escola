@@ -2,6 +2,7 @@ import { Card } from "@educa-escola/ui/components/card";
 import { PermissionState } from "@educa-escola/ui/integra/states";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { z } from "zod";
 
 import { PortariaQuiosque } from "@/components/portaria-quiosque";
 import { getUser } from "@/functions/get-user";
@@ -15,8 +16,20 @@ import { useTRPC } from "@/utils/trpc";
  * quiosque e entrar no sistema da escola. O que se vê é a câmera, o cartão de
  * quem passou e a caixa da carteirinha.
  */
+/**
+ * O sentido é do portão, e vem da URL.
+ *
+ * `/portaria?sentido=entrada` e `/portaria?sentido=saida` são dois quiosques —
+ * duas câmeras, cada uma no seu portão. Sem o parâmetro, o servidor alterna a
+ * partir da última passagem do dia, que serve para escola com uma câmera só.
+ */
+const busca = z.object({
+  sentido: z.enum(["entrada", "saida"]).optional(),
+});
+
 export const Route = createFileRoute("/portaria")({
   component: Portaria,
+  validateSearch: busca,
   beforeLoad: async () => {
     const session = await getUser();
     if (!session) throw redirect({ to: "/login" });
@@ -25,6 +38,7 @@ export const Route = createFileRoute("/portaria")({
 });
 
 function Portaria() {
+  const { sentido } = Route.useSearch();
   const trpc = useTRPC();
   const me = useQuery(trpc.me.queryOptions());
 
@@ -53,5 +67,5 @@ function Portaria() {
     );
   }
 
-  return <PortariaQuiosque deviceLabel={me.data.schoolName ?? "Portaria"} />;
+  return <PortariaQuiosque deviceLabel={me.data.schoolName ?? "Portaria"} sentido={sentido} />;
 }
