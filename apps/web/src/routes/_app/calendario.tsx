@@ -29,6 +29,7 @@ import { CalendarCheck, CalendarX, Download, Plus, TriangleAlert, X } from "luci
 import { useState } from "react";
 import { CalendarioMes } from "@/components/calendario-mes";
 import { CampoDeData } from "@/components/campo-de-data";
+import { PainelDoDia } from "@/components/painel-do-dia";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -72,6 +73,10 @@ function Calendario() {
    * outra.
    */
   const [visao, setVisao] = useState<"lista" | "calendario">("lista");
+  const [diaAberto, setDiaAberto] = useState<{
+    dia: string;
+    intencao: "ver" | "criar";
+  } | null>(null);
 
   const contagem = ano.data?.contagem;
 
@@ -182,6 +187,7 @@ function Calendario() {
                 eventos={ano.data?.eventos ?? []}
                 ano={year}
                 periodo={ano.data?.ano ?? null}
+                aoAbrirDia={(dia, intencao) => setDiaAberto({ dia, intencao })}
               />
             ) : ano.data?.eventos.length === 0 ? (
               <EmptyState
@@ -222,6 +228,23 @@ function Calendario() {
           </Card>
         </>
       )}
+
+      <PainelDoDia
+        dia={diaAberto?.dia ?? null}
+        intencao={diaAberto?.intencao ?? "ver"}
+        aberto={diaAberto !== null}
+        aoFechar={() => setDiaAberto(null)}
+        eventos={(ano.data?.eventos ?? []).filter(
+          (evento) =>
+            diaAberto !== null &&
+            evento.startsOn <= diaAberto.dia &&
+            evento.endsOn >= diaAberto.dia,
+        )}
+        aoCriar={(dados) => criar.mutate({ academicYear: year, ...dados })}
+        aoApagar={(id) => remover.mutate({ id })}
+        ocupado={criar.isPending || remover.isPending}
+        erro={criar.isError ? criar.error.message : null}
+      />
     </>
   );
 }
