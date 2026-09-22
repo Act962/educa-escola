@@ -50,6 +50,13 @@
       "when": 1790067453915,
       "tag": "0006_pontuacao",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790067560220,
+      "tag": "0007_ranking-escolas",
+      "breakpoints": true
     }
   ]
 }
