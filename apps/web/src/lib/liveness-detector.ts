@@ -55,15 +55,15 @@ export interface Verdict {
 }
 
 export interface LivenessDetector {
-  readonly disponivel: boolean;
+  readonly available: boolean;
   preparar(): Promise<void>;
   /** `null` quando não há rosto no quadro, ou quando o modelo não carregou. */
-  avaliar(quadro: Frame): Promise<Verdict | null>;
+  avaliar(frame: Frame): Promise<Verdict | null>;
 }
 
 /** Sem o modelo, a portaria recusa o rosto e pede a carteirinha. */
 export const MISSING_DETECTOR: LivenessDetector = {
-  disponivel: false,
+  available: false,
   preparar: async () => undefined,
   avaliar: async () => null,
 };
@@ -126,13 +126,13 @@ async function carregar(): Promise<Instancia | null> {
 }
 
 export const livenessDetector: LivenessDetector = {
-  disponivel: true,
+  available: true,
 
   async preparar() {
     await carregar();
   },
 
-  async avaliar(quadro) {
+  async avaliar(frame) {
     const human = await carregar();
     if (!human) return null;
 
@@ -144,7 +144,7 @@ export const livenessDetector: LivenessDetector = {
      * é o caminho que nunca falha.
      */
     const saida = await Promise.race([
-      human.detect(quadro as HTMLVideoElement),
+      human.detect(frame as HTMLVideoElement),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), LIVENESS_TIMEOUT_MS)),
     ]);
     if (!saida) return { real: 0, vivo: 0, aprovado: false };
@@ -160,4 +160,4 @@ export const livenessDetector: LivenessDetector = {
   },
 };
 
-export const livenessAvailable = (): boolean => livenessDetector.disponivel;
+export const livenessAvailable = (): boolean => livenessDetector.available;

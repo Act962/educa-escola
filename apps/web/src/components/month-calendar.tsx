@@ -43,14 +43,14 @@ function inicioDoMes(iso: string): string {
 }
 
 function partes(iso: string) {
-  const [ano, mes, dia] = iso.split("-").map(Number);
-  return { ano: ano ?? 1970, mes: mes ?? 1, dia: dia ?? 1 };
+  const [year, mes, day] = iso.split("-").map(Number);
+  return { year: year ?? 1970, mes: mes ?? 1, day: day ?? 1 };
 }
 
 /** Dia da semana (0 domingo). Meio-dia UTC: o dia nunca vira por fuso. */
 function diaDaSemana(iso: string): number {
-  const { ano, mes, dia } = partes(iso);
-  return new Date(Date.UTC(ano, mes - 1, dia, 12)).getUTCDay();
+  const { year, mes, day } = partes(iso);
+  return new Date(Date.UTC(year, mes - 1, day, 12)).getUTCDay();
 }
 
 /**
@@ -61,8 +61,8 @@ function diaDaSemana(iso: string): number {
  */
 export function monthCells(mes: string): string[] {
   const primeiro = inicioDoMes(mes);
-  const inicio = addDays(primeiro, -diaDaSemana(primeiro));
-  return Array.from({ length: 42 }, (_, i) => addDays(inicio, i));
+  const start = addDays(primeiro, -diaDaSemana(primeiro));
+  return Array.from({ length: 42 }, (_, i) => addDays(start, i));
 }
 
 /**
@@ -72,19 +72,19 @@ export function monthCells(mes: string): string[] {
  * cada célula, e não só na primeira: um recesso de duas semanas que só marca
  * a segunda-feira faz a escola achar que tem aula na terça.
  */
-export function eventsByDay(eventos: CalendarEntry[]): Map<string, CalendarEntry[]> {
+export function eventsByDay(events: CalendarEntry[]): Map<string, CalendarEntry[]> {
   const mapa = new Map<string, CalendarEntry[]>();
 
-  for (const evento of eventos) {
-    let dia = evento.startsOn;
+  for (const evento of events) {
+    let day = evento.startsOn;
     // Guarda contra intervalo invertido: sem ele, um `endsOn` anterior ao
     // `startsOn` giraria para sempre e travaria a aba.
     let volta = 0;
-    while (dia <= evento.endsOn && volta < 400) {
-      const doDia = mapa.get(dia);
+    while (day <= evento.endsOn && volta < 400) {
+      const doDia = mapa.get(day);
       if (doDia) doDia.push(evento);
-      else mapa.set(dia, [evento]);
-      dia = addDays(dia, 1);
+      else mapa.set(day, [evento]);
+      day = addDays(day, 1);
       volta += 1;
     }
   }
@@ -100,16 +100,16 @@ export function eventsByDay(eventos: CalendarEntry[]): Map<string, CalendarEntry
  * de quem monta prova e reunião.
  */
 export function MonthCalendar({
-  eventos,
-  ano,
-  periodo,
-  aoAbrirDia,
-  turmaEmFoco = null,
+  events,
+  year,
+  period,
+  onOpenDay,
+  focusedClassroom = null,
 }: {
-  eventos: CalendarEntry[];
-  ano: number;
+  events: CalendarEntry[];
+  year: number;
   /** Fora do período letivo a célula fica apagada. */
-  periodo: { startsOn: string; endsOn: string } | null;
+  period: { startsOn: string; endsOn: string } | null;
   /**
    * A turma que a tela está filtrando, quando há uma.
    *
@@ -118,7 +118,7 @@ export function MonthCalendar({
    * grade da escola apareceria com o dia bloqueado por causa de uma turma — a
    * mesma mentira que a contagem de dias letivos evita do lado do servidor.
    */
-  turmaEmFoco?: string | null;
+  focusedClassroom?: string | null;
   /**
    * Abre o painel do dia.
    *
@@ -127,18 +127,18 @@ export function MonthCalendar({
    * é o mesmo — muda só onde o foco cai, porque dois painéis diferentes para
    * cliques a milímetros um do outro erram com o mouse.
    */
-  aoAbrirDia?: (dia: string, intencao: "ver" | "criar") => void;
+  onOpenDay?: (day: string, intencao: "ver" | "criar") => void;
 }) {
   const hoje = new Date().toISOString().slice(0, 10);
   const [mes, setMes] = useState(() =>
     // Abre no mês corrente quando ele é do ano letivo; senão, em fevereiro,
     // que é onde o ano letivo brasileiro começa.
-    hoje.startsWith(String(ano)) ? inicioDoMes(hoje) : `${ano}-02-01`,
+    hoje.startsWith(String(year)) ? inicioDoMes(hoje) : `${year}-02-01`,
   );
 
   const celulas = useMemo(() => monthCells(mes), [mes]);
-  const porDia = useMemo(() => eventsByDay(eventos), [eventos]);
-  const { ano: anoDoCursor, mes: mesDoCursor } = partes(mes);
+  const porDia = useMemo(() => eventsByDay(events), [events]);
+  const { year: anoDoCursor, mes: mesDoCursor } = partes(mes);
 
   return (
     <div className="flex flex-col gap-3">
@@ -177,40 +177,39 @@ export function MonthCalendar({
       </div>
 
       <div className="grid grid-cols-7 gap-1">
-        {DIAS_DA_SEMANA.map((dia) => (
+        {DIAS_DA_SEMANA.map((day) => (
           <div
-            key={dia}
+            key={day}
             className="py-1 text-center font-bold text-muted-foreground text-rotulo uppercase tracking-wide"
           >
-            {dia}
+            {day}
           </div>
         ))}
 
-        {celulas.map((dia) => {
-          const doDia = porDia.get(dia) ?? [];
-          const doMes = dia.slice(0, 7) === mes.slice(0, 7);
-          const ehHoje = dia === hoje;
-          const foraDoPeriodo =
-            periodo !== null && (dia < periodo.startsOn || dia > periodo.endsOn);
+        {celulas.map((day) => {
+          const doDia = porDia.get(day) ?? [];
+          const doMes = day.slice(0, 7) === mes.slice(0, 7);
+          const ehHoje = day === hoje;
+          const outsidePeriod = period !== null && (day < period.startsOn || day > period.endsOn);
           const naoLetivo = doDia.some(
             (e) =>
               e.dayEffect === "nao_letivo" &&
-              (e.classroomId === null || e.classroomId === turmaEmFoco),
+              (e.classroomId === null || e.classroomId === focusedClassroom),
           );
           const sobra = doDia.length - MAX_VISIVEL;
 
-          const porExtenso = `${Number(dia.slice(8))} de ${MESES[Number(dia.slice(5, 7)) - 1]}`;
+          const porExtenso = `${Number(day.slice(8))} de ${MESES[Number(day.slice(5, 7)) - 1]}`;
 
           return (
             <div
-              key={dia}
+              key={day}
               className={[
                 "relative flex min-h-24 flex-col gap-1 rounded-field p-1.5",
                 doMes ? "bg-muted" : "bg-transparent",
                 // Dia não letivo ganha o mesmo âmbar do aviso de pendência:
                 // a escola lê "aqui não tem aula" sem precisar da legenda.
                 naoLetivo && doMes ? "bg-warning-soft" : "",
-                foraDoPeriodo ? "opacity-40" : "",
+                outsidePeriod ? "opacity-40" : "",
               ].join(" ")}
             >
               {/*
@@ -219,35 +218,35 @@ export function MonthCalendar({
                 que é HTML inválido e faz o clique da etiqueta sumir para o
                 leitor de tela.
               */}
-              {aoAbrirDia && !foraDoPeriodo ? (
+              {onOpenDay && !outsidePeriod ? (
                 <button
                   type="button"
                   aria-label={`Criar evento em ${porExtenso}`}
                   className="absolute inset-0 rounded-field focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-                  onClick={() => aoAbrirDia(dia, "criar")}
+                  onClick={() => onOpenDay(day, "criar")}
                 />
               ) : null}
 
               <button
                 type="button"
                 aria-label={`Ver ${porExtenso}`}
-                onClick={() => aoAbrirDia?.(dia, "ver")}
-                disabled={!aoAbrirDia}
+                onClick={() => onOpenDay?.(day, "ver")}
+                disabled={!onOpenDay}
                 className={[
                   "relative flex size-5 shrink-0 items-center justify-center rounded-full font-bold text-meta tabular-nums",
                   ehHoje ? "bg-primary text-primary-foreground" : "",
                   doMes ? "text-foreground" : "text-muted-foreground",
                 ].join(" ")}
               >
-                {Number(dia.slice(8))}
+                {Number(day.slice(8))}
               </button>
 
               {doDia.slice(0, MAX_VISIVEL).map((evento) => (
                 <button
                   type="button"
-                  key={`${dia}-${evento.id}`}
-                  onClick={() => aoAbrirDia?.(dia, "ver")}
-                  disabled={!aoAbrirDia}
+                  key={`${day}-${evento.id}`}
+                  onClick={() => onOpenDay?.(day, "ver")}
+                  disabled={!onOpenDay}
                   title={[
                     evento.title,
                     EVENT_TYPE_LABEL[evento.type as EventType] ?? evento.type,
@@ -275,8 +274,8 @@ export function MonthCalendar({
               {sobra > 0 ? (
                 <button
                   type="button"
-                  onClick={() => aoAbrirDia?.(dia, "ver")}
-                  disabled={!aoAbrirDia}
+                  onClick={() => onOpenDay?.(day, "ver")}
+                  disabled={!onOpenDay}
                   className="relative px-1.5 text-left font-bold text-muted-foreground text-rotulo"
                 >
                   +{sobra}

@@ -24,7 +24,7 @@ const JPEG = `data:image/jpeg;base64,${Buffer.from("bytes de uma foto").toString
 type Tx = Parameters<Parameters<typeof withRollback>[0]>[0];
 
 /** Cria escola, turma, matrícula ativa e devolve os dois services prontos. */
-async function cenario(tx: Tx, opcoes: { semChave?: boolean } = {}) {
+async function cenario(tx: Tx, opcoes: { withoutKey?: boolean } = {}) {
   const escola = await createTestSchool(tx);
   const turma = await createTestClassroom(tx, escola.id, "6º A", ANO);
   const operador = await createTestUser(tx);
@@ -53,15 +53,15 @@ async function cenario(tx: Tx, opcoes: { semChave?: boolean } = {}) {
   });
   await matriculas.confirm({ id: criada.id });
 
-  const detalhe = await matriculas.get(criada.id);
+  const detail = await matriculas.get(criada.id);
   // Portaria de verdade, e não dublê: revogar precisa apagar o molde no mesmo
   // gesto, e é esse acoplamento que o teste existe para provar.
   const faces = createGateRepository(tx, tenant);
   const photos = createPhotoService(createPhotoRepository(tx, tenant), enrollments, {
     now: () => new Date("2026-09-21T12:00:00Z"),
-    encryptionKey: opcoes.semChave ? undefined : CHAVE,
+    encryptionKey: opcoes.withoutKey ? undefined : CHAVE,
     actor: { userId: operador.id },
-    apagarMoldeFacial: (studentId) => faces.deleteTemplate(studentId),
+    deleteFaceTemplate: (studentId) => faces.deleteTemplate(studentId),
   });
 
   return {
@@ -70,7 +70,7 @@ async function cenario(tx: Tx, opcoes: { semChave?: boolean } = {}) {
     faces,
     enrollments,
     enrollmentId: criada.id,
-    studentId: detalhe.enrollment.studentId,
+    studentId: detail.enrollment.studentId,
     tenant,
   };
 }
@@ -145,7 +145,7 @@ describe("createPhotoService", () => {
 
   it("sem a chave, falha antes de escrever qualquer coisa", async () => {
     await withRollback(async (tx) => {
-      const { photos, studentId, enrollmentId, escola } = await cenario(tx, { semChave: true });
+      const { photos, studentId, enrollmentId, escola } = await cenario(tx, { withoutKey: true });
       await autorizar(tx, escola.id, enrollmentId);
 
       await expect(photos.save({ studentId, dataUrl: JPEG })).rejects.toThrow(
@@ -211,9 +211,9 @@ describe("createPhotoService", () => {
       await photos.read(studentId);
       await photos.read(studentId);
 
-      const eventos = await enrollments.listEvents(enrollmentId);
-      expect(eventos.filter((evento) => evento.type === "foto_aberta")).toHaveLength(2);
-      expect(eventos.some((evento) => evento.type === "foto_cadastrada")).toBe(true);
+      const events = await enrollments.listEvents(enrollmentId);
+      expect(events.filter((evento) => evento.type === "foto_aberta")).toHaveLength(2);
+      expect(events.some((evento) => evento.type === "foto_cadastrada")).toBe(true);
     });
   });
 
@@ -232,7 +232,7 @@ describe("createPhotoService", () => {
           now: () => new Date(),
           encryptionKey: CHAVE,
           actor: { userId: operador.id },
-          apagarMoldeFacial: (studentId) =>
+          deleteFaceTemplate: (studentId) =>
             createGateRepository(tx, { schoolId: outra.id }).deleteTemplate(studentId),
         },
       );

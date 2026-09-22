@@ -66,18 +66,16 @@ export function AttendanceManagement() {
     );
   }
 
-  const dados = panorama.data;
-  const minimo = dados.minimumRate;
+  const data = panorama.data;
+  const minimo = data.minimumRate;
 
-  const turmas = dados.classrooms.filter(
+  const classrooms = data.classrooms.filter(
     (turma) => turnoFiltro === TODOS || turma.shift === turnoFiltro,
   );
-  const abaixo = dados.below.filter(
-    (aluno) => turnoFiltro === TODOS || aluno.shift === turnoFiltro,
-  );
-  const emAlerta = turmas.filter((turma) => turma.rate !== null && turma.rate < 0.85).length;
+  const abaixo = data.below.filter((aluno) => turnoFiltro === TODOS || aluno.shift === turnoFiltro);
+  const emAlerta = classrooms.filter((turma) => turma.rate !== null && turma.rate < 0.85).length;
 
-  if (dados.rate === null) {
+  if (data.rate === null) {
     return (
       <Card>
         <EmptyState
@@ -96,15 +94,15 @@ export function AttendanceManagement() {
           label="Frequência média"
           hint={`mínimo de ${shortPercentText(minimo)}`}
         >
-          {percentText(dados.rate)}
+          {percentText(data.rate)}
         </StatCard>
         <StatCard
           icon={AlertTriangle}
           label="Abaixo do mínimo"
-          hint={`de ${integerText(dados.students)} alunos ativos`}
-          tone={dados.belowMinimum > 0 ? "warning" : "neutral"}
+          hint={`de ${integerText(data.students)} alunos ativos`}
+          tone={data.belowMinimum > 0 ? "warning" : "neutral"}
         >
-          {integerText(dados.belowMinimum)}
+          {integerText(data.belowMinimum)}
         </StatCard>
         <StatCard
           icon={Users}
@@ -142,14 +140,14 @@ export function AttendanceManagement() {
           </div>
         </div>
 
-        {turmas.length === 0 ? (
+        {classrooms.length === 0 ? (
           <EmptyState
             title="Nenhuma turma neste turno"
             description="Troque o filtro para ver as demais."
           />
         ) : (
           <ul className="flex flex-col">
-            {turmas.map((turma) => (
+            {classrooms.map((turma) => (
               <li
                 key={turma.classroomId ?? turma.classroomName}
                 className={

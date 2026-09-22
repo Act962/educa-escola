@@ -15,9 +15,9 @@ describe("catálogo de provedores", () => {
   });
 
   it("todo endereço preenchido é http(s) e sem barra no fim", () => {
-    for (const provedor of PROVIDERS.filter((p) => p.baseUrl)) {
-      expect(provedor.baseUrl).toMatch(/^https?:\/\//);
-      expect(provedor.baseUrl).not.toMatch(/\/$/);
+    for (const provider of PROVIDERS.filter((p) => p.baseUrl)) {
+      expect(provider.baseUrl).toMatch(/^https?:\/\//);
+      expect(provider.baseUrl).not.toMatch(/\/$/);
     }
   });
 
@@ -48,15 +48,15 @@ describe("camposAoTrocarProvedor", () => {
    * pedindo para preencher um campo que a pessoa estava vendo preenchido.
    */
   it("já escolhe o primeiro modelo sugerido, em vez de deixar vazio", () => {
-    for (const provedor of PROVIDERS.filter((p) => p.modelos.length > 0)) {
-      expect(fieldsOnProviderChange(provedor.id).model).toBe(provedor.modelos[0]);
+    for (const provider of PROVIDERS.filter((p) => p.modelos.length > 0)) {
+      expect(fieldsOnProviderChange(provider.id).model).toBe(provider.modelos[0]);
     }
   });
 
   it("fica vazio só quando não há o que sugerir", () => {
-    for (const provedor of PROVIDERS.filter((p) => p.modelos.length === 0)) {
-      expect(fieldsOnProviderChange(provedor.id).model).toBe("");
-      expect(fieldsOnProviderChange(provedor.id).modeloDigitado).toBe(true);
+    for (const provider of PROVIDERS.filter((p) => p.modelos.length === 0)) {
+      expect(fieldsOnProviderChange(provider.id).model).toBe("");
+      expect(fieldsOnProviderChange(provider.id).modeloDigitado).toBe(true);
     }
   });
 

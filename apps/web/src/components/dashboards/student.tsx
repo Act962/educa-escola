@@ -37,7 +37,7 @@ export function StudentDashboard({ me }: { me: CurrentUser }) {
   const boletim = useQuery(trpc.assessment.myReportCard.queryOptions({ term }));
   const painel = useQuery(trpc.overview.aluno.queryOptions({ term }));
 
-  const mediaDaTurma = new Map(
+  const classroomAverage = new Map(
     (painel.data?.subjects ?? []).map((item) => [item.subjectId, item.classAverage]),
   );
 
@@ -111,7 +111,7 @@ export function StudentDashboard({ me }: { me: CurrentUser }) {
               rows={(boletim.data?.subjects ?? []).map((disciplina) => ({
                 label: disciplina.subjectName,
                 value: disciplina.average,
-                reference: mediaDaTurma.get(disciplina.subjectId) ?? null,
+                reference: classroomAverage.get(disciplina.subjectId) ?? null,
                 alert: disciplina.situation !== "aprovado",
               }))}
             />
@@ -192,8 +192,8 @@ function AulasDoDia() {
 
   if (agenda.isLoading) return <ListSkeleton rows={3} />;
 
-  const aulas = agenda.data?.lessons ?? [];
-  if (aulas.length === 0) {
+  const lessons = agenda.data?.lessons ?? [];
+  if (lessons.length === 0) {
     return (
       <EmptyState
         title="Nenhuma aula hoje"
@@ -208,7 +208,7 @@ function AulasDoDia() {
         {agenda.data?.date ? longDate(agenda.data.date) : null}
       </p>
       <ul className="flex flex-col gap-2">
-        {aulas.map((aula) => (
+        {lessons.map((aula) => (
           <li
             key={aula.id}
             className={cn(

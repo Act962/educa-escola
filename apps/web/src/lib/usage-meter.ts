@@ -13,7 +13,7 @@
 export type UsageBand = 1 | 2 | 3 | 4 | 5;
 
 /** Os tetos de cada faixa, em porcentagem. O último cobre tudo acima. */
-const TETOS: { ate: number; faixa: UsageBand }[] = [
+const CAPS: { ate: number; faixa: UsageBand }[] = [
   { ate: 25, faixa: 1 },
   { ate: 50, faixa: 2 },
   { ate: 75, faixa: 3 },
@@ -21,7 +21,7 @@ const TETOS: { ate: number; faixa: UsageBand }[] = [
 ];
 
 export function usageBand(porcentagem: number): UsageBand {
-  for (const { ate, faixa } of TETOS) {
+  for (const { ate, faixa } of CAPS) {
     if (porcentagem <= ate) return faixa;
   }
   return 5;
@@ -44,7 +44,7 @@ export const BAND_COLOR: Record<UsageBand, string> = {
  * possível — uma resposta cara custa mais do que sobrava —, e o anel para em
  * 100 porque volta inteira não comunica nada.
  */
-export function percentOfCap(usado: number, teto: number | null | undefined): number | null {
+export function percentOfCap(used: number, teto: number | null | undefined): number | null {
   if (!teto || teto <= 0) return null;
-  return Math.min(100, Math.round((usado / teto) * 100));
+  return Math.min(100, Math.round((used / teto) * 100));
 }

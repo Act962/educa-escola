@@ -35,10 +35,10 @@ export const Route = createFileRoute("/_app/professores/")({
  * foi montada — e pintar de vermelho faria a direção cobrar a pessoa errada.
  */
 const SITUACOES = {
-  em_dia: { rotulo: "Em dia", variante: "success" },
-  atencao: { rotulo: "Atenção", variante: "warning" },
-  atrasado: { rotulo: "Atrasado", variante: "danger" },
-  sem_turma: { rotulo: "Sem turma", variante: "info" },
+  em_dia: { label: "Em dia", variante: "success" },
+  atencao: { label: "Atenção", variante: "warning" },
+  atrasado: { label: "Atrasado", variante: "danger" },
+  sem_turma: { label: "Sem turma", variante: "info" },
 } as const;
 
 /**
@@ -56,16 +56,16 @@ function Professores() {
   const [busca, setBusca] = useState("");
   const [soPendencias, setSoPendencias] = useState(false);
 
-  const docentes = useQuery({
+  const teachers = useQuery({
     ...trpc.teacher.list.queryOptions({
       academicYear: year,
       search: busca.trim() || undefined,
-      comPendencia: soPendencias || undefined,
+      withPending: soPendencias || undefined,
     }),
     placeholderData: keepPreviousData,
   });
 
-  const resumo = docentes.data?.resumo;
+  const summary = teachers.data?.summary;
 
   return (
     <>
@@ -79,18 +79,18 @@ function Professores() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <StatCard icon={Users} label="No corpo docente" hint={`vínculo ativo em ${year}`}>
-          {resumo ? integerText(resumo.total) : "—"}
+          {summary ? integerText(summary.total) : "—"}
         </StatCard>
         <StatCard
           icon={TriangleAlert}
           label="Com pendência"
           hint="chamada ou nota em aberto"
-          tone={resumo && resumo.comPendencia > 0 ? "warning" : undefined}
+          tone={summary && summary.withPending > 0 ? "warning" : undefined}
         >
-          {resumo ? integerText(resumo.comPendencia) : "—"}
+          {summary ? integerText(summary.withPending) : "—"}
         </StatCard>
         <StatCard icon={ClipboardList} label="Chamadas em aberto" hint="aulas já encerradas">
-          {resumo ? integerText(resumo.chamadasPendentes) : "—"}
+          {summary ? integerText(summary.pendingAttendance) : "—"}
         </StatCard>
       </div>
 
@@ -124,14 +124,14 @@ function Professores() {
           </Button>
         </div>
 
-        {docentes.isLoading ? (
+        {teachers.isLoading ? (
           <ListSkeleton rows={6} />
-        ) : docentes.isError ? (
+        ) : teachers.isError ? (
           <ErrorState
             title="Não foi possível carregar o corpo docente"
             description="Atualize a página em instantes."
           />
-        ) : docentes.data?.items.length === 0 ? (
+        ) : teachers.data?.items.length === 0 ? (
           <EmptyState
             title={soPendencias ? "Ninguém com pendência" : "Nenhum professor encontrado"}
             description={
@@ -153,32 +153,32 @@ function Professores() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {docentes.data?.items.map((docente) => {
-                const situacao = SITUACOES[docente.situacao];
-                const pendencias = docente.chamadasPendentes + docente.notasPendentes;
+              {teachers.data?.items.map((teacher) => {
+                const situation = SITUACOES[teacher.situation];
+                const pendencias = teacher.pendingAttendance + teacher.pendingGrades;
 
                 return (
-                  <TableRow key={docente.userId}>
+                  <TableRow key={teacher.userId}>
                     <TableCell>
                       <Link
                         to="/professores/$userId"
-                        params={{ userId: docente.userId }}
+                        params={{ userId: teacher.userId }}
                         className="flex items-center gap-3"
                       >
                         <Avatar>
-                          <AvatarFallback>{initialsOf(docente.name)}</AvatarFallback>
+                          <AvatarFallback>{initialsOf(teacher.name)}</AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="truncate font-bold">{docente.name}</p>
+                          <p className="truncate font-bold">{teacher.name}</p>
                           <p className="truncate text-meta text-muted-foreground">
-                            {docente.email}
+                            {teacher.email}
                           </p>
                         </div>
                       </Link>
                     </TableCell>
-                    <TableCell>{integerText(docente.turmas)}</TableCell>
-                    <TableCell>{integerText(docente.disciplinas)}</TableCell>
-                    <TableCell>{integerText(docente.aulas)}</TableCell>
+                    <TableCell>{integerText(teacher.classrooms)}</TableCell>
+                    <TableCell>{integerText(teacher.subjects)}</TableCell>
+                    <TableCell>{integerText(teacher.lessons)}</TableCell>
                     <TableCell>
                       {pendencias === 0 ? (
                         <span className="text-muted-foreground">—</span>
@@ -186,18 +186,18 @@ function Professores() {
                         // Chamada e nota separadas: são cobranças diferentes,
                         // e um número só não diz à coordenação o que pedir.
                         <span className="text-meta">
-                          {docente.chamadasPendentes > 0
-                            ? `${integerText(docente.chamadasPendentes)} chamada${docente.chamadasPendentes > 1 ? "s" : ""}`
+                          {teacher.pendingAttendance > 0
+                            ? `${integerText(teacher.pendingAttendance)} chamada${teacher.pendingAttendance > 1 ? "s" : ""}`
                             : null}
-                          {docente.chamadasPendentes > 0 && docente.notasPendentes > 0 ? " · " : ""}
-                          {docente.notasPendentes > 0
-                            ? `${integerText(docente.notasPendentes)} nota${docente.notasPendentes > 1 ? "s" : ""}`
+                          {teacher.pendingAttendance > 0 && teacher.pendingGrades > 0 ? " · " : ""}
+                          {teacher.pendingGrades > 0
+                            ? `${integerText(teacher.pendingGrades)} nota${teacher.pendingGrades > 1 ? "s" : ""}`
                             : null}
                         </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={situacao.variante}>{situacao.rotulo}</Badge>
+                      <Badge variant={situation.variante}>{situation.label}</Badge>
                     </TableCell>
                   </TableRow>
                 );

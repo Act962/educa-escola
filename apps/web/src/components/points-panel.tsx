@@ -8,9 +8,9 @@ import { integerText } from "@/lib/format";
 
 /** O que o servidor devolve em comum para aluno e professor. */
 export interface SubjectPoints {
-  pontos: number;
-  nivel: { ordem: number; nome: string; minimo: number };
-  proximo: { nivel: { nome: string; minimo: number }; faltam: number } | null;
+  points: number;
+  level: { ordem: number; name: string; minimo: number };
+  proximo: { level: { name: string; minimo: number }; faltam: number } | null;
   extrato: {
     id: string;
     ruleKey: string;
@@ -28,11 +28,11 @@ export interface SubjectPoints {
  * de zero até o próximo degrau fica quase cheia o tempo todo nos níveis altos
  * e não informa nada.
  */
-export function levelProgress(dados: SubjectPoints): number {
-  if (!dados.proximo) return 100;
-  const faixa = dados.proximo.nivel.minimo - dados.nivel.minimo;
+export function levelProgress(data: SubjectPoints): number {
+  if (!data.proximo) return 100;
+  const faixa = data.proximo.level.minimo - data.level.minimo;
   if (faixa <= 0) return 100;
-  return Math.round(((dados.pontos - dados.nivel.minimo) / faixa) * 100);
+  return Math.round(((data.points - data.level.minimo) / faixa) * 100);
 }
 
 /**
@@ -42,29 +42,29 @@ export function levelProgress(dados: SubjectPoints): number {
  * mesma; o que muda é o que vem ao lado, e isso fica na tela de cada um.
  */
 export function PointsSummary({
-  dados,
-  ano,
+  data,
+  year,
   children,
 }: {
-  dados: SubjectPoints;
-  ano: number;
+  data: SubjectPoints;
+  year: number;
   children?: React.ReactNode;
 }) {
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline gap-3">
-        <span className="font-extrabold text-4xl tracking-[-1px]">{integerText(dados.pontos)}</span>
-        <span className="text-corpo text-muted-foreground">pontos em {ano}</span>
+        <span className="font-extrabold text-4xl tracking-[-1px]">{integerText(data.points)}</span>
+        <span className="text-corpo text-muted-foreground">pontos em {year}</span>
         <Badge variant="info" className="ml-auto">
           <Sparkles size={14} strokeWidth={1.8} aria-hidden />
-          {dados.nivel.nome}
+          {data.level.name}
         </Badge>
       </div>
 
-      <Progress value={levelProgress(dados)}>
+      <Progress value={levelProgress(data)}>
         <ProgressLabel>
-          {dados.proximo
-            ? `Faltam ${integerText(dados.proximo.faltam)} para ${dados.proximo.nivel.nome}`
+          {data.proximo
+            ? `Faltam ${integerText(data.proximo.faltam)} para ${data.proximo.level.name}`
             : "Último nível alcançado"}
         </ProgressLabel>
         <ProgressValue />
@@ -82,8 +82,8 @@ export function PointsSummary({
  * e não só no banco. Número que ninguém consegue conferir vira número que
  * ninguém acredita.
  */
-export function PointsStatement({ dados }: { dados: SubjectPoints }) {
-  if (dados.extrato.length === 0) {
+export function PointsStatement({ data }: { data: SubjectPoints }) {
+  if (data.extrato.length === 0) {
     return (
       <Card>
         <CardEyebrow>De onde vieram</CardEyebrow>
@@ -99,7 +99,7 @@ export function PointsStatement({ dados }: { dados: SubjectPoints }) {
     <Card className="flex flex-col gap-3">
       <CardEyebrow>De onde vieram</CardEyebrow>
       <ul className="flex flex-col">
-        {dados.extrato.map((linha) => (
+        {data.extrato.map((linha) => (
           <li
             key={linha.id}
             className="flex items-center justify-between gap-4 border-border border-t py-2.5 text-corpo first:border-t-0"

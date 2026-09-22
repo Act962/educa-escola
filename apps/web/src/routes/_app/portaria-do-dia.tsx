@@ -41,8 +41,8 @@ const horaMinuto = (valor: string | Date) =>
 const diaDeHoje = () => {
   const agora = new Date();
   const mes = String(agora.getMonth() + 1).padStart(2, "0");
-  const dia = String(agora.getDate()).padStart(2, "0");
-  return `${agora.getFullYear()}-${mes}-${dia}`;
+  const day = String(agora.getDate()).padStart(2, "0");
+  return `${agora.getFullYear()}-${mes}-${day}`;
 };
 
 const dataHora = (valor: string | Date) =>
@@ -74,20 +74,20 @@ const COMO_ENTROU: Record<string, string> = {
 function PortariaDoDia() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const [dia, setDia] = useState(diaDeHoje);
+  const [day, setDia] = useState(diaDeHoje);
   const [aluno, setAluno] = useState<string>("todos");
   const [aba, setAba] = useState<"movimento" | "excluidas">("movimento");
 
-  const situacao = useQuery({
-    ...trpc.gate.situacao.queryOptions(),
+  const situation = useQuery({
+    ...trpc.gate.situation.queryOptions(),
     // A portaria anda o tempo todo, e quem abre esta tela quer o agora.
     refetchInterval: 30_000,
     retry: false,
   });
 
-  const lista = useQuery({
+  const list = useQuery({
     ...trpc.gate.passagens.queryOptions({
-      dia,
+      day,
       studentId: aluno === "todos" ? undefined : aluno,
       excluidas: aba === "excluidas",
     }),
@@ -100,13 +100,13 @@ function PortariaDoDia() {
         toast.success("Passagem excluída. Ela continua na aba Excluídas.");
         queryClient.invalidateQueries({ queryKey: [["gate"]] });
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
-  if (situacao.isLoading) return <ListSkeleton />;
+  if (situation.isLoading) return <ListSkeleton />;
 
-  if (situacao.error) {
+  if (situation.error) {
     return (
       <Card>
         <PermissionState
@@ -117,8 +117,8 @@ function PortariaDoDia() {
     );
   }
 
-  const passagens = lista.data ?? [];
-  const doDia = situacao.data?.passagens ?? [];
+  const passagens = list.data ?? [];
+  const doDia = situation.data?.passagens ?? [];
   const entradas = doDia.filter((linha) => linha.direction === "entrada");
   const porRosto = doDia.filter((linha) => linha.method === "rosto");
 
@@ -144,7 +144,7 @@ function PortariaDoDia() {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard icon={Users} label="Na escola agora" hint="última passagem foi entrada">
-          {situacao.data?.dentro ?? 0}
+          {situation.data?.dentro ?? 0}
         </StatCard>
         <StatCard icon={LogIn} label="Entradas hoje" hint="contando cada passagem">
           {entradas.length}
@@ -159,7 +159,7 @@ function PortariaDoDia() {
           <DateField
             id="dia-da-portaria"
             label="Dia"
-            value={dia}
+            value={day}
             onChange={(iso) => iso && setDia(iso)}
             max={diaDeHoje()}
           />
@@ -172,9 +172,9 @@ function PortariaDoDia() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                {alunosDoDia.map(([id, nome]) => (
+                {alunosDoDia.map(([id, name]) => (
                   <SelectItem key={id} value={id}>
-                    {nome}
+                    {name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -193,7 +193,7 @@ function PortariaDoDia() {
         </div>
 
         <div className="overflow-x-auto">
-          {lista.isLoading ? (
+          {list.isLoading ? (
             <ListSkeleton />
           ) : passagens.length === 0 ? (
             <EmptyState

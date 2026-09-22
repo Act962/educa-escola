@@ -11,7 +11,7 @@
  * a pessoa ler na tela, não para o sistema interpretar de volta.
  */
 
-const TURNO_INICIAL: Record<string, string> = {
+const SHIFT_INITIAL: Record<string, string> = {
   manha: "M",
   tarde: "T",
   noite: "N",
@@ -45,9 +45,9 @@ export function classCodeOf(
   classroomName: string | null | undefined,
   shift: string | null | undefined,
 ): ClassCode {
-  const turno = TURNO_INICIAL[shift ?? ""] ?? null;
-  const serie = classroomName ? Number.parseInt(classroomName, 10) : Number.NaN;
-  const grade = Number.isNaN(serie) ? null : serie;
+  const turno = SHIFT_INITIAL[shift ?? ""] ?? null;
+  const gradeLevel = classroomName ? Number.parseInt(classroomName, 10) : Number.NaN;
+  const grade = Number.isNaN(gradeLevel) ? null : gradeLevel;
 
   if (grade === null || turno === null) {
     return { code: null, label: classroomName ?? "Turma a definir", grade };

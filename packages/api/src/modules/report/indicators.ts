@@ -23,8 +23,8 @@ export type IndicatorKey =
   | "rematricula";
 
 export interface Indicator {
-  chave: IndicatorKey;
-  rotulo: string;
+  key: IndicatorKey;
+  label: string;
   /** Como a §15.4 define a conta. Fica na tela: número sem fórmula é fé. */
   formula: string;
   /** `null` quando o sistema ainda não sabe calcular. */
@@ -54,45 +54,45 @@ export const NO_DATA: Record<string, string> = {
 };
 
 export interface IndicatorData {
-  alunosNaSala: number;
+  studentsInRoom: number;
   /** Frequência geral da escola, de 0 a 1. `null` sem aula registrada. */
-  frequenciaGeral: number | null;
-  alunosEmRisco: number;
-  pendenciasDeLancamento: number;
+  overallAttendance: number | null;
+  studentsAtRisk: number;
+  pendingGradeEntries: number;
 }
 
 /** Frequência mínima da LDB, repetida aqui só como rótulo de fórmula. */
 export const MINIMUM_ATTENDANCE = 0.75;
 
-export function buildIndicators(dados: IndicatorData): Indicator[] {
-  const disponivel = (
-    chave: IndicatorKey,
-    rotulo: string,
+export function buildIndicators(data: IndicatorData): Indicator[] {
+  const available = (
+    key: IndicatorKey,
+    label: string,
     formula: string,
     valor: number | null,
     formato: Indicator["formato"],
-  ): Indicator => ({ chave, rotulo, formula, valor, formato });
+  ): Indicator => ({ key, label, formula, valor, formato });
 
   const faltando = (
-    chave: IndicatorKey,
-    rotulo: string,
+    key: IndicatorKey,
+    label: string,
     formula: string,
     formato: Indicator["formato"],
   ): Indicator => ({
-    chave,
-    rotulo,
+    key,
+    label,
     formula,
     valor: null,
     formato,
-    indisponivel: NO_DATA[chave],
+    indisponivel: NO_DATA[key],
   });
 
   return [
-    disponivel(
+    available(
       "alunos_ativos",
       "Alunos ativos",
       "Matrículas ativas, incluindo documentação pendente e quem ainda não tem turma",
-      dados.alunosNaSala,
+      data.studentsInRoom,
       "inteiro",
     ),
     faltando(
@@ -101,27 +101,27 @@ export function buildIndicators(dados: IndicatorData): Indicator[] {
       "Matrículas ÷ capacidade das turmas",
       "percentual",
     ),
-    disponivel(
+    available(
       "taxa_frequencia",
       "Taxa de frequência",
       "Presenças ÷ registros de chamada",
-      dados.frequenciaGeral,
+      data.overallAttendance,
       "percentual",
     ),
-    disponivel(
+    available(
       "alunos_em_risco",
       "Alunos em risco",
       `Frequência abaixo de ${MINIMUM_ATTENDANCE * 100}% (LDB, art. 24, VI)`,
-      dados.alunosEmRisco,
+      data.studentsAtRisk,
       "inteiro",
     ),
     faltando("taxa_aprovacao", "Taxa de aprovação", "Aprovados ÷ concluintes do ano", "percentual"),
     faltando("evasao", "Evasão", "Saídas sem transferência ÷ matrículas iniciais", "percentual"),
-    disponivel(
+    available(
       "pendencias_lancamento",
       "Pendências de lançamento",
       "Aulas encerradas sem chamada registrada",
-      dados.pendenciasDeLancamento,
+      data.pendingGradeEntries,
       "inteiro",
     ),
     faltando(

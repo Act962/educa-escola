@@ -20,12 +20,12 @@ export const scoreRouter = router({
    * entrada — do contrário qualquer aluno leria o painel de qualquer colega
    * trocando um parâmetro.
    */
-  meuPainelDeAluno: permitted({ score: ["read"] })
+  myStudentPanel: permitted({ score: ["read"] })
     .input(scoreYearInput)
     .query(async ({ ctx, input }) => {
       const students = createStudentService(createStudentRepository(ctx.db, ctx.tenant));
       const me = await students.byUserId(ctx.membership.userId);
-      return serviceFor(ctx).doAluno({
+      return serviceFor(ctx).ofStudent({
         studentId: me.id,
         classroomId: me.classroomId,
         academicYear: input.academicYear,
@@ -33,23 +33,23 @@ export const scoreRouter = router({
     }),
 
   /** Meus pontos, como professor. Mesma regra: o docente sai do vínculo. */
-  meuPainelDeProfessor: permitted({ score: ["read"] })
+  myTeacherPanel: permitted({ score: ["read"] })
     .input(scoreYearInput)
     .query(({ ctx, input }) =>
-      serviceFor(ctx).doProfessor(ctx.membership.userId, input.academicYear),
+      serviceFor(ctx).ofTeacher(ctx.membership.userId, input.academicYear),
     ),
 
   /**
    * O placar nominal de alunos. Exige `ranking: ["read"]`, que professor e
    * aluno não têm — é a barreira do §7.5, e ela está aqui, no servidor.
    */
-  rankingDeAlunos: permitted({ ranking: ["read"] })
+  studentRanking: permitted({ ranking: ["read"] })
     .input(scoreYearInput)
-    .query(({ ctx, input }) => serviceFor(ctx).rankingDeAlunos(input.academicYear)),
+    .query(({ ctx, input }) => serviceFor(ctx).studentRanking(input.academicYear)),
 
-  rankingDeProfessores: permitted({ ranking: ["read"] })
+  teacherRanking: permitted({ ranking: ["read"] })
     .input(scoreYearInput)
-    .query(({ ctx, input }) => serviceFor(ctx).rankingDeProfessores(input.academicYear)),
+    .query(({ ctx, input }) => serviceFor(ctx).teacherRanking(input.academicYear)),
 
   /**
    * Reprocessa o ano e refaz o saldo.

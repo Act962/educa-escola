@@ -15,7 +15,7 @@
  */
 export interface Provider {
   id: string;
-  nome: string;
+  name: string;
   /** Vazio quando o endereço é próprio da instalação (Azure, Ollama remoto). */
   baseUrl: string;
   modelos: string[];
@@ -25,46 +25,46 @@ export interface Provider {
 export const PROVIDERS: Provider[] = [
   {
     id: "openai",
-    nome: "OpenAI",
+    name: "OpenAI",
     baseUrl: "https://api.openai.com/v1",
     modelos: ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1", "o4-mini"],
     nota: "O mais barato da lista costuma bastar: o Astro responde sobre números que já vêm prontos.",
   },
   {
     id: "groq",
-    nome: "Groq",
+    name: "Groq",
     baseUrl: "https://api.groq.com/openai/v1",
     modelos: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
   },
   {
     id: "together",
-    nome: "Together",
+    name: "Together",
     baseUrl: "https://api.together.xyz/v1",
     modelos: ["meta-llama/Llama-3.3-70B-Instruct-Turbo"],
   },
   {
     id: "openrouter",
-    nome: "OpenRouter",
+    name: "OpenRouter",
     baseUrl: "https://openrouter.ai/api/v1",
     modelos: ["openai/gpt-4o-mini", "meta-llama/llama-3.3-70b-instruct"],
   },
   {
     id: "ollama",
-    nome: "Ollama (no seu servidor)",
+    name: "Ollama (no seu servidor)",
     baseUrl: "http://localhost:11434/v1",
     modelos: ["llama3.1", "qwen2.5", "mistral"],
     nota: "Roda na máquina da escola: não sai dado para fora e não há fatura. Exige servidor com GPU.",
   },
   {
     id: "azure",
-    nome: "Azure OpenAI",
+    name: "Azure OpenAI",
     baseUrl: "",
     modelos: [],
     nota: "O endereço é o do seu recurso, e o modelo é o nome do deployment que você criou.",
   },
   {
     id: "outro",
-    nome: "Outro",
+    name: "Outro",
     baseUrl: "",
     modelos: [],
     nota: "Precisa aceitar o formato /chat/completions.",

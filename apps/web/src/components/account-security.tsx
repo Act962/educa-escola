@@ -27,14 +27,14 @@ const SESSOES = ["sessoes-ativas"];
  * texto em inglês numa tela em português é feio — mas inventar uma tradução
  * genérica ("algo deu errado") esconderia o motivo real, que é pior.
  */
-function emPortugues(mensagem: string | undefined): string {
-  if (!mensagem) return "Não foi possível concluir.";
-  if (/invalid password/i.test(mensagem)) return "A senha atual está incorreta.";
-  if (/password too short/i.test(mensagem))
+function emPortugues(message: string | undefined): string {
+  if (!message) return "Não foi possível concluir.";
+  if (/invalid password/i.test(message)) return "A senha atual está incorreta.";
+  if (/password too short/i.test(message))
     return `A nova senha precisa de ao menos ${MINIMO_DA_SENHA} caracteres.`;
-  if (/too many requests/i.test(mensagem))
+  if (/too many requests/i.test(message))
     return "Muitas tentativas seguidas. Espere alguns instantes.";
-  return mensagem;
+  return message;
 }
 
 /**
@@ -140,9 +140,9 @@ function TrocarSenha() {
                 onBlur={field.handleBlur}
                 onChange={(evento) => field.handleChange(evento.target.value)}
               />
-              {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-danger text-meta">
-                  {erro?.message}
+              {field.state.meta.errors.map((error) => (
+                <p key={error?.message} className="text-danger text-meta">
+                  {error?.message}
                 </p>
               ))}
             </div>
@@ -163,9 +163,9 @@ function TrocarSenha() {
                   onBlur={field.handleBlur}
                   onChange={(evento) => field.handleChange(evento.target.value)}
                 />
-                {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-danger text-meta">
-                    {erro?.message}
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-danger text-meta">
+                    {error?.message}
                   </p>
                 ))}
               </div>
@@ -185,9 +185,9 @@ function TrocarSenha() {
                   onBlur={field.handleBlur}
                   onChange={(evento) => field.handleChange(evento.target.value)}
                 />
-                {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-danger text-meta">
-                    {erro?.message}
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-danger text-meta">
+                    {error?.message}
                   </p>
                 ))}
               </div>
@@ -260,7 +260,7 @@ function SessoesAtivas() {
       toast.success("Sessão encerrada.");
       return invalidar();
     },
-    onError: (erro: Error) => toast.error(erro.message),
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const encerrarOutras = useMutation({
@@ -272,12 +272,12 @@ function SessoesAtivas() {
       toast.success("As outras sessões foram encerradas.");
       return invalidar();
     },
-    onError: (erro: Error) => toast.error(erro.message),
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const tokenAtual = sessaoAtual.data?.session.token;
-  const lista = sessoes.data ?? [];
-  const outras = lista.filter((sessao) => sessao.token !== tokenAtual).length;
+  const list = sessoes.data ?? [];
+  const outras = list.filter((sessao) => sessao.token !== tokenAtual).length;
 
   return (
     <Card className="flex flex-col gap-4">
@@ -304,14 +304,14 @@ function SessoesAtivas() {
           title="Não foi possível listar as sessões"
           description="Atualize a página em instantes."
         />
-      ) : lista.length === 0 ? (
+      ) : list.length === 0 ? (
         <EmptyState
           title="Nenhuma sessão listada"
           description="Isso não deveria acontecer: você está usando uma agora."
         />
       ) : (
         <ul className="flex flex-col gap-2">
-          {lista.map((sessao) => {
+          {list.map((sessao) => {
             const ehAtual = sessao.token === tokenAtual;
 
             return (

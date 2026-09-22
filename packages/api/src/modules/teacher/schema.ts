@@ -5,7 +5,7 @@ export const teacherFilters = z.object({
   search: z.string().trim().max(120).optional(),
   academicYear: z.number().int().min(2000).max(2100),
   /** Só quem está devendo chamada ou nota. */
-  comPendencia: z.boolean().optional(),
+  withPending: z.boolean().optional(),
 });
 
 export const teacherId = z.object({

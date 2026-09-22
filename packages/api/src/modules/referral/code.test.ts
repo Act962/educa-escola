@@ -23,8 +23,8 @@ describe("gerarCodigo", () => {
   });
 
   it("tem sempre seis posições", () => {
-    for (const nome of ["Ana", "Zé", "Weydson Lima Pereira", "Ítalo", "6º ano"]) {
-      expect(generateCode(nome, new Set())).toHaveLength(6);
+    for (const name of ["Ana", "Zé", "Weydson Lima Pereira", "Ítalo", "6º ano"]) {
+      expect(generateCode(name, new Set())).toHaveLength(6);
     }
   });
 
@@ -34,11 +34,11 @@ describe("gerarCodigo", () => {
   });
 
   it("não devolve código já em uso", () => {
-    const emUso = new Set(["MAAAAA"]);
-    const codigo = generateCode("Maria", emUso, sempreZero);
+    const inUse = new Set(["MAAAAA"]);
+    const code = generateCode("Maria", inUse, sempreZero);
 
-    expect(codigo).not.toBe("MAAAAA");
-    expect(codigo).toHaveLength(6);
+    expect(code).not.toBe("MAAAAA");
+    expect(code).toHaveLength(6);
   });
 
   /**
@@ -46,14 +46,14 @@ describe("gerarCodigo", () => {
    * ele é abandonado — melhor um código sem as iniciais que erro na tela.
    */
   it("abandona o prefixo quando ele está esgotado", () => {
-    const emUso = new Set<string>();
+    const inUse = new Set<string>();
     // Todo código que o sorteio determinístico produziria com prefixo.
-    emUso.add("MAAAAA");
+    inUse.add("MAAAAA");
     let sorteios = 0;
     const quaseSempreZero = () => (sorteios++ < 40 ? 0 : 0.5);
 
-    const codigo = generateCode("Maria", emUso, quaseSempreZero);
-    expect(emUso.has(codigo)).toBe(false);
+    const code = generateCode("Maria", inUse, quaseSempreZero);
+    expect(inUse.has(code)).toBe(false);
   });
 });
 

@@ -66,7 +66,7 @@ function MinhaFrequencia() {
   const painel = useQuery(trpc.overview.aluno.queryOptions({ term }));
   const ficha = useQuery(trpc.student.me.queryOptions());
 
-  const frequencia = painel.data?.attendance;
+  const attendanceRate = painel.data?.attendance;
 
   return (
     <>
@@ -82,7 +82,7 @@ function MinhaFrequencia() {
         <Card>
           <ListSkeleton rows={3} />
         </Card>
-      ) : !frequencia ? (
+      ) : !attendanceRate ? (
         <Card>
           <EmptyState
             title="Sem aulas registradas"
@@ -96,12 +96,12 @@ function MinhaFrequencia() {
               icon={ClipboardCheck}
               label="Frequência acumulada"
               hint="mínimo de 75% das aulas dadas"
-              tone={frequencia.belowMinimum ? "danger" : "success"}
+              tone={attendanceRate.belowMinimum ? "danger" : "success"}
             >
-              {percentText(frequencia.rate)}
+              {percentText(attendanceRate.rate)}
             </StatCard>
             <StatCard icon={CalendarX} label="Faltas registradas" tone="neutral">
-              {frequencia.absences}
+              {attendanceRate.absences}
             </StatCard>
           </div>
 
@@ -109,21 +109,23 @@ function MinhaFrequencia() {
             <CardHeader>
               <CardTitle>Situação</CardTitle>
               <CardAction>
-                <Badge variant={frequencia.belowMinimum ? "danger" : "success"}>
-                  {frequencia.belowMinimum ? "Abaixo do mínimo" : "Dentro do mínimo"}
+                <Badge variant={attendanceRate.belowMinimum ? "danger" : "success"}>
+                  {attendanceRate.belowMinimum ? "Abaixo do mínimo" : "Dentro do mínimo"}
                 </Badge>
               </CardAction>
             </CardHeader>
 
-            <Progress value={(frequencia.rate ?? 0) * 100} max={100}>
+            <Progress value={(attendanceRate.rate ?? 0) * 100} max={100}>
               <ProgressLabel>Aulas assistidas no ano</ProgressLabel>
-              <ProgressValue className={frequencia.belowMinimum ? "text-danger" : "text-success"}>
-                {() => percentText(frequencia.rate)}
+              <ProgressValue
+                className={attendanceRate.belowMinimum ? "text-danger" : "text-success"}
+              >
+                {() => percentText(attendanceRate.rate)}
               </ProgressValue>
             </Progress>
 
             <p className="text-corpo text-muted-foreground">
-              {frequencia.belowMinimum
+              {attendanceRate.belowMinimum
                 ? "Sua frequência está abaixo dos 75% exigidos pela LDB (art. 24, VI). Procure a coordenação para entender as opções de reposição."
                 : "Sua frequência está acima do mínimo exigido pela LDB (art. 24, VI): 75% das aulas dadas."}{" "}
               Atrasos contam como presença.

@@ -15,13 +15,13 @@ export type HealthReport = {
  */
 export async function checkHealth(
   ping: () => Promise<void>,
-  log: (mensagem: string, erro: unknown) => void = console.error,
+  log: (message: string, error: unknown) => void = console.error,
 ): Promise<HealthReport> {
   try {
     await ping();
     return { status: "ok", checks: { database: "ok" } };
-  } catch (erro) {
-    log("[health] banco indisponível:", erro);
+  } catch (error) {
+    log("[health] banco indisponível:", error);
     return { status: "indisponivel", checks: { database: "falhou" } };
   }
 }

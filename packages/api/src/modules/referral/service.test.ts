@@ -11,9 +11,9 @@ const AGORA = new Date("2026-03-10T12:00:00Z");
 const linha = (over: Partial<Linha> & { id: string }): Linha =>
   ({
     linkId: "l1",
-    codigo: "MA4K2Z",
+    code: "MA4K2Z",
     indicanteId: "a1",
-    indicanteNome: "Maria Clara",
+    referrerName: "Maria Clara",
     enrollmentId: `m-${over.id}`,
     academicYear: 2026,
     rewardKind: "percentual",
@@ -116,9 +116,9 @@ describe("apurar", () => {
       linha({ id: "b", createdAt: new Date("2026-03-02T12:00:00Z") }),
     ];
 
-    const apuradas = tally(linhas, 2);
+    const talliedItems = tally(linhas, 2);
 
-    expect(apuradas.map((i) => [i.id, i.situacao])).toEqual([
+    expect(talliedItems.map((i) => [i.id, i.situation])).toEqual([
       ["a", "confirmada"],
       ["b", "confirmada"],
       ["c", "acima_do_teto"],
@@ -127,7 +127,7 @@ describe("apurar", () => {
 
   /** O teto é por quem indica, não da escola: dois links não competem. */
   it("conta o teto separado por link", () => {
-    const apuradas = tally(
+    const talliedItems = tally(
       [
         linha({ id: "a1", linkId: "l1" }),
         linha({ id: "a2", linkId: "l1" }),
@@ -136,14 +136,14 @@ describe("apurar", () => {
       1,
     );
 
-    expect(apuradas.find((i) => i.id === "a1")?.situacao).toBe("confirmada");
-    expect(apuradas.find((i) => i.id === "a2")?.situacao).toBe("acima_do_teto");
-    expect(apuradas.find((i) => i.id === "b1")?.situacao).toBe("confirmada");
+    expect(talliedItems.find((i) => i.id === "a1")?.situation).toBe("confirmada");
+    expect(talliedItems.find((i) => i.id === "a2")?.situation).toBe("acima_do_teto");
+    expect(talliedItems.find((i) => i.id === "b1")?.situation).toBe("confirmada");
   });
 
   /** Indicação cancelada não consome vaga no teto de quem indicou. */
   it("matrícula sem efeito não gasta o teto", () => {
-    const apuradas = tally(
+    const talliedItems = tally(
       [
         linha({ id: "a", enrollmentStatus: "cancelada" }),
         linha({ id: "b", createdAt: new Date("2026-03-02T12:00:00Z") }),
@@ -151,7 +151,7 @@ describe("apurar", () => {
       1,
     );
 
-    expect(apuradas.find((i) => i.id === "b")?.situacao).toBe("confirmada");
+    expect(talliedItems.find((i) => i.id === "b")?.situation).toBe("confirmada");
   });
 });
 
@@ -161,7 +161,7 @@ describe("totalizar", () => {
    * que impede a configuração da escola de produzir um número impossível.
    */
   it("não deixa o desconto passar de 100%", () => {
-    const apuradas = tally(
+    const talliedItems = tally(
       [
         linha({ id: "a", rewardValue: 40 }),
         linha({ id: "b", rewardValue: 40, createdAt: new Date("2026-03-02T12:00:00Z") }),
@@ -170,12 +170,12 @@ describe("totalizar", () => {
       3,
     );
 
-    expect(summarize(apuradas).percentual).toBe(100);
+    expect(summarize(talliedItems).percentual).toBe(100);
   });
 
   /** Percentual e centavo são unidades diferentes: somá-los daria lixo. */
   it("mantém percentual e valor separados", () => {
-    const apuradas = tally(
+    const talliedItems = tally(
       [
         linha({ id: "a", rewardKind: "percentual", rewardValue: 10 }),
         linha({
@@ -188,13 +188,16 @@ describe("totalizar", () => {
       3,
     );
 
-    expect(summarize(apuradas)).toMatchObject({ percentual: 10, centavos: 5000, confirmadas: 2 });
+    expect(summarize(talliedItems)).toMatchObject({ percentual: 10, cents: 5000, confirmed: 2 });
   });
 
   it("só o que está confirmado entra na conta", () => {
-    const apuradas = tally([linha({ id: "a", enrollmentStatus: "pendente", rewardValue: 30 })], 3);
+    const talliedItems = tally(
+      [linha({ id: "a", enrollmentStatus: "pendente", rewardValue: 30 })],
+      3,
+    );
 
-    expect(summarize(apuradas)).toMatchObject({ percentual: 0, pendentes: 1, confirmadas: 0 });
+    expect(summarize(talliedItems)).toMatchObject({ percentual: 0, pending: 1, confirmed: 0 });
   });
 });
 
@@ -413,7 +416,7 @@ describe("meuPainel", () => {
 
     expect(painel.link?.code).toBe("MA4K2Z");
     expect(painel.indicacoes).toHaveLength(1);
-    expect(painel.resumo).toMatchObject({ confirmadas: 1, percentual: 10 });
+    expect(painel.summary).toMatchObject({ confirmed: 1, percentual: 10 });
   });
 });
 

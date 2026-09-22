@@ -23,9 +23,9 @@ import type { TenantContext } from "../../trpc/tenant";
  * organização *é* a escola (`school.id === organization.id`).
  */
 export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
-  const naEscola = and(eq(member.organizationId, tenant.schoolId), eq(member.role, "teacher"));
+  const atSchool = and(eq(member.organizationId, tenant.schoolId), eq(member.role, "teacher"));
 
-  const doAno = (ano: number) => sql`date_part('year', ${lesson.date}) = ${ano}`;
+  const doAno = (year: number) => sql`date_part('year', ${lesson.date}) = ${year}`;
 
   return {
     /** O corpo docente, em ordem de nome. */
@@ -43,7 +43,7 @@ export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
         })
         .from(member)
         .innerJoin(user, eq(user.id, member.userId))
-        .where(busca ? and(naEscola, busca) : naEscola)
+        .where(busca ? and(atSchool, busca) : atSchool)
         .orderBy(asc(user.name));
     },
 
@@ -58,9 +58,9 @@ export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
       return db
         .select({
           teacherId: lesson.teacherId,
-          turmas: countDistinct(lesson.classroomId),
-          disciplinas: countDistinct(lesson.subjectId),
-          aulas: count(lesson.id),
+          classrooms: countDistinct(lesson.classroomId),
+          subjects: countDistinct(lesson.subjectId),
+          lessons: count(lesson.id),
           registradas: count(lesson.attendanceRecordedAt),
         })
         .from(lesson)
@@ -77,7 +77,7 @@ export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
      */
     async pendingCallsByTeacher(academicYear: number, today: string) {
       return db
-        .select({ teacherId: lesson.teacherId, pendentes: count(lesson.id) })
+        .select({ teacherId: lesson.teacherId, pending: count(lesson.id) })
         .from(lesson)
         .where(
           and(
@@ -99,7 +99,7 @@ export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
      * dentro de uma query.
      */
     async pendingGradesByTeacher(academicYear: number) {
-      const avaliacoes = db
+      const assessments = db
         .select({
           teacherId: assessment.teacherId,
           assessmentId: assessment.id,
@@ -107,8 +107,8 @@ export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
           // da subconsulta explode em tempo de execução — e não na compilação,
           // porque para o TypeScript a coluna existe. Foi assim que este
           // método quebrou só quando a tela chamou.
-          naTurma: countDistinct(student.id).as("na_turma"),
-          comNota: countDistinct(grade.studentId).as("com_nota"),
+          inClassroom: countDistinct(student.id).as("na_turma"),
+          withGrade: countDistinct(grade.studentId).as("com_nota"),
         })
         .from(assessment)
         .innerJoin(
@@ -133,11 +133,13 @@ export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
 
       return db
         .select({
-          teacherId: avaliacoes.teacherId,
-          faltando: sql<number>`sum(${avaliacoes.naTurma} - ${avaliacoes.comNota})`.mapWith(Number),
+          teacherId: assessments.teacherId,
+          faltando: sql<number>`sum(${assessments.inClassroom} - ${assessments.withGrade})`.mapWith(
+            Number,
+          ),
         })
-        .from(avaliacoes)
-        .groupBy(avaliacoes.teacherId);
+        .from(assessments)
+        .groupBy(assessments.teacherId);
     },
 
     /** Turmas e disciplinas de um docente, para a ficha dele. */
@@ -164,7 +166,7 @@ export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
 
     /** Quantos alunos o docente alcança, sem repetir quem está em duas turmas. */
     async reachOf(teacherId: string, academicYear: number) {
-      const turmas = db
+      const classrooms = db
         .selectDistinct({ classroomId: lesson.classroomId })
         .from(lesson)
         .where(
@@ -179,7 +181,7 @@ export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
       const [row] = await db
         .select({ alunos: countDistinct(student.id) })
         .from(student)
-        .innerJoin(turmas, eq(turmas.classroomId, student.classroomId))
+        .innerJoin(classrooms, eq(classrooms.classroomId, student.classroomId))
         .where(
           and(
             eq(student.schoolId, tenant.schoolId),
@@ -196,7 +198,7 @@ export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
         .select({ userId: user.id, name: user.name, email: user.email, desde: member.createdAt })
         .from(member)
         .innerJoin(user, eq(user.id, member.userId))
-        .where(and(naEscola, eq(member.userId, userId)))
+        .where(and(atSchool, eq(member.userId, userId)))
         .limit(1);
       return row ?? null;
     },

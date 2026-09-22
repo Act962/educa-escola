@@ -88,11 +88,11 @@ export function AppSidebar({
             um pedaço de letra aparecendo no lugar do ícone.
           */}
           <OrbitaBrand
-            titulo="Órbita Edu"
+            title="Órbita Edu"
             className="w-32 shrink-0 text-primary group-data-[collapsible=icon]:hidden"
           />
           <OrbitaIcon
-            titulo="Órbita Edu"
+            title="Órbita Edu"
             className="hidden w-7 shrink-0 text-primary group-data-[collapsible=icon]:block"
           />
         </Link>
@@ -272,12 +272,12 @@ function AppsInstalados() {
           {apps.map((app) => (
             <SidebarMenuItem key={app.key}>
               <SidebarMenuButton
-                tooltip={app.nome}
+                tooltip={app.name}
                 onClick={recolher}
                 render={<Link to="/apps/$appKey" params={{ appKey: app.key }} />}
               >
                 <app.icon strokeWidth={1.7} aria-hidden />
-                <span>{app.nome}</span>
+                <span>{app.name}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

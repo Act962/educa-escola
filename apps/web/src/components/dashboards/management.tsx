@@ -55,7 +55,7 @@ export function ManagementDashboard() {
   const { term } = useSchoolContext();
   const painel = useQuery(trpc.overview.gestao.queryOptions({ term }));
 
-  const dados = painel.data;
+  const data = painel.data;
 
   return (
     <>
@@ -63,28 +63,28 @@ export function ManagementDashboard() {
         <StatCard
           icon={GraduationCap}
           label="Alunos ativos"
-          hint={dados ? `${dados.students.pendingDocuments} com documentação pendente` : undefined}
+          hint={data ? `${data.students.pendingDocuments} com documentação pendente` : undefined}
           tone="info"
         >
-          {dados ? integerText(dados.students.active) : "—"}
+          {data ? integerText(data.students.active) : "—"}
         </StatCard>
         <StatCard icon={LayoutGrid} label="Turmas" tone="neutral">
-          {dados ? integerText(dados.classrooms) : "—"}
+          {data ? integerText(data.classrooms) : "—"}
         </StatCard>
         <StatCard icon={Users} label="Professores" tone="neutral">
-          {dados ? integerText(dados.teachers) : "—"}
+          {data ? integerText(data.teachers) : "—"}
         </StatCard>
         <StatCard
           icon={ClipboardCheck}
           label="Frequência média"
-          hint={dados ? `mínimo de ${shortPercentText(dados.minimumAttendanceRate)}` : undefined}
+          hint={data ? `mínimo de ${shortPercentText(data.minimumAttendanceRate)}` : undefined}
           tone={
-            dados?.attendanceRate && dados.attendanceRate < dados.minimumAttendanceRate
+            data?.attendanceRate && data.attendanceRate < data.minimumAttendanceRate
               ? "danger"
               : "success"
           }
         >
-          {dados ? percentText(dados.attendanceRate) : "—"}
+          {data ? percentText(data.attendanceRate) : "—"}
         </StatCard>
       </div>
 
@@ -113,7 +113,7 @@ export function ManagementDashboard() {
 
           {painel.isLoading ? (
             <ListSkeleton rows={4} />
-          ) : (dados?.pending.length ?? 0) === 0 ? (
+          ) : (data?.pending.length ?? 0) === 0 ? (
             <EmptyState
               title="Nenhuma pendência"
               description="Todas as chamadas do ano letivo estão registradas. Nada bloqueia o fechamento do bimestre."
@@ -129,10 +129,10 @@ export function ManagementDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(dados?.pending ?? []).map((linha) => {
-                  const situacao = situacaoDoLancamento(linha.pendingCalls, linha.pendingGrades);
+                {(data?.pending ?? []).map((linha) => {
+                  const situation = situacaoDoLancamento(linha.pendingCalls, linha.pendingGrades);
                   return (
-                    <TableRow key={linha.teacherId} className={situacao.row}>
+                    <TableRow key={linha.teacherId} className={situation.row}>
                       <TableCell>
                         <span className="flex items-center gap-3">
                           <Avatar size="sm">
@@ -150,7 +150,7 @@ export function ManagementDashboard() {
                         {linha.pendingGrades}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant={situacao.tone}>{situacao.label}</Badge>
+                        <Badge variant={situation.tone}>{situation.label}</Badge>
                       </TableCell>
                     </TableRow>
                   );
@@ -164,9 +164,9 @@ export function ManagementDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Alunos em risco</CardTitle>
-              {dados?.risk.total ? (
+              {data?.risk.total ? (
                 <CardAction>
-                  <Badge variant="danger">{dados.risk.total}</Badge>
+                  <Badge variant="danger">{data.risk.total}</Badge>
                 </CardAction>
               ) : null}
             </CardHeader>
@@ -176,30 +176,30 @@ export function ManagementDashboard() {
             ) : (
               <div className="flex flex-col gap-4">
                 <Progress
-                  value={dados?.risk.belowAttendance ?? 0}
-                  max={Math.max(dados?.students.active ?? 1, 1)}
+                  value={data?.risk.belowAttendance ?? 0}
+                  max={Math.max(data?.students.active ?? 1, 1)}
                 >
                   <ProgressLabel>Frequência abaixo do mínimo</ProgressLabel>
                   <ProgressValue className="text-danger">
-                    {() => dados?.risk.belowAttendance ?? 0}
+                    {() => data?.risk.belowAttendance ?? 0}
                   </ProgressValue>
                 </Progress>
                 <Progress
-                  value={dados?.risk.belowAverage ?? 0}
-                  max={Math.max(dados?.students.active ?? 1, 1)}
+                  value={data?.risk.belowAverage ?? 0}
+                  max={Math.max(data?.students.active ?? 1, 1)}
                 >
                   <ProgressLabel>Média abaixo de 6,0</ProgressLabel>
                   <ProgressValue className="text-warning">
-                    {() => dados?.risk.belowAverage ?? 0}
+                    {() => data?.risk.belowAverage ?? 0}
                   </ProgressValue>
                 </Progress>
                 <Progress
-                  value={dados?.students.pendingDocuments ?? 0}
-                  max={Math.max(dados?.students.active ?? 1, 1)}
+                  value={data?.students.pendingDocuments ?? 0}
+                  max={Math.max(data?.students.active ?? 1, 1)}
                 >
                   <ProgressLabel>Documentação pendente</ProgressLabel>
                   <ProgressValue className="text-muted-foreground">
-                    {() => dados?.students.pendingDocuments ?? 0}
+                    {() => data?.students.pendingDocuments ?? 0}
                   </ProgressValue>
                 </Progress>
               </div>

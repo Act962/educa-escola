@@ -33,7 +33,7 @@ function PlacarEntreEscolas() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const { year } = useSchoolContext();
-  const [nome, setNome] = useState("");
+  const [name, setNome] = useState("");
 
   const status = useQuery(trpc.leaderboard.status.queryOptions({ academicYear: year }));
 
@@ -41,7 +41,7 @@ function PlacarEntreEscolas() {
   const aderir = useMutation(trpc.leaderboard.aderir.mutationOptions({ onSuccess: invalidar }));
   const sair = useMutation(trpc.leaderboard.sair.mutationOptions({ onSuccess: invalidar }));
 
-  const situacao = status.data;
+  const situation = status.data;
 
   return (
     <>
@@ -71,7 +71,7 @@ function PlacarEntreEscolas() {
         <Card>
           <ListSkeleton rows={3} />
         </Card>
-      ) : status.isError || !situacao ? (
+      ) : status.isError || !situation ? (
         <Card>
           <ErrorState
             title="Não foi possível carregar os indicadores"
@@ -82,16 +82,16 @@ function PlacarEntreEscolas() {
         <>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
             <StatCard icon={ClipboardCheck} label="Chamada no prazo" hint="de 0 a 100">
-              {integerText(situacao.indicadores.chamadaNoPrazo)}
+              {integerText(situation.indicators.attendanceOnTime)}
             </StatCard>
             <StatCard icon={FileCheck2} label="Notas sem pendência" hint="de 0 a 100">
-              {integerText(situacao.indicadores.notasSemPendencia)}
+              {integerText(situation.indicators.gradesWithoutPending)}
             </StatCard>
             <StatCard icon={Users} label="Frequência média" hint="de 0 a 100">
-              {integerText(situacao.indicadores.frequenciaMedia)}
+              {integerText(situation.indicators.averageAttendance)}
             </StatCard>
             <StatCard icon={ShieldCheck} label="Total" hint="soma dos três">
-              {integerText(situacao.indicadores.points)}
+              {integerText(situation.indicators.points)}
             </StatCard>
           </div>
 
@@ -101,13 +101,13 @@ function PlacarEntreEscolas() {
           </p>
 
           <Card className="flex flex-col gap-4">
-            <CardEyebrow>{situacao.aderiu ? "Participando" : "Participar"}</CardEyebrow>
+            <CardEyebrow>{situation.aderiu ? "Participando" : "Participar"}</CardEyebrow>
 
-            {situacao.aderiu ? (
+            {situation.aderiu ? (
               <>
                 <p className="text-corpo">
                   A escola aparece no placar como{" "}
-                  <strong className="font-bold">{situacao.displayName}</strong>.
+                  <strong className="font-bold">{situation.displayName}</strong>.
                 </p>
                 <div>
                   <Button
@@ -125,7 +125,7 @@ function PlacarEntreEscolas() {
                   <Label htmlFor="nome-no-placar">Como a escola aparece no placar</Label>
                   <Input
                     id="nome-no-placar"
-                    value={nome}
+                    value={name}
                     onChange={(evento) => setNome(evento.target.value)}
                     placeholder="Dom Pedro II"
                     maxLength={60}
@@ -136,8 +136,8 @@ function PlacarEntreEscolas() {
                 </div>
                 <div>
                   <Button
-                    onClick={() => aderir.mutate({ displayName: nome, academicYear: year })}
-                    disabled={aderir.isPending || nome.trim().length < 2}
+                    onClick={() => aderir.mutate({ displayName: name, academicYear: year })}
+                    disabled={aderir.isPending || name.trim().length < 2}
                   >
                     {aderir.isPending ? "Publicando…" : "Participar do placar"}
                   </Button>

@@ -14,10 +14,10 @@ import type { OverviewService } from "../overview/service";
  * frequência" ele devolve inteiro.
  */
 
-const percentual = (taxa: number | null | undefined) =>
-  taxa === null || taxa === undefined
+const percentual = (rate: number | null | undefined) =>
+  rate === null || rate === undefined
     ? "sem dado"
-    : `${(taxa * 100).toFixed(1).replace(".", ",")}%`;
+    : `${(rate * 100).toFixed(1).replace(".", ",")}%`;
 
 const nota = (valor: number | null | undefined) =>
   valor === null || valor === undefined ? "sem nota publicada" : valor.toFixed(1).replace(".", ",");
@@ -50,7 +50,7 @@ export async function managementFacts(overview: OverviewService, term: number, a
 export async function teacherFacts(overview: OverviewService, teacherId: string, term: number) {
   const painel = await overview.professor(teacherId, term);
 
-  const turmas = painel.classroomAverages.map(
+  const classrooms = painel.classroomAverages.map(
     (turma) =>
       `- ${turma.classroomName}: média ${nota(turma.average)}${
         turma.previousAverage !== null ? ` (bimestre anterior ${nota(turma.previousAverage)})` : ""
@@ -59,9 +59,9 @@ export async function teacherFacts(overview: OverviewService, teacherId: string,
 
   return [
     `Bimestre corrente: ${term}º.`,
-    turmas.length === 0
+    classrooms.length === 0
       ? "Nenhuma turma com nota publicada neste bimestre."
-      : `Suas turmas:\n${turmas.join("\n")}`,
+      : `Suas turmas:\n${classrooms.join("\n")}`,
     `Notas suas em aberto: ${painel.pendingGrades}.`,
     `Alunos das suas turmas que precisam de atenção por frequência: ${painel.needsAttention}.`,
     // Dito ao modelo, não só a nós: sem isto ele tenta responder "quem são" a
@@ -76,7 +76,7 @@ export async function studentFacts(
 ) {
   const painel = await overview.aluno(input);
 
-  const disciplinas = painel.subjects.map(
+  const subjects = painel.subjects.map(
     (materia) => `- ${materia.subjectName}: média da turma ${nota(materia.classAverage)}`,
   );
 
@@ -87,9 +87,9 @@ export async function studentFacts(
           painel.attendance.belowMinimum ? " Está abaixo do mínimo de 75% exigido por lei." : ""
         }`
       : "Ainda não há aula registrada para calcular sua frequência.",
-    disciplinas.length === 0
+    subjects.length === 0
       ? "Nenhuma média de turma publicada neste bimestre."
-      : `Médias da sua turma por disciplina:\n${disciplinas.join("\n")}`,
+      : `Médias da sua turma por disciplina:\n${subjects.join("\n")}`,
     // O §7.5 do requisito dito em linguagem de instrução: sem isto, o modelo
     // preenche a lacuna com nome de colega inventado.
     "Você não tem a nota de nenhum colega, e não pode citar nome de outro aluno.",

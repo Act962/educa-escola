@@ -57,7 +57,7 @@ export interface TermAverage {
   studentId: string;
   term: number;
   /** Média ponderada das avaliações publicadas. `null` quando não há nota. */
-  media: number | null;
+  average: number | null;
 }
 
 /**
@@ -73,8 +73,8 @@ export function yearOf(date: string): number {
 
 /** Meio-dia UTC: longe das bordas de fuso, então o dia nunca vira. */
 function instanteDe(date: string): Date {
-  const [ano, mes, dia] = date.split("-").map(Number);
-  return new Date(Date.UTC(ano ?? 1970, (mes ?? 1) - 1, dia ?? 1, 12));
+  const [year, mes, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year ?? 1970, (mes ?? 1) - 1, day ?? 1, 12));
 }
 
 function evento(base: Omit<NewEvent, "points"> & { ruleKey: RuleKey }): NewEvent {
@@ -107,47 +107,47 @@ export const DAYS_FOR_FEEDBACK = 7;
  * sequência de dez depende da ordem das aulas, e ordenar no SQL deixaria a
  * regra dependendo de um `ORDER BY` longe de onde ela é lida.
  */
-export function tallyAttendance(presencas: TalliedAttendance[]): NewEvent[] {
-  const eventos: NewEvent[] = [];
-  const porAluno = new Map<string, TalliedAttendance[]>();
+export function tallyAttendance(attendanceEntries: TalliedAttendance[]): NewEvent[] {
+  const events: NewEvent[] = [];
+  const byStudent = new Map<string, TalliedAttendance[]>();
 
-  for (const presenca of presencas) {
-    const lista = porAluno.get(presenca.studentId);
-    if (lista) lista.push(presenca);
-    else porAluno.set(presenca.studentId, [presenca]);
+  for (const attendanceEntry of attendanceEntries) {
+    const list = byStudent.get(attendanceEntry.studentId);
+    if (list) list.push(attendanceEntry);
+    else byStudent.set(attendanceEntry.studentId, [attendanceEntry]);
   }
 
-  for (const [studentId, lista] of porAluno) {
-    const ordenadas = [...lista].sort((a, b) => a.date.localeCompare(b.date));
+  for (const [studentId, list] of byStudent) {
+    const ordenadas = [...list].sort((a, b) => a.date.localeCompare(b.date));
     let seguidas = 0;
 
-    for (const presenca of ordenadas) {
+    for (const attendanceEntry of ordenadas) {
       const comum = {
         subjectKind: "aluno" as const,
         subjectId: studentId,
-        academicYear: yearOf(presenca.date),
+        academicYear: yearOf(attendanceEntry.date),
         term: null,
         sourceKind: "attendance",
-        sourceId: presenca.id,
-        occurredAt: instanteDe(presenca.date),
+        sourceId: attendanceEntry.id,
+        occurredAt: instanteDe(attendanceEntry.date),
       };
 
-      if (presenca.status === "presente") {
-        eventos.push(evento({ ...comum, ruleKey: "aluno.presenca" }));
-      } else if (presenca.status === "atraso") {
-        eventos.push(evento({ ...comum, ruleKey: "aluno.atraso" }));
+      if (attendanceEntry.status === "presente") {
+        events.push(evento({ ...comum, ruleKey: "aluno.presenca" }));
+      } else if (attendanceEntry.status === "atraso") {
+        events.push(evento({ ...comum, ruleKey: "aluno.atraso" }));
       }
 
       // Atraso não quebra a sequência: quem chegou assistiu à aula, que é a
       // mesma leitura que a frequência faz.
-      if (presenca.status === "falta") {
+      if (attendanceEntry.status === "falta") {
         seguidas = 0;
         continue;
       }
 
       seguidas += 1;
       if (seguidas === LESSONS_FOR_STREAK) {
-        eventos.push(evento({ ...comum, ruleKey: "aluno.sequencia_10" }));
+        events.push(evento({ ...comum, ruleKey: "aluno.sequencia_10" }));
         // Zera para que vinte aulas seguidas valham dois pontos de constância,
         // e não um só nem um a cada aula a partir da décima.
         seguidas = 0;
@@ -155,7 +155,7 @@ export function tallyAttendance(presencas: TalliedAttendance[]): NewEvent[] {
     }
   }
 
-  return eventos;
+  return events;
 }
 
 /**
@@ -167,25 +167,27 @@ export function tallyAttendance(presencas: TalliedAttendance[]): NewEvent[] {
  * percentual não quer dizer nada, daí o piso de `MINIMUM_LESSONS_FOR_MERIT`.
  */
 export function tallyYearAttendance(
-  presencas: TalliedAttendance[],
+  attendanceEntries: TalliedAttendance[],
   academicYear: number,
 ): NewEvent[] {
-  const doAno = presencas.filter((presenca) => yearOf(presenca.date) === academicYear);
-  const contagem = new Map<string, { compareceu: number; total: number }>();
+  const doAno = attendanceEntries.filter(
+    (attendanceEntry) => yearOf(attendanceEntry.date) === academicYear,
+  );
+  const count = new Map<string, { compareceu: number; total: number }>();
 
-  for (const presenca of doAno) {
-    const atual = contagem.get(presenca.studentId) ?? { compareceu: 0, total: 0 };
+  for (const attendanceEntry of doAno) {
+    const atual = count.get(attendanceEntry.studentId) ?? { compareceu: 0, total: 0 };
     atual.total += 1;
-    if (presenca.status !== "falta") atual.compareceu += 1;
-    contagem.set(presenca.studentId, atual);
+    if (attendanceEntry.status !== "falta") atual.compareceu += 1;
+    count.set(attendanceEntry.studentId, atual);
   }
 
-  const eventos: NewEvent[] = [];
-  for (const [studentId, { compareceu, total }] of contagem) {
+  const events: NewEvent[] = [];
+  for (const [studentId, { compareceu, total }] of count) {
     if (total < MINIMUM_LESSONS_FOR_MERIT) continue;
     if (compareceu / total <= MERIT_ATTENDANCE_RATE) continue;
 
-    eventos.push(
+    events.push(
       evento({
         subjectKind: "aluno",
         subjectId: studentId,
@@ -201,7 +203,7 @@ export function tallyYearAttendance(
     );
   }
 
-  return eventos;
+  return events;
 }
 
 /**
@@ -211,23 +213,23 @@ export function tallyYearAttendance(
  * uma evolução que ninguém fez. É a mesma leitura que o boletim faz ao manter
  * o aluno em "sem nota" enquanto houver pendência.
  */
-export function tallyImprovement(medias: TermAverage[], academicYear: number): NewEvent[] {
-  const porAluno = new Map<string, Map<number, number>>();
+export function tallyImprovement(averages: TermAverage[], academicYear: number): NewEvent[] {
+  const byStudent = new Map<string, Map<number, number>>();
 
-  for (const linha of medias) {
-    if (linha.media === null) continue;
-    const doAluno = porAluno.get(linha.studentId) ?? new Map<number, number>();
-    doAluno.set(linha.term, linha.media);
-    porAluno.set(linha.studentId, doAluno);
+  for (const linha of averages) {
+    if (linha.average === null) continue;
+    const ofStudent = byStudent.get(linha.studentId) ?? new Map<number, number>();
+    ofStudent.set(linha.term, linha.average);
+    byStudent.set(linha.studentId, ofStudent);
   }
 
-  const eventos: NewEvent[] = [];
-  for (const [studentId, bimestres] of porAluno) {
-    for (const [term, media] of bimestres) {
+  const events: NewEvent[] = [];
+  for (const [studentId, bimestres] of byStudent) {
+    for (const [term, average] of bimestres) {
       const anterior = bimestres.get(term - 1);
-      if (anterior === undefined || media <= anterior) continue;
+      if (anterior === undefined || average <= anterior) continue;
 
-      eventos.push(
+      events.push(
         evento({
           subjectKind: "aluno",
           subjectId: studentId,
@@ -242,7 +244,7 @@ export function tallyImprovement(medias: TermAverage[], academicYear: number): N
     }
   }
 
-  return eventos;
+  return events;
 }
 
 /**
@@ -251,10 +253,10 @@ export function tallyImprovement(medias: TermAverage[], academicYear: number): N
  * As duas são sobre **o registro**, nunca sobre o que foi registrado. É o que
  * impede o incentivo cruzado: nada aqui melhora marcando presente quem faltou.
  */
-export function tallyLessons(aulas: TalliedLesson[], timeZone?: string): NewEvent[] {
-  const eventos: NewEvent[] = [];
+export function tallyLessons(lessons: TalliedLesson[], timeZone?: string): NewEvent[] {
+  const events: NewEvent[] = [];
 
-  for (const aula of aulas) {
+  for (const aula of lessons) {
     if (!aula.attendanceRecordedAt) continue;
 
     const comum = {
@@ -271,20 +273,20 @@ export function tallyLessons(aulas: TalliedLesson[], timeZone?: string): NewEven
     // no fuso da escola, e não no relógio do processo, senão a chamada das 21h
     // de um servidor em UTC contaria como do dia seguinte.
     if (toSchoolDate(aula.attendanceRecordedAt, timeZone) <= aula.date) {
-      eventos.push(evento({ ...comum, ruleKey: "professor.chamada_no_prazo" }));
+      events.push(evento({ ...comum, ruleKey: "professor.chamada_no_prazo" }));
     }
 
     const temDiario = Boolean(aula.content?.trim()) || Boolean(aula.homework?.trim());
     if (temDiario) {
-      eventos.push(evento({ ...comum, ruleKey: "professor.diario_preenchido" }));
+      events.push(evento({ ...comum, ruleKey: "professor.diario_preenchido" }));
     }
   }
 
-  return eventos;
+  return events;
 }
 
 /** Diferença em dias entre duas datas civis. */
-function diasEntre(de: string, ate: string): number {
+function daysBetween(de: string, ate: string): number {
   return Math.round((instanteDe(ate).getTime() - instanteDe(de).getTime()) / 86_400_000);
 }
 
@@ -295,10 +297,10 @@ function diasEntre(de: string, ate: string): number {
  * sem lançamento deixa exatamente o buraco no boletim que a regra do
  * `assessment` proíbe.
  */
-export function tallyAssessments(avaliacoes: TalliedAssessment[], timeZone?: string): NewEvent[] {
-  const eventos: NewEvent[] = [];
+export function tallyAssessments(assessments: TalliedAssessment[], timeZone?: string): NewEvent[] {
+  const events: NewEvent[] = [];
 
-  for (const avaliacao of avaliacoes) {
+  for (const avaliacao of assessments) {
     if (avaliacao.status !== "publicada" || !avaliacao.publishedAt) continue;
 
     const publicadaEm = toSchoolDate(avaliacao.publishedAt, timeZone);
@@ -313,15 +315,15 @@ export function tallyAssessments(avaliacoes: TalliedAssessment[], timeZone?: str
     };
 
     if (avaliacao.semLancamento === 0) {
-      eventos.push(evento({ ...comum, ruleKey: "professor.avaliacao_publicada" }));
+      events.push(evento({ ...comum, ruleKey: "professor.avaliacao_publicada" }));
     }
 
     // Sem data de aplicação não dá para medir devolutiva. Não pontua, e não
     // chuta: avaliação sem `appliedOn` é cadastro incompleto, não mérito.
-    if (avaliacao.appliedOn && diasEntre(avaliacao.appliedOn, publicadaEm) <= DAYS_FOR_FEEDBACK) {
-      eventos.push(evento({ ...comum, ruleKey: "professor.devolutiva_em_sete_dias" }));
+    if (avaliacao.appliedOn && daysBetween(avaliacao.appliedOn, publicadaEm) <= DAYS_FOR_FEEDBACK) {
+      events.push(evento({ ...comum, ruleKey: "professor.devolutiva_em_sete_dias" }));
     }
   }
 
-  return eventos;
+  return events;
 }

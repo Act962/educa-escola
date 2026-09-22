@@ -14,11 +14,11 @@ const { counts } = result;
 
 console.log(`\nEscola de demonstração pronta: ${result.schoolId}`);
 console.log(
-  `${counts.alunos} alunos · ${counts.turmas} turmas · ` +
-    `${counts.professores} professores · ${counts.disciplinas} disciplinas`,
+  `${counts.alunos} alunos · ${counts.classrooms} turmas · ` +
+    `${counts.professores} professores · ${counts.subjects} disciplinas`,
 );
 console.log(
-  `${counts.aulas} aulas · ${counts.chamadas} chamadas · ${counts.notas} notas lançadas\n`,
+  `${counts.lessons} aulas · ${counts.chamadas} chamadas · ${counts.grades} notas lançadas\n`,
 );
 
 console.log("Acessos:");

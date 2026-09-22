@@ -246,11 +246,11 @@ export function createEnrollmentLinkService(deps: EnrollmentLinkDeps) {
 
       const changes: Record<string, { de: string | null; para: string }> = {};
       if (input.student.name !== resolved.studentName) {
-        changes.alunoNome = { de: resolved.studentName, para: input.student.name };
+        changes.studentName = { de: resolved.studentName, para: input.student.name };
       }
       if (guardian) {
         if (guardian.name !== input.guardian.name) {
-          changes.responsavelNome = { de: guardian.name, para: input.guardian.name };
+          changes.guardianName = { de: guardian.name, para: input.guardian.name };
         }
         if (guardian.phoneE164 !== input.guardian.phoneE164) {
           changes.responsavelCelular = { de: guardian.phoneE164, para: input.guardian.phoneE164 };

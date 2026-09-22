@@ -40,7 +40,7 @@ export function shiftText(value: string): string {
   return TURNOS[value] ?? value;
 }
 
-const SITUACOES_MATRICULA: Record<string, { label: string; tone: BadgeTone }> = {
+const STUDENT_STATUS_BADGES: Record<string, { label: string; tone: BadgeTone }> = {
   ativo: { label: "Ativo", tone: "success" },
   documentacao_pendente: { label: "Doc. pendente", tone: "warning" },
   transferido: { label: "Transferido", tone: "neutral" },
@@ -48,10 +48,10 @@ const SITUACOES_MATRICULA: Record<string, { label: string; tone: BadgeTone }> = 
 };
 
 export function studentStatusBadge(value: string) {
-  return SITUACOES_MATRICULA[value] ?? { label: value, tone: "neutral" as BadgeTone };
+  return STUDENT_STATUS_BADGES[value] ?? { label: value, tone: "neutral" as BadgeTone };
 }
 
-const SITUACOES_NOTA: Record<string, { label: string; tone: BadgeTone }> = {
+const GRADE_SITUATION_BADGES: Record<string, { label: string; tone: BadgeTone }> = {
   aprovado: { label: "Aprovado", tone: "success" },
   recuperacao: { label: "Recuperação", tone: "danger" },
   reprovado: { label: "Reprovado", tone: "danger" },
@@ -59,7 +59,7 @@ const SITUACOES_NOTA: Record<string, { label: string; tone: BadgeTone }> = {
 };
 
 export function gradeSituationBadge(value: string) {
-  return SITUACOES_NOTA[value] ?? { label: value, tone: "neutral" as BadgeTone };
+  return GRADE_SITUATION_BADGES[value] ?? { label: value, tone: "neutral" as BadgeTone };
 }
 
 /** Saudação pelo horário local de quem está lendo. */
@@ -162,17 +162,17 @@ export function phoneText(value: string | null | undefined): string {
 /** "2015-03-14" -> "14/03/2015". Data civil não passa por fuso. */
 export function civilDateText(value: string | null | undefined): string {
   if (!value) return "—";
-  const [ano, mes, dia] = value.split("-");
-  return `${dia}/${mes}/${ano}`;
+  const [year, mes, day] = value.split("-");
+  return `${day}/${mes}/${year}`;
 }
 
 /** Instante -> "21/09 às 14h32", no fuso de quem lê. */
 export function dateTimeText(value: Date | string | null | undefined): string {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;
-  const dia = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-  const hora = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  return `${dia} às ${hora.replace(":", "h")}`;
+  const day = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const time = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return `${day} às ${time.replace(":", "h")}`;
 }
 
 /**
@@ -192,9 +192,9 @@ export function instantDateText(value: Date | string | null | undefined): string
 export function deadlineText(value: Date | string | null | undefined, agora = new Date()): string {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;
-  const dias = Math.ceil((date.getTime() - agora.getTime()) / 86_400_000);
-  if (dias < 0) return "vencido";
-  if (dias === 0) return "vence hoje";
-  if (dias === 1) return "1 dia";
-  return `${dias} dias`;
+  const days = Math.ceil((date.getTime() - agora.getTime()) / 86_400_000);
+  if (days < 0) return "vencido";
+  if (days === 0) return "vence hoje";
+  if (days === 1) return "1 dia";
+  return `${days} dias`;
 }

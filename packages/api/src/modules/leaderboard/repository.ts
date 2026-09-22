@@ -70,9 +70,9 @@ export function createLeaderboardRepository(db: DbHandle, tenant: TenantContext)
       displayName: string;
       academicYear: number;
       points: number;
-      chamadaNoPrazo: number;
-      notasSemPendencia: number;
-      frequenciaMedia: number;
+      attendanceOnTime: number;
+      gradesWithoutPending: number;
+      averageAttendance: number;
     }) {
       const [row] = await db
         .insert(schoolLeaderboardEntry)
@@ -95,7 +95,7 @@ export function createLeaderboardRepository(db: DbHandle, tenant: TenantContext)
     async contagens(academicYear: number): Promise<SchoolCounts> {
       const doAno = sql`date_part('year', ${lesson.date}) = ${academicYear}`;
 
-      const [aulas] = await db
+      const [lessons] = await db
         .select({
           comChamada: count(lesson.attendanceRecordedAt),
           // Dois `at time zone` e não um: a coluna é `timestamp` sem fuso,
@@ -103,7 +103,7 @@ export function createLeaderboardRepository(db: DbHandle, tenant: TenantContext)
           // São Paulo em vez de convertê-lo para lá, e a chamada das 21h
           // cairia no dia seguinte — tirando do professor um ponto que ele
           // ganhou. É a mesma leitura que `toSchoolDate` faz do lado do TS.
-          noPrazo: sql<number>`count(*) filter (
+          onTime: sql<number>`count(*) filter (
             where ${lesson.attendanceRecordedAt} is not null
               and (${lesson.attendanceRecordedAt} at time zone 'UTC' at time zone 'America/Sao_Paulo')::date
                   <= ${lesson.date}::date
@@ -135,7 +135,7 @@ export function createLeaderboardRepository(db: DbHandle, tenant: TenantContext)
 
       let semPendencia = 0;
       if (publicadas.length > 0) {
-        const [notas, turmas] = await Promise.all([
+        const [grades, classrooms] = await Promise.all([
           db
             .select({ assessmentId: grade.assessmentId, total: count(grade.id) })
             .from(grade)
@@ -161,19 +161,19 @@ export function createLeaderboardRepository(db: DbHandle, tenant: TenantContext)
             .groupBy(student.classroomId),
         ]);
 
-        const porAvaliacao = new Map(notas.map((linha) => [linha.assessmentId, linha.total]));
-        const porTurma = new Map(turmas.map((linha) => [linha.classroomId, linha.total]));
+        const porAvaliacao = new Map(grades.map((linha) => [linha.assessmentId, linha.total]));
+        const byClassroom = new Map(classrooms.map((linha) => [linha.classroomId, linha.total]));
 
         semPendencia = publicadas.filter(
-          (linha) => (porAvaliacao.get(linha.id) ?? 0) >= (porTurma.get(linha.classroomId) ?? 0),
+          (linha) => (porAvaliacao.get(linha.id) ?? 0) >= (byClassroom.get(linha.classroomId) ?? 0),
         ).length;
       }
 
       return {
-        aulasComChamada: aulas?.comChamada ?? 0,
-        aulasNoPrazo: aulas?.noPrazo ?? 0,
-        avaliacoesPublicadas: publicadas.length,
-        avaliacoesSemPendencia: semPendencia,
+        lessonsWithAttendance: lessons?.comChamada ?? 0,
+        lessonsOnTime: lessons?.onTime ?? 0,
+        publishedAssessments: publicadas.length,
+        assessmentsWithoutPending: semPendencia,
         comparecimentos: chamadas?.comparecimentos ?? 0,
         registrosDeChamada: chamadas?.registros ?? 0,
       };
@@ -220,9 +220,9 @@ export function createLeaderboardLookup(db: DbHandle) {
           schoolId: schoolLeaderboardEntry.schoolId,
           displayName: schoolLeaderboardEntry.displayName,
           points: schoolLeaderboardEntry.points,
-          chamadaNoPrazo: schoolLeaderboardEntry.chamadaNoPrazo,
-          notasSemPendencia: schoolLeaderboardEntry.notasSemPendencia,
-          frequenciaMedia: schoolLeaderboardEntry.frequenciaMedia,
+          attendanceOnTime: schoolLeaderboardEntry.attendanceOnTime,
+          gradesWithoutPending: schoolLeaderboardEntry.gradesWithoutPending,
+          averageAttendance: schoolLeaderboardEntry.averageAttendance,
         })
         .from(schoolLeaderboardEntry)
         .innerJoin(

@@ -81,12 +81,12 @@ export function createStudentService(repo: StudentRepository) {
     async attendanceOverview() {
       const linhas = await repo.presenceByStudent();
 
-      const porTurma = new Map<string, AttendanceOverviewRow & PresenceCounts>();
+      const byClassroom = new Map<string, AttendanceOverviewRow & PresenceCounts>();
       const abaixo: AttendanceStudentRow[] = [];
 
       for (const linha of linhas) {
-        const chave = linha.classroomId ?? "sem-turma";
-        const atual = porTurma.get(chave) ?? {
+        const key = linha.classroomId ?? "sem-turma";
+        const atual = byClassroom.get(key) ?? {
           classroomId: linha.classroomId,
           classroomName: linha.classroomName ?? "Sem turma",
           shift: linha.shift,
@@ -103,8 +103,8 @@ export function createStudentService(repo: StudentRepository) {
         atual.lateCount += linha.lateCount;
         atual.absentCount += linha.absentCount;
 
-        const taxa = attendanceRate(linha);
-        if (taxa !== null && taxa < MINIMUM_ATTENDANCE_RATE) {
+        const rate = attendanceRate(linha);
+        if (rate !== null && rate < MINIMUM_ATTENDANCE_RATE) {
           atual.belowMinimum += 1;
           abaixo.push({
             studentId: linha.studentId,
@@ -112,14 +112,14 @@ export function createStudentService(repo: StudentRepository) {
             registration: linha.registration,
             classroomName: linha.classroomName,
             shift: linha.shift,
-            rate: taxa,
+            rate: rate,
           });
         }
 
-        porTurma.set(chave, atual);
+        byClassroom.set(key, atual);
       }
 
-      const turmas: AttendanceOverviewRow[] = [...porTurma.values()].map((turma) => ({
+      const classrooms: AttendanceOverviewRow[] = [...byClassroom.values()].map((turma) => ({
         classroomId: turma.classroomId,
         classroomName: turma.classroomName,
         shift: turma.shift,
@@ -146,7 +146,7 @@ export function createStudentService(repo: StudentRepository) {
         minimumRate: MINIMUM_ATTENDANCE_RATE,
         // Quem está mais longe do mínimo primeiro: é quem a direção precisa
         // procurar antes que o ano feche.
-        classrooms: turmas.sort((a, b) => (a.rate ?? 1) - (b.rate ?? 1)),
+        classrooms: classrooms.sort((a, b) => (a.rate ?? 1) - (b.rate ?? 1)),
         below: abaixo.sort((a, b) => a.rate - b.rate),
       };
     },

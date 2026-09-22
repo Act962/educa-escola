@@ -61,11 +61,11 @@ function pesosDoReconhecimentoFacial(): Plugin {
       let origem: string;
       try {
         origem = join(dirname(require.resolve("@vladmandic/face-api/package.json")), "model");
-      } catch (erro) {
+      } catch (error) {
         // Sem a biblioteca o quiosque atende pela carteirinha. Falhar o build
         // por causa do rosto seria derrubar a portaria inteira — mas sumir
         // sem dizer nada foi o que já escondeu um defeito aqui.
-        this.warn(`Reconhecimento sem pesos: ${String(erro)}. A portaria usa só carteirinha.`);
+        this.warn(`Reconhecimento sem pesos: ${String(error)}. A portaria usa só carteirinha.`);
         return;
       }
 
@@ -89,12 +89,12 @@ function pesosDoReconhecimentoFacial(): Plugin {
          */
         const entrada = require.resolve("@vladmandic/human");
         vivacidade = join(dirname(dirname(entrada)), "models");
-      } catch (erro) {
+      } catch (error) {
         // Sem a vivacidade a portaria recusa o rosto e pede a carteirinha —
         // nunca o contrário. Falhar o build derrubaria a portaria inteira por
         // causa de uma camada ausente, mas o silêncio é pior: ela ficaria
         // desligada sem aviso.
-        this.warn(`Vivacidade sem pesos: ${String(erro)}. A portaria vai recusar rosto.`);
+        this.warn(`Vivacidade sem pesos: ${String(error)}. A portaria vai recusar rosto.`);
         return;
       }
 

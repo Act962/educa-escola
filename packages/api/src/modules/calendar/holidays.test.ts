@@ -10,8 +10,8 @@ import {
 } from "./holidays";
 import { countSchoolDays } from "./school-days";
 
-const acha = <T extends { title: string }>(lista: T[], titulo: string) =>
-  lista.find((d) => d.title.includes(titulo));
+const acha = <T extends { title: string }>(list: T[], title: string) =>
+  list.find((d) => d.title.includes(title));
 
 describe("domingoDePascoa", () => {
   /**
@@ -30,17 +30,17 @@ describe("domingoDePascoa", () => {
 
   /** A Páscoa é sempre domingo. Invariante que pega erro de deslocamento. */
   it("cai sempre num domingo", () => {
-    for (let ano = 2024; ano <= 2040; ano++) {
-      const dia = new Date(`${easterSunday(ano)}T12:00:00Z`).getUTCDay();
-      expect(dia).toBe(0);
+    for (let year = 2024; year <= 2040; year++) {
+      const day = new Date(`${easterSunday(year)}T12:00:00Z`).getUTCDay();
+      expect(day).toBe(0);
     }
   });
 
   it("fica entre 22 de março e 25 de abril, como manda a regra", () => {
-    for (let ano = 2024; ano <= 2060; ano++) {
-      const data = easterSunday(ano);
-      expect(data >= `${ano}-03-22`).toBe(true);
-      expect(data <= `${ano}-04-25`).toBe(true);
+    for (let year = 2024; year <= 2060; year++) {
+      const data = easterSunday(year);
+      expect(data >= `${year}-03-22`).toBe(true);
+      expect(data <= `${year}-04-25`).toBe(true);
     }
   });
 });
@@ -83,22 +83,22 @@ describe("feriadosNacionais", () => {
   });
 
   it("vem em ordem de data", () => {
-    const datas = nationalHolidays(2026).map((d) => d.startsOn);
-    expect([...datas].sort()).toEqual(datas);
+    const dates = nationalHolidays(2026).map((d) => d.startsOn);
+    expect([...dates].sort()).toEqual(dates);
   });
 });
 
 describe("pontosFacultativos", () => {
   it("Carnaval, Cinzas e Corpus Christi acompanham a Páscoa", () => {
-    const lista = optionalHolidays(2026);
+    const list = optionalHolidays(2026);
 
     // Páscoa 2026 em 05/04: Carnaval 16 e 17/02, Cinzas 18/02, Corpus 04/06.
-    expect(acha(lista, "Carnaval")).toMatchObject({
+    expect(acha(list, "Carnaval")).toMatchObject({
       startsOn: "2026-02-16",
       endsOn: "2026-02-17",
     });
-    expect(acha(lista, "Cinzas")?.startsOn).toBe("2026-02-18");
-    expect(acha(lista, "Corpus Christi")?.startsOn).toBe("2026-06-04");
+    expect(acha(list, "Cinzas")?.startsOn).toBe("2026-02-18");
+    expect(acha(list, "Corpus Christi")?.startsOn).toBe("2026-06-04");
   });
 
   /** Não são feriado por lei federal, e a origem precisa dizer isso. */
@@ -130,11 +130,11 @@ describe("datasComemorativas", () => {
   });
 
   it("traz as datas da história do Brasil", () => {
-    const lista = commemorativeDates(2026);
-    expect(acha(lista, "Abolição")?.startsOn).toBe("2026-05-13");
-    expect(acha(lista, "Descobrimento")?.startsOn).toBe("2026-04-22");
-    expect(acha(lista, "Folclore")?.startsOn).toBe("2026-08-22");
-    expect(acha(lista, "Bandeira")?.startsOn).toBe("2026-11-19");
+    const list = commemorativeDates(2026);
+    expect(acha(list, "Abolição")?.startsOn).toBe("2026-05-13");
+    expect(acha(list, "Descobrimento")?.startsOn).toBe("2026-04-22");
+    expect(acha(list, "Folclore")?.startsOn).toBe("2026-08-22");
+    expect(acha(list, "Bandeira")?.startsOn).toBe("2026-11-19");
   });
 });
 
@@ -155,11 +155,11 @@ describe("recessoDeJulho", () => {
 
 describe("calendarioBrasileiro", () => {
   it("junta tudo em ordem de data, sem repetir dia e título", () => {
-    const lista = brazilianCalendar(2026);
-    const chaves = lista.map((d) => `${d.startsOn}|${d.title}`);
+    const list = brazilianCalendar(2026);
+    const keys = list.map((d) => `${d.startsOn}|${d.title}`);
 
-    expect(new Set(chaves).size).toBe(chaves.length);
-    expect([...lista.map((d) => d.startsOn)].sort()).toEqual(lista.map((d) => d.startsOn));
+    expect(new Set(keys).size).toBe(keys.length);
+    expect([...list.map((d) => d.startsOn)].sort()).toEqual(list.map((d) => d.startsOn));
   });
 
   /**
@@ -172,11 +172,11 @@ describe("calendarioBrasileiro", () => {
       startsOn: "2026-02-02",
       endsOn: "2026-12-18",
       minimo: 200,
-      eventos: brazilianCalendar(2026),
+      events: brazilianCalendar(2026),
     });
 
     expect(conta.cumpreOMinimo).toBe(true);
     expect(conta.letivos).toBeGreaterThanOrEqual(200);
-    expect(conta.letivos).toBeLessThan(conta.diasUteis);
+    expect(conta.letivos).toBeLessThan(conta.weekdays);
   });
 });

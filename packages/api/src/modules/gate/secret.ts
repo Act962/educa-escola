@@ -24,12 +24,12 @@ export function templateKey(raw: string | undefined): Buffer {
  * vez e lido em lote, então os bytes a mais não pesam, e um formato que se lê
  * num dump é um formato que alguém consegue auditar.
  */
-export function encryptTemplate(descritor: readonly number[], raw: string | undefined): Encrypted {
-  return encrypt(Buffer.from(JSON.stringify(descritor), "utf8"), templateKey(raw));
+export function encryptTemplate(descriptor: readonly number[], raw: string | undefined): Encrypted {
+  return encrypt(Buffer.from(JSON.stringify(descriptor), "utf8"), templateKey(raw));
 }
 
-export function decryptTemplate(dados: Encrypted, raw: string | undefined): number[] {
-  const texto = decrypt(dados, templateKey(raw)).toString("utf8");
+export function decryptTemplate(data: Encrypted, raw: string | undefined): number[] {
+  const texto = decrypt(data, templateKey(raw)).toString("utf8");
   const valor: unknown = JSON.parse(texto);
 
   // Um molde que não é vetor de números viraria `NaN` na distância, e `NaN`

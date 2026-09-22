@@ -39,14 +39,14 @@ describe("createScoreRepository", () => {
       const repo = createScoreRepository(tx, { schoolId: escola.id });
 
       await repo.appendEvents([evento()]);
-      const lista = await repo.listEvents({
+      const list = await repo.listEvents({
         subjectKind: "aluno",
         subjectId: "aluno-1",
         academicYear: 2026,
         limit: 10,
       });
 
-      expect(lista).toHaveLength(1);
+      expect(list).toHaveLength(1);
     });
   });
 
@@ -216,10 +216,10 @@ describe("createScoreRepository", () => {
         ]);
 
         const repo = createScoreRepository(tx, { schoolId: escola.id });
-        const presencas = await repo.presencasDoAno(2026);
+        const attendanceEntries = await repo.yearAttendance(2026);
 
-        expect(presencas).toHaveLength(1);
-        expect(presencas[0]).toMatchObject({ studentId: aluno.id, date: "2026-03-02" });
+        expect(attendanceEntries).toHaveLength(1);
+        expect(attendanceEntries[0]).toMatchObject({ studentId: aluno.id, date: "2026-03-02" });
       });
     });
 
@@ -240,8 +240,8 @@ describe("createScoreRepository", () => {
         });
 
         const daOutra = createScoreRepository(tx, { schoolId: b.id });
-        expect(await daOutra.aulasDoAno(2026)).toHaveLength(0);
-        expect(await daOutra.presencasDoAno(2026)).toHaveLength(0);
+        expect(await daOutra.yearLessons(2026)).toHaveLength(0);
+        expect(await daOutra.yearAttendance(2026)).toHaveLength(0);
       });
     });
   });

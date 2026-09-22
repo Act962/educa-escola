@@ -54,8 +54,8 @@ const LADO_DO_DETECTOR = 320;
 export type Frame = HTMLVideoElement | HTMLCanvasElement;
 
 export interface FaceExtractor {
-  readonly nome: string;
-  readonly disponivel: boolean;
+  readonly name: string;
+  readonly available: boolean;
   /** Carrega o modelo. Chamado uma vez, na abertura do quiosque. */
   preparar(): Promise<void>;
   /**
@@ -67,14 +67,14 @@ export interface FaceExtractor {
    * quase o tempo todo — é a diferença entre o tablet esquentando à toa e o
    * tablet esperando quieto.
    */
-  temRosto(quadro: Frame): Promise<boolean>;
+  temRosto(frame: Frame): Promise<boolean>;
   /**
    * Os códigos do rosto que estiver no quadro, ou `null` se não houver rosto.
    *
    * `null` é resposta legítima e frequente: a maior parte dos quadros de uma
    * portaria não tem ninguém na frente da câmera.
    */
-  extrair(quadro: Frame): Promise<number[] | null>;
+  extrair(frame: Frame): Promise<number[] | null>;
 }
 
 /**
@@ -84,8 +84,8 @@ export interface FaceExtractor {
  * rosto. `disponivel` é o que a tela lê para não prometer o que não tem.
  */
 export const MISSING_EXTRACTOR: FaceExtractor = {
-  nome: "nenhum",
-  disponivel: false,
+  name: "nenhum",
+  available: false,
   preparar: async () => undefined,
   temRosto: async () => false,
   extrair: async () => null,
@@ -164,25 +164,25 @@ async function carregar(): Promise<FaceApi | null> {
  * Vídeo sem quadro ainda devolveria tensor vazio, e a biblioteca estouraria
  * dentro do laço da câmera. Canvas já é um quadro: basta ter tamanho.
  */
-export function frameReady(quadro: Frame): boolean {
-  if (quadro instanceof HTMLCanvasElement) return quadro.width > 0 && quadro.height > 0;
-  return quadro.readyState >= 2 && quadro.videoWidth > 0;
+export function frameReady(frame: Frame): boolean {
+  if (frame instanceof HTMLCanvasElement) return frame.width > 0 && frame.height > 0;
+  return frame.readyState >= 2 && frame.videoWidth > 0;
 }
 
 export const faceExtractor: FaceExtractor = {
-  nome: EXTRACTOR_NAME,
-  disponivel: true,
+  name: EXTRACTOR_NAME,
+  available: true,
 
   async preparar() {
     await carregar();
   },
 
-  async temRosto(quadro) {
+  async temRosto(frame) {
     const api = await carregar();
-    if (!api || !frameReady(quadro)) return false;
+    if (!api || !frameReady(frame)) return false;
 
     const achado = await api.detectSingleFace(
-      quadro,
+      frame,
       new api.TinyFaceDetectorOptions({
         scoreThreshold: CONFIANCA_MINIMA,
         inputSize: LADO_DO_DETECTOR,
@@ -191,13 +191,13 @@ export const faceExtractor: FaceExtractor = {
     return !!achado;
   },
 
-  async extrair(quadro) {
+  async extrair(frame) {
     const api = await carregar();
-    if (!api || !frameReady(quadro)) return null;
+    if (!api || !frameReady(frame)) return null;
 
     const achado = await api
       .detectSingleFace(
-        quadro,
+        frame,
         new api.TinyFaceDetectorOptions({
           scoreThreshold: CONFIANCA_MINIMA,
           inputSize: LADO_DO_DETECTOR,
@@ -210,4 +210,4 @@ export const faceExtractor: FaceExtractor = {
   },
 };
 
-export const faceAvailable = (): boolean => faceExtractor.disponivel;
+export const faceAvailable = (): boolean => faceExtractor.available;

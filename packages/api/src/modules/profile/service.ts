@@ -16,9 +16,9 @@ export type Affiliation =
       matricula: string | null;
       turma: string | null;
       turno: string | null;
-      situacao: string | null;
+      situation: string | null;
     }
-  | { tipo: "professor"; turmas: number; disciplinas: number; aulas: number }
+  | { tipo: "professor"; classrooms: number; subjects: number; lessons: number }
   | { tipo: "gestao" };
 
 export interface Profile {
@@ -29,9 +29,9 @@ export interface Profile {
   role: AppRole;
   schoolId: string;
   schoolName: string;
-  naEscolaDesde: Date;
+  atSchoolSince: Date;
   contaCriadaEm: Date;
-  vinculo: Affiliation;
+  affiliation: Affiliation;
 }
 
 export function createProfileService(repo: ProfileRepository) {
@@ -58,9 +58,9 @@ export function createProfileService(repo: ProfileRepository) {
         role,
         schoolId: identidade.schoolId,
         schoolName: identidade.schoolName,
-        naEscolaDesde: identidade.naEscolaDesde,
+        atSchoolSince: identidade.atSchoolSince,
         contaCriadaEm: identidade.contaCriadaEm,
-        vinculo: await vinculoDe(repo, userId, role, academicYear),
+        affiliation: await vinculoDe(repo, userId, role, academicYear),
       };
     },
   };
@@ -79,7 +79,7 @@ async function vinculoDe(
       matricula: ficha?.registration ?? null,
       turma: ficha?.classroomName ?? null,
       turno: ficha?.shift ?? null,
-      situacao: ficha?.status ?? null,
+      situation: ficha?.status ?? null,
     };
   }
 
@@ -87,9 +87,9 @@ async function vinculoDe(
     const carga = await repo.teacherBond(userId, academicYear);
     return {
       tipo: "professor",
-      turmas: carga.turmas,
-      disciplinas: carga.disciplinas,
-      aulas: carga.aulas,
+      classrooms: carga.classrooms,
+      subjects: carga.subjects,
+      lessons: carga.lessons,
     };
   }
 

@@ -136,13 +136,13 @@ export interface SeedResult {
   schoolId: string;
   logins: { perfil: string; email: string; senha: string }[];
   counts: {
-    turmas: number;
+    classrooms: number;
     alunos: number;
     professores: number;
-    disciplinas: number;
-    aulas: number;
+    subjects: number;
+    lessons: number;
     chamadas: number;
-    notas: number;
+    grades: number;
   };
 }
 
@@ -209,12 +209,12 @@ export async function seedDemoSchool(): Promise<SeedResult> {
     subjectIds.set(name, (row as { id: string }).id);
   }
 
-  const turmas = buildClassrooms();
+  const classrooms = buildClassrooms();
   const classroomIds = new Map<string, string>();
   const studentIds = new Map<string, string>();
   let alunos = 0;
 
-  for (const turma of turmas) {
+  for (const turma of classrooms) {
     const [row] = await db
       .insert(classroom)
       .values({ schoolId, name: turma.name, academicYear: DEMO_YEAR })
@@ -244,7 +244,7 @@ export async function seedDemoSchool(): Promise<SeedResult> {
   }
 
   // ---- Grade horária e alocação de professores ----
-  const timetables = turmas.map((turma, index) => ({
+  const timetables = classrooms.map((turma, index) => ({
     name: turma.name,
     shift: turma.shift,
     timetable: timetableOf(index, turma.shift, turma.room),
@@ -253,7 +253,7 @@ export async function seedDemoSchool(): Promise<SeedResult> {
 
   const { lessonRows, recordedByClassroom } = buildLessons({
     schoolId,
-    turmas,
+    classrooms,
     timetables,
     classroomIds,
     subjectIds,
@@ -266,17 +266,17 @@ export async function seedDemoSchool(): Promise<SeedResult> {
   // ---- Chamadas ----
   const attendanceRows: (typeof attendance.$inferInsert)[] = [];
 
-  for (const turma of turmas) {
+  for (const turma of classrooms) {
     const classroomId = classroomIds.get(turma.name) as string;
-    const aulas = recordedByClassroom.get(classroomId) ?? [];
+    const lessons = recordedByClassroom.get(classroomId) ?? [];
 
     turma.students.forEach((person, seat) => {
       const studentId = studentIds.get(person.registration) as string;
-      const { absences, lates } = absencesFor(person, aulas.length);
-      const faltas = spreadIndexes(aulas.length, absences, seat);
-      const atrasos = spreadIndexes(aulas.length, lates, seat + 3);
+      const { absences, lates } = absencesFor(person, lessons.length);
+      const faltas = spreadIndexes(lessons.length, absences, seat);
+      const atrasos = spreadIndexes(lessons.length, lates, seat + 3);
 
-      aulas.forEach((lessonId, index) => {
+      lessons.forEach((lessonId, index) => {
         const status = faltas.has(index)
           ? "falta"
           : atrasos.has(index)
@@ -292,10 +292,10 @@ export async function seedDemoSchool(): Promise<SeedResult> {
   const chamadas = [...recordedByClassroom.values()].reduce((sum, ids) => sum + ids.length, 0);
 
   // ---- Avaliações e notas ----
-  const notas = await seedAssessments({
+  const grades = await seedAssessments({
     db,
     schoolId,
-    turmas,
+    classrooms,
     classroomIds,
     subjectIds,
     studentIds,
@@ -311,13 +311,13 @@ export async function seedDemoSchool(): Promise<SeedResult> {
       { perfil: "Aluna", email: STUDENT_WITH_ACCESS.email, senha: DEMO_PASSWORD },
     ],
     counts: {
-      turmas: turmas.length,
+      classrooms: classrooms.length,
       alunos,
       professores: TEACHERS.length,
-      disciplinas: SUBJECTS.length,
-      aulas: lessonRows.length,
+      subjects: SUBJECTS.length,
+      lessons: lessonRows.length,
       chamadas,
-      notas,
+      grades,
     },
   };
 }
@@ -330,14 +330,14 @@ export async function seedDemoSchool(): Promise<SeedResult> {
  */
 function buildLessons(input: {
   schoolId: string;
-  turmas: DemoClassroom[];
+  classrooms: DemoClassroom[];
   timetables: { name: string; timetable: ReturnType<typeof timetableOf> }[];
   classroomIds: Map<string, string>;
   subjectIds: Map<string, string>;
   userIds: Map<string, string>;
   assignment: Map<string, string>;
 }) {
-  const { schoolId, turmas, timetables, classroomIds, subjectIds, userIds, assignment } = input;
+  const { schoolId, classrooms, timetables, classroomIds, subjectIds, userIds, assignment } = input;
 
   const today = new Date(`${isoDate(new Date())}T00:00:00Z`);
   const start = new Date(today);
@@ -346,16 +346,16 @@ function buildLessons(input: {
   end.setUTCDate(end.getUTCDate() + DIAS_PARA_FRENTE);
   const todayIso = isoDate(today);
 
-  const dias = schoolDays(start, end);
+  const days = schoolDays(start, end);
   const lessonRows: (typeof lesson.$inferInsert)[] = [];
   /** Aulas passadas por professor, para escolher quais ficam pendentes. */
   const pastByTeacher = new Map<string, { id: string; order: string }[]>();
 
-  for (const turma of turmas) {
+  for (const turma of classrooms) {
     const horario = timetables.find((item) => item.name === turma.name)?.timetable ?? [];
     const classroomId = classroomIds.get(turma.name) as string;
 
-    for (const day of dias) {
+    for (const day of days) {
       const weekday = day.getUTCDay();
       const date = isoDate(day);
 
@@ -390,8 +390,8 @@ function buildLessons(input: {
   // aula de dois meses atrás e não a de ontem não se parece com a realidade.
   const pending = new Set<string>();
   for (const [email, quantidade] of Object.entries(CHAMADAS_EM_ATRASO)) {
-    const aulas = (pastByTeacher.get(email) ?? []).sort((a, b) => a.order.localeCompare(b.order));
-    for (const aula of aulas.slice(-quantidade)) pending.add(aula.id);
+    const lessons = (pastByTeacher.get(email) ?? []).sort((a, b) => a.order.localeCompare(b.order));
+    for (const aula of lessons.slice(-quantidade)) pending.add(aula.id);
   }
 
   const recordedAt = new Date();
@@ -427,14 +427,15 @@ function buildLessons(input: {
 async function seedAssessments(input: {
   db: DbHandle;
   schoolId: string;
-  turmas: DemoClassroom[];
+  classrooms: DemoClassroom[];
   classroomIds: Map<string, string>;
   subjectIds: Map<string, string>;
   studentIds: Map<string, string>;
   userIds: Map<string, string>;
   assignment: Map<string, string>;
 }): Promise<number> {
-  const { db, schoolId, turmas, classroomIds, subjectIds, studentIds, userIds, assignment } = input;
+  const { db, schoolId, classrooms, classroomIds, subjectIds, studentIds, userIds, assignment } =
+    input;
 
   const hoje = new Date();
   const dataDe = (offset: number) => {
@@ -446,7 +447,7 @@ async function seedAssessments(input: {
   const assessmentRows: (typeof assessment.$inferInsert)[] = [];
   const gradeRows: (typeof grade.$inferInsert)[] = [];
 
-  for (const [turmaIndex, turma] of turmas.entries()) {
+  for (const [turmaIndex, turma] of classrooms.entries()) {
     const classroomId = classroomIds.get(turma.name) as string;
 
     for (const [subjectIndex, subjectName] of SUBJECTS.entries()) {
@@ -531,15 +532,15 @@ async function seedAssessments(input: {
          * as outras duas avaliações já estão publicadas, e avaliação
          * publicada com buraco é justamente o que o app não deixa existir.
          */
-        const notas = [1, 2, 3].map((assessmentIndex, position) => {
+        const grades = [1, 2, 3].map((assessmentIndex, position) => {
           if (escritas) return escritas[position] ?? null;
           const ultima = position === definicoes.length - 2;
           if (pendente && ultima && seat >= turma.students.length - 2) return null;
           return scoreFor(seat, subjectIndex, assessmentIndex, person.aptitude);
         });
 
-        const lancadas = notas.filter((value): value is number => value !== null);
-        const media = lancadas.reduce((sum, value) => sum + value, 0) / (lancadas.length || 1);
+        const lancadas = grades.filter((value): value is number => value !== null);
+        const average = lancadas.reduce((sum, value) => sum + value, 0) / (lancadas.length || 1);
 
         // O bimestre anterior fica 0,7 abaixo do atual: a comparação do
         // gráfico precisa de diferença visível, e a evolução é a história.
@@ -547,10 +548,10 @@ async function seedAssessments(input: {
           schoolId,
           assessmentId: ids[0] as string,
           studentId,
-          score: Math.min(10, Math.max(0, Math.round((media - 0.7) * 10) / 10)),
+          score: Math.min(10, Math.max(0, Math.round((average - 0.7) * 10) / 10)),
         });
 
-        notas.forEach((score, position) => {
+        grades.forEach((score, position) => {
           if (score === null) return;
           gradeRows.push({
             schoolId,

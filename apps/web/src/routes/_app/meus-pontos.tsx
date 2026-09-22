@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_app/meus-pontos")({
 function PontosDoProfessor() {
   const trpc = useTRPC();
   const { year } = useSchoolContext();
-  const painel = useQuery(trpc.score.meuPainelDeProfessor.queryOptions({ academicYear: year }));
+  const painel = useQuery(trpc.score.myTeacherPanel.queryOptions({ academicYear: year }));
 
   return (
     <>
@@ -47,7 +47,7 @@ function PontosDoProfessor() {
         </Card>
       ) : (
         <>
-          <PointsSummary dados={painel.data} ano={year} />
+          <PointsSummary data={painel.data} year={year} />
 
           <StatCard
             icon={Medal}
@@ -59,7 +59,7 @@ function PontosDoProfessor() {
               : "—"}
           </StatCard>
 
-          <PointsStatement dados={painel.data} />
+          <PointsStatement data={painel.data} />
 
           <p className="text-meta text-muted-foreground">
             Todos os pontos aqui são por <strong className="font-bold">registrar</strong>, nunca

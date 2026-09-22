@@ -89,12 +89,12 @@ export function createCompatibleClient(config: {
           }),
           signal: AbortSignal.timeout(PRAZO_MS),
         });
-      } catch (erro) {
+      } catch (error) {
         // Endereço errado, DNS, servidor fora, prazo estourado: tudo isso é
         // configuração da escola, e a mensagem precisa dizer isso para a
         // direção saber que é com ela.
         throw new ModelError(
-          erro instanceof Error && erro.name === "TimeoutError"
+          error instanceof Error && error.name === "TimeoutError"
             ? "O modelo não respondeu em 30 segundos."
             : "Não foi possível falar com o modelo. Confira o endereço nas configurações.",
           true,
@@ -108,25 +108,25 @@ export function createCompatibleClient(config: {
         );
       }
 
-      const dados = (await resposta.json().catch(() => null)) as {
+      const data = (await resposta.json().catch(() => null)) as {
         choices?: { message?: { content?: string } }[];
         usage?: { total_tokens?: number };
       } | null;
 
-      const texto = dados?.choices?.[0]?.message?.content?.trim();
+      const texto = data?.choices?.[0]?.message?.content?.trim();
       if (!texto) {
         throw new ModelError("O modelo respondeu num formato que não reconheço.", true);
       }
 
-      return { texto, tokens: dados?.usage?.total_tokens ?? null };
+      return { texto, tokens: data?.usage?.total_tokens ?? null };
     },
 
     async listarModelos() {
-      const lista = `${config.baseUrl.replace(/\/+$/, "")}/models`;
+      const list = `${config.baseUrl.replace(/\/+$/, "")}/models`;
       let resposta: Response;
 
       try {
-        resposta = await fetch(lista, {
+        resposta = await fetch(list, {
           headers: {
             authorization: `Bearer ${config.apiKey}`,
             ...(config.organizationId ? { "openai-organization": config.organizationId } : {}),
@@ -147,11 +147,11 @@ export function createCompatibleClient(config: {
         );
       }
 
-      const dados = (await resposta.json().catch(() => null)) as {
+      const data = (await resposta.json().catch(() => null)) as {
         data?: { id?: string }[];
       } | null;
 
-      const ids = (dados?.data ?? [])
+      const ids = (data?.data ?? [])
         .map((linha) => linha.id)
         .filter((id): id is string => typeof id === "string" && id.length > 0);
 
@@ -181,10 +181,10 @@ export function createCompatibleClient(config: {
 async function codigoDoProvedor(resposta: Response): Promise<string | null> {
   try {
     const corpo = (await resposta.json()) as { error?: { code?: string } };
-    const codigo = corpo?.error?.code;
+    const code = corpo?.error?.code;
     // Limita o tamanho porque quem garante que aquilo é código somos nós, não
     // o provedor: campo grande ali não é código, é texto, e texto não passa.
-    return typeof codigo === "string" && codigo.length > 0 && codigo.length <= 40 ? codigo : null;
+    return typeof code === "string" && code.length > 0 && code.length <= 40 ? code : null;
   } catch {
     return null;
   }
@@ -199,8 +199,8 @@ async function codigoDoProvedor(resposta: Response): Promise<string | null> {
  * `error.code` passa, e passa porque sem ele a escola não sabe se troca a
  * chave ou se põe saldo.
  */
-function mensagemDoStatus(status: number, codigo: string | null): string {
-  const sufixo = codigo ? ` (o provedor respondeu "${codigo}")` : "";
+function mensagemDoStatus(status: number, code: string | null): string {
+  const sufixo = code ? ` (o provedor respondeu "${code}")` : "";
 
   if (status === 401 || status === 403) {
     return `O modelo recusou a credencial. Confira a chave nas configurações${sufixo}.`;

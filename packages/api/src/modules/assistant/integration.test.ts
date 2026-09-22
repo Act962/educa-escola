@@ -40,7 +40,7 @@ describe("Astro, de ponta a ponta", () => {
 
       const servico = createAssistantService(
         createAssistantRepository(tx, { schoolId: escola.id }),
-        { now: () => new Date(), chave: CHAVE, modelo: () => modeloQueEcoa(visto) },
+        { now: () => new Date(), key: CHAVE, modelo: () => modeloQueEcoa(visto) },
       );
 
       const salva = await servico.salvar(
@@ -74,8 +74,8 @@ describe("Astro, de ponta a ponta", () => {
 
       // 3. E mesmo assim a pergunta funciona: a chave é decifrada na hora.
       const resposta = await servico.perguntar(
-        { pergunta: "quantos alunos ativos?", fatos: "Alunos ativos: 289." },
-        { userId: conta.id, role: "owner", nome: "Marina", escola: "Dom Pedro II" },
+        { pergunta: "quantos alunos ativos?", facts: "Alunos ativos: 289." },
+        { userId: conta.id, role: "owner", name: "Marina", escola: "Dom Pedro II" },
       );
 
       expect(resposta.texto).toBe("São 289 alunos ativos.");
@@ -96,7 +96,7 @@ describe("Astro, de ponta a ponta", () => {
 
       const servico = createAssistantService(
         createAssistantRepository(tx, { schoolId: escola.id }),
-        { now: () => new Date(), chave: CHAVE, modelo: () => modeloQueEcoa(visto) },
+        { now: () => new Date(), key: CHAVE, modelo: () => modeloQueEcoa(visto) },
       );
 
       const base = {
@@ -119,8 +119,8 @@ describe("Astro, de ponta a ponta", () => {
 
       await expect(
         servico.perguntar(
-          { pergunta: "oi", fatos: "x" },
-          { userId: conta.id, role: "owner", nome: "M", escola: "E" },
+          { pergunta: "oi", facts: "x" },
+          { userId: conta.id, role: "owner", name: "M", escola: "E" },
         ),
       ).resolves.toMatchObject({ texto: "São 289 alunos ativos." });
     });
@@ -139,7 +139,7 @@ describe("Astro, de ponta a ponta", () => {
 
       const comChaveCerta = createAssistantService(repo, {
         now: () => new Date(),
-        chave: CHAVE,
+        key: CHAVE,
         modelo: () => modeloQueEcoa({}),
       });
 
@@ -159,14 +159,14 @@ describe("Astro, de ponta a ponta", () => {
 
       const comOutraChave = createAssistantService(repo, {
         now: () => new Date(),
-        chave: Buffer.alloc(32, 9).toString("base64"),
+        key: Buffer.alloc(32, 9).toString("base64"),
         modelo: () => modeloQueEcoa({}),
       });
 
       await expect(
         comOutraChave.perguntar(
-          { pergunta: "oi", fatos: "x" },
-          { userId: conta.id, role: "owner", nome: "M", escola: "E" },
+          { pergunta: "oi", facts: "x" },
+          { userId: conta.id, role: "owner", name: "M", escola: "E" },
         ),
       ).rejects.toThrow();
     });
@@ -179,7 +179,7 @@ describe("Astro, de ponta a ponta", () => {
 
       const servico = createAssistantService(
         createAssistantRepository(tx, { schoolId: escola.id }),
-        { now: () => new Date(), chave: CHAVE, modelo: () => modeloQueEcoa({}) },
+        { now: () => new Date(), key: CHAVE, modelo: () => modeloQueEcoa({}) },
       );
 
       await servico.salvar(
@@ -196,8 +196,8 @@ describe("Astro, de ponta a ponta", () => {
         conta.id,
       );
 
-      const quem = { userId: conta.id, role: "owner" as const, nome: "M", escola: "E" };
-      const perguntar = () => servico.perguntar({ pergunta: "oi", fatos: "x" }, quem);
+      const quem = { userId: conta.id, role: "owner" as const, name: "M", escola: "E" };
+      const perguntar = () => servico.perguntar({ pergunta: "oi", facts: "x" }, quem);
 
       expect((await perguntar()).restantesHoje).toBe(1);
       expect((await perguntar()).restantesHoje).toBe(0);

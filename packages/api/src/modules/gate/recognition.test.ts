@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_THRESHOLD, distance, identify, MINIMUM_MARGIN } from "./recognition";
 
 /** Vetor pequeno: a regra é a mesma em 3 ou em 128 dimensões. */
-const molde = (studentId: string, descritor: number[]) => ({ studentId, descritor });
+const molde = (studentId: string, descriptor: number[]) => ({ studentId, descriptor });
 
 describe("distancia", () => {
   it("é zero para o mesmo vetor", () => {
@@ -36,12 +36,12 @@ describe("identificar", () => {
 
   /** Quem não está cadastrado não pode virar o cadastrado mais próximo. */
   it("não reconhece ninguém quando o mais perto está além do limiar", () => {
-    const veredito = identify([5, 5, 5], conhecidos);
-    expect(veredito.tipo).toBe("ninguem");
+    const verdict = identify([5, 5, 5], conhecidos);
+    expect(verdict.tipo).toBe("ninguem");
   });
 
   it("sem molde nenhum, não reconhece", () => {
-    expect(identify([1, 2, 3], [])).toEqual({ tipo: "ninguem", melhorDistancia: null });
+    expect(identify([1, 2, 3], [])).toEqual({ tipo: "ninguem", bestDistance: null });
   });
 
   /**
@@ -51,15 +51,15 @@ describe("identificar", () => {
    */
   it("recusa quando dois alunos estão quase igualmente perto", () => {
     const irmaos = [molde("carla", [0, 0, 0]), molde("clara", [0.02, 0, 0])];
-    const veredito = identify([0.01, 0, 0], irmaos);
+    const verdict = identify([0.01, 0, 0], irmaos);
 
-    expect(veredito.tipo).toBe("ambiguo");
+    expect(verdict.tipo).toBe("ambiguo");
   });
 
   /** Ambíguo é só entre candidatos aceitáveis: longe demais não disputa nada. */
   it("não chama de ambíguo quando o segundo está fora do limiar", () => {
-    const veredito = identify([0, 0, 0], [molde("ana", [0, 0, 0]), molde("bruno", [9, 9, 9])]);
-    expect(veredito).toEqual({ tipo: "reconhecido", studentId: "ana", distance: 0 });
+    const verdict = identify([0, 0, 0], [molde("ana", [0, 0, 0]), molde("bruno", [9, 9, 9])]);
+    expect(verdict).toEqual({ tipo: "reconhecido", studentId: "ana", distance: 0 });
   });
 
   it("respeita a borda do limiar", () => {

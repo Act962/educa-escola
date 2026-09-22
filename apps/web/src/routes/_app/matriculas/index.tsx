@@ -95,12 +95,12 @@ function Matriculas() {
   const trpc = useTRPC();
   const [filtro, setFiltro] = useState<Filtro>("pendente");
   const [search, setSearch] = useState("");
-  const [turmaId, setTurmaId] = useState(TODOS);
+  const [classroomId, setTurmaId] = useState(TODOS);
   const [turnoFiltro, setTurnoFiltro] = useState<string>(TODOS);
   const [modo, setModo] = useState<Modo>("lista");
   const [page, setPage] = useState(0);
 
-  const turmas = useQuery(trpc.classroom.list.queryOptions());
+  const classrooms = useQuery(trpc.classroom.list.queryOptions());
 
   const trocarFiltro = (value: Filtro) => {
     setFiltro(value);
@@ -113,7 +113,7 @@ function Matriculas() {
       search: search.trim() || undefined,
       academicYear: ANO_LETIVO,
       // Os dois recortes do disparo em massa: uma turma, ou um turno inteiro.
-      classroomId: turmaId === TODOS ? undefined : turmaId,
+      classroomId: classroomId === TODOS ? undefined : classroomId,
       shift: turnoFiltro === TODOS ? undefined : (turnoFiltro as "manha" | "tarde" | "noite"),
       limit: POR_PAGINA,
       offset: page * POR_PAGINA,
@@ -148,7 +148,7 @@ function Matriculas() {
 
   const itens = matriculas.data?.items ?? [];
   const total = matriculas.data?.total ?? 0;
-  const pendentes = contagens.data?.pendente ?? 0;
+  const pending = contagens.data?.pendente ?? 0;
 
   // A contagem vai em campo próprio, e não emendada no rótulo: dentro do
   // texto ela quebrava a opção no meio quando faltava largura, e o leitor de
@@ -165,9 +165,9 @@ function Matriculas() {
           <CardEyebrow>Secretaria</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Matrículas</h1>
           <p className="text-corpo text-muted-foreground">
-            {pendentes === 0
+            {pending === 0
               ? `Nenhuma pendência no ano letivo de ${ANO_LETIVO}.`
-              : `${integerText(pendentes)} aguardando ação · ano letivo de ${ANO_LETIVO}`}
+              : `${integerText(pending)} aguardando ação · ano letivo de ${ANO_LETIVO}`}
           </p>
         </div>
         <Button render={<Link to="/matriculas/nova" />}>
@@ -233,11 +233,11 @@ function Matriculas() {
           <Select
             items={[
               { value: TODOS, label: "Todas as turmas" },
-              ...(turmas.data ?? [])
+              ...(classrooms.data ?? [])
                 .filter((turma) => turma.academicYear === ANO_LETIVO)
                 .map((turma) => ({ value: turma.id, label: turma.name })),
             ]}
-            value={turmaId}
+            value={classroomId}
             onValueChange={(valor) => {
               setTurmaId(valor ?? TODOS);
               setPage(0);
@@ -248,7 +248,7 @@ function Matriculas() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={TODOS}>Todas as turmas</SelectItem>
-              {(turmas.data ?? [])
+              {(classrooms.data ?? [])
                 .filter((turma) => turma.academicYear === ANO_LETIVO)
                 .map((turma) => (
                   <SelectItem key={turma.id} value={turma.id}>
@@ -284,7 +284,7 @@ function Matriculas() {
             filtros={{
               academicYear: ANO_LETIVO,
               search: search.trim() || undefined,
-              classroomId: turmaId === TODOS ? undefined : turmaId,
+              classroomId: classroomId === TODOS ? undefined : classroomId,
               shift:
                 turnoFiltro === TODOS ? undefined : (turnoFiltro as "manha" | "tarde" | "noite"),
             }}
@@ -327,7 +327,7 @@ function Matriculas() {
               </TableHeader>
               <TableBody>
                 {itens.map((item) => {
-                  const situacao = enrollmentStatusBadge(item.status);
+                  const situation = enrollmentStatusBadge(item.status);
                   const link = linkStatusBadge(item.linkStatus);
                   const restante = deadlineText(item.expiresAt);
                   const urgente =
@@ -378,7 +378,7 @@ function Matriculas() {
                         <Badge variant={link.tone}>{link.label}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={situacao.tone}>{situacao.label}</Badge>
+                        <Badge variant={situation.tone}>{situation.label}</Badge>
                       </TableCell>
                       <TableCell>
                         <span

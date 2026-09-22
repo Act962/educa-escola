@@ -23,7 +23,7 @@ import { firstName, greeting } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
-const ESTADO_DA_AULA: Record<string, { label: string; tone: BadgeTone }> = {
+const LESSON_STATE: Record<string, { label: string; tone: BadgeTone }> = {
   registrada: { label: "Chamada registrada", tone: "success" },
   pendente: { label: "Chamada pendente", tone: "danger" },
   em_andamento: { label: "Em andamento", tone: "info" },
@@ -37,9 +37,9 @@ export function TeacherDashboard({ me }: { me: CurrentUser }) {
   const agenda = useQuery(trpc.lesson.myAgenda.queryOptions());
   const painel = useQuery(trpc.overview.professor.queryOptions({ term }));
 
-  const aulas = agenda.data?.lessons ?? [];
+  const lessons = agenda.data?.lessons ?? [];
   const atrasadas = agenda.data?.overdue ?? [];
-  const pendentesHoje = aulas.filter((aula) => aula.state === "pendente").length;
+  const pendentesHoje = lessons.filter((aula) => aula.state === "pendente").length;
 
   return (
     <>
@@ -53,7 +53,7 @@ export function TeacherDashboard({ me }: { me: CurrentUser }) {
               {greeting()}, {firstName(me.name)}
             </h1>
             <p className="max-w-xl text-corpo text-muted-foreground">
-              Você tem <strong className="text-foreground">{aulas.length} aulas</strong> hoje
+              Você tem <strong className="text-foreground">{lessons.length} aulas</strong> hoje
               {atrasadas.length > 0 ? (
                 <>
                   {" e "}
@@ -75,7 +75,7 @@ export function TeacherDashboard({ me }: { me: CurrentUser }) {
 
         <div className="grid grid-cols-2 gap-4 xl:w-[26rem]">
           <StatCard icon={Clock} label="Aulas hoje" tone="info">
-            {aulas.length}
+            {lessons.length}
           </StatCard>
           <StatCard
             icon={AlertTriangle}
@@ -110,15 +110,15 @@ export function TeacherDashboard({ me }: { me: CurrentUser }) {
 
             {agenda.isLoading ? (
               <ListSkeleton rows={3} />
-            ) : aulas.length === 0 ? (
+            ) : lessons.length === 0 ? (
               <EmptyState
                 title="Nenhuma aula hoje"
                 description="Não há aula na sua grade para este dia. As pendências anteriores continuam listadas ao lado."
               />
             ) : (
               <ul className="flex flex-col gap-2">
-                {aulas.map((aula) => {
-                  const estado = ESTADO_DA_AULA[aula.state] ?? ESTADO_DA_AULA.a_seguir;
+                {lessons.map((aula) => {
+                  const estado = LESSON_STATE[aula.state] ?? LESSON_STATE.a_seguir;
                   const pendente = aula.state === "pendente";
 
                   return (
@@ -280,10 +280,10 @@ export function TeacherDashboard({ me }: { me: CurrentUser }) {
 
 function TurmasResumo() {
   const trpc = useTRPC();
-  const turmas = useQuery(trpc.lesson.myClassrooms.queryOptions());
+  const classrooms = useQuery(trpc.lesson.myClassrooms.queryOptions());
 
-  if (turmas.isLoading) return <ListSkeleton rows={2} />;
-  if (!turmas.data?.length) {
+  if (classrooms.isLoading) return <ListSkeleton rows={2} />;
+  if (!classrooms.data?.length) {
     return (
       <EmptyState
         title="Nenhuma turma vinculada"
@@ -294,7 +294,7 @@ function TurmasResumo() {
 
   return (
     <ul className="flex flex-col gap-2">
-      {turmas.data.map((turma) => (
+      {classrooms.data.map((turma) => (
         <li key={`${turma.classroomId}-${turma.subjectId}`}>
           <Link
             to="/notas"

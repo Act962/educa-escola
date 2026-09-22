@@ -46,8 +46,8 @@ describe("createStudentRepository", () => {
 
       const repoB = createStudentRepository(tx, { schoolId: b.id });
 
-      const lista = await repoB.list({ limit: 50, offset: 0 });
-      expect(lista.map((linha) => linha.name)).toEqual(["Aluno da B"]);
+      const list = await repoB.list({ limit: 50, offset: 0 });
+      expect(list.map((linha) => linha.name)).toEqual(["Aluno da B"]);
 
       expect(await repoB.findById(deA.id)).toBeNull();
       expect(await repoB.countMatching({})).toBe(1);

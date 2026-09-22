@@ -59,29 +59,29 @@ const EFEITO_LABEL = {
  * todo. O que muda é o foco: vindo de "criar", o cursor já está no título.
  */
 export function DayPanel({
-  dia,
+  day,
   intencao,
-  eventos,
-  turmas,
-  turmaPadrao,
+  events,
+  classrooms,
+  defaultClassroom,
   aberto,
   aoFechar,
   aoCriar,
   aoApagar,
   aoEditar,
   ocupado,
-  erro,
+  error,
 }: {
   /** ISO do dia, ou `null` quando nada está aberto. */
-  dia: string | null;
+  day: string | null;
   intencao: "ver" | "criar";
-  eventos: DayEvent[];
-  turmas: ClassroomOption[];
+  events: DayEvent[];
+  classrooms: ClassroomOption[];
   /** Turma já escolhida no filtro da tela. `null` é a escola inteira. */
-  turmaPadrao: string | null;
+  defaultClassroom: string | null;
   aberto: boolean;
   aoFechar: () => void;
-  aoCriar: (dados: {
+  aoCriar: (data: {
     type: EventType;
     dayEffect: "nenhum" | "nao_letivo" | "letivo_extra";
     title: string;
@@ -91,7 +91,7 @@ export function DayPanel({
     classroomId?: string;
   }) => void;
   aoApagar: (id: string) => void;
-  aoEditar: (dados: {
+  aoEditar: (data: {
     id: string;
     type: EventType;
     dayEffect: "nenhum" | "nao_letivo" | "letivo_extra";
@@ -102,19 +102,19 @@ export function DayPanel({
     classroomId?: string;
   }) => void;
   ocupado: boolean;
-  erro: string | null;
+  error: string | null;
 }) {
   const [tipo, setTipo] = useState<EventType>("evento");
-  const [titulo, setTitulo] = useState("");
-  const [fim, setFim] = useState("");
-  const [turmaId, setTurmaId] = useState<string | null>(turmaPadrao);
+  const [title, setTitulo] = useState("");
+  const [end, setFim] = useState("");
+  const [classroomId, setTurmaId] = useState<string | null>(defaultClassroom);
   const campoTitulo = useRef<HTMLInputElement>(null);
   const [editando, setEditando] = useState<{
     id: string;
     title: string;
     type: EventType;
     endsOn: string;
-    turmaId: string | null;
+    classroomId: string | null;
   } | null>(null);
 
   // Cada dia começa com o formulário limpo: reaproveitar o que sobrou do dia
@@ -125,9 +125,9 @@ export function DayPanel({
     setTitulo("");
     setFim("");
     setTipo("evento");
-    setTurmaId(turmaPadrao);
+    setTurmaId(defaultClassroom);
     setEditando(null);
-  }, [dia, turmaPadrao]);
+  }, [day, defaultClassroom]);
 
   const tipos = EVENT_TYPES.map((t) => ({ label: EVENT_TYPE_LABEL[t], value: t }));
 
@@ -145,24 +145,24 @@ export function DayPanel({
           {/* `capitalize` põe maiúscula em toda palavra: "Segunda-Feira, 7 De
               Setembro". Só a primeira letra da frase. */}
           <SheetTitle className="font-extrabold text-lg first-letter:uppercase">
-            {dia ? longDate(dia) : ""}
+            {day ? longDate(day) : ""}
           </SheetTitle>
           <SheetDescription>
-            {eventos.length === 0
+            {events.length === 0
               ? "Nada marcado neste dia."
-              : `${eventos.length} ${eventos.length === 1 ? "registro" : "registros"} neste dia.`}
+              : `${events.length} ${events.length === 1 ? "registro" : "registros"} neste dia.`}
           </SheetDescription>
         </SheetHeader>
 
         <div className="mt-5 flex flex-col gap-3">
-          {eventos.length === 0 ? (
+          {events.length === 0 ? (
             <EmptyState
               title="Dia livre"
               description="Marque aqui uma reunião, um prazo de matrícula ou um lembrete."
             />
           ) : (
             <ul className="flex flex-col">
-              {eventos.map((evento) => (
+              {events.map((evento) => (
                 <li
                   key={evento.id}
                   className="flex flex-col gap-1.5 border-border border-t py-3 first:border-t-0"
@@ -193,12 +193,12 @@ export function DayPanel({
                           ))}
                         </SelectContent>
                       </Select>
-                      {turmas.length > 0 ? (
+                      {classrooms.length > 0 ? (
                         <TargetField
                           id={`alvo-${evento.id}`}
-                          turmas={turmas}
-                          valor={editando.turmaId}
-                          aoMudar={(id) => setEditando({ ...editando, turmaId: id })}
+                          classrooms={classrooms}
+                          valor={editando.classroomId}
+                          aoMudar={(id) => setEditando({ ...editando, classroomId: id })}
                         />
                       ) : null}
                       <DateField
@@ -222,7 +222,7 @@ export function DayPanel({
                               title: editando.title,
                               startsOn: evento.startsOn,
                               endsOn: editando.endsOn || undefined,
-                              ...targetOf(editando.turmaId),
+                              ...targetOf(editando.classroomId),
                             });
                             setEditando(null);
                           }}
@@ -257,7 +257,7 @@ export function DayPanel({
                             title: evento.title,
                             type: evento.type as EventType,
                             endsOn: evento.endsOn === evento.startsOn ? "" : evento.endsOn,
-                            turmaId: evento.classroomId,
+                            classroomId: evento.classroomId,
                           })
                         }
                         disabled={ocupado}
@@ -312,7 +312,7 @@ export function DayPanel({
             <Input
               id="titulo-do-dia"
               ref={campoTitulo}
-              value={titulo}
+              value={title}
               onChange={(evento) => setTitulo(evento.target.value)}
               placeholder="Reunião de pais do 3º bimestre"
               maxLength={120}
@@ -339,32 +339,37 @@ export function DayPanel({
             </Select>
           </div>
 
-          {turmas.length > 0 ? (
-            <TargetField id="alvo-do-dia" turmas={turmas} valor={turmaId} aoMudar={setTurmaId} />
+          {classrooms.length > 0 ? (
+            <TargetField
+              id="alvo-do-dia"
+              classrooms={classrooms}
+              valor={classroomId}
+              aoMudar={setTurmaId}
+            />
           ) : null}
 
           <DateField
             id="fim-do-dia"
             label="Termina em (opcional)"
-            value={fim}
+            value={end}
             onChange={(iso) => setFim(iso ?? "")}
             hint="Deixe em branco para um dia só."
-            min={dia ?? undefined}
+            min={day ?? undefined}
           />
 
           <Button
             onClick={() =>
-              dia &&
+              day &&
               aoCriar({
                 type: tipo,
                 dayEffect: SUGGESTED_EFFECT[tipo],
-                title: titulo,
-                startsOn: dia,
-                endsOn: fim || undefined,
-                ...targetOf(turmaId),
+                title: title,
+                startsOn: day,
+                endsOn: end || undefined,
+                ...targetOf(classroomId),
               })
             }
-            disabled={ocupado || titulo.trim().length < 2 || !dia}
+            disabled={ocupado || title.trim().length < 2 || !day}
           >
             <Plus size={18} strokeWidth={1.8} aria-hidden />
             {ocupado ? "Salvando…" : "Marcar"}
@@ -376,10 +381,10 @@ export function DayPanel({
             ”.
           </p>
 
-          {erro ? (
+          {error ? (
             <Alert variant="danger">
               <AlertTitle>Não foi possível marcar</AlertTitle>
-              <AlertDescription>{erro}</AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
         </div>

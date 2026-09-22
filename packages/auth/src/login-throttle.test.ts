@@ -13,8 +13,8 @@ afterAll(async () => {
 });
 
 /** Relógio que o teste avança à mão: nada de esperar 15 minutos de verdade. */
-function relogio(inicio = new Date("2026-09-22T07:30:00Z")) {
-  let atual = inicio.getTime();
+function relogio(start = new Date("2026-09-22T07:30:00Z")) {
+  let atual = start.getTime();
   return {
     now: () => new Date(atual),
     avancar: (segundos: number) => {

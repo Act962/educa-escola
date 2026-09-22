@@ -54,20 +54,20 @@ export function numberCell(valor: number | null | undefined, casas = 1): string 
 }
 
 /** Percentual de 0 a 1 vira "93,7%". `null` vira vazio, nunca "0%". */
-export function percentCell(taxa: number | null | undefined, casas = 1): string {
-  if (taxa === null || taxa === undefined) return "";
-  return `${numberCell(taxa * 100, casas)}%`;
+export function percentCell(rate: number | null | undefined, casas = 1): string {
+  if (rate === null || rate === undefined) return "";
+  return `${numberCell(rate * 100, casas)}%`;
 }
 
 export interface Column<T> {
-  titulo: string;
+  title: string;
   valor: (linha: T) => unknown;
 }
 
-export function generateCsv<T>(colunas: Column<T>[], linhas: T[]): string {
-  const cabecalho = colunas.map((coluna) => cell(coluna.titulo)).join(SEPARATOR);
+export function generateCsv<T>(columns: Column<T>[], linhas: T[]): string {
+  const cabecalho = columns.map((coluna) => cell(coluna.title)).join(SEPARATOR);
   const corpo = linhas.map((linha) =>
-    colunas.map((coluna) => cell(coluna.valor(linha))).join(SEPARATOR),
+    columns.map((coluna) => cell(coluna.valor(linha))).join(SEPARATOR),
   );
 
   // `\r\n` é o que o Excel espera; `\n` sozinho funciona no LibreOffice e
@@ -76,7 +76,7 @@ export function generateCsv<T>(colunas: Column<T>[], linhas: T[]): string {
 }
 
 /** Nome de arquivo seguro: sem acento, sem espaço, com data. */
-export function fileName(base: string, ano: number, hoje: string): string {
+export function fileName(base: string, year: number, hoje: string): string {
   const limpo = base
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -84,5 +84,5 @@ export function fileName(base: string, ano: number, hoje: string): string {
     .replace(/^-|-$/g, "")
     .toLowerCase();
 
-  return `${limpo}-${ano}-${hoje}.csv`;
+  return `${limpo}-${year}-${hoje}.csv`;
 }

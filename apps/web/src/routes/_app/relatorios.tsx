@@ -27,18 +27,18 @@ function Relatorios() {
   const trpc = useTRPC();
   const { year } = useSchoolContext();
 
-  const indicadores = useQuery(trpc.report.indicadores.queryOptions({ academicYear: year }));
+  const indicators = useQuery(trpc.report.indicators.queryOptions({ academicYear: year }));
   const catalogo = useQuery(trpc.report.catalogo.queryOptions());
-  const alerta = useQuery(trpc.report.turmasEmAlerta.queryOptions({ academicYear: year }));
+  const alerta = useQuery(trpc.report.classroomsAtRisk.queryOptions({ academicYear: year }));
 
   const exportar = useMutation(
     trpc.report.exportar.mutationOptions({
-      onSuccess: (arquivo) => baixar(arquivo.nome, arquivo.conteudo),
+      onSuccess: (arquivo) => baixar(arquivo.name, arquivo.conteudo),
     }),
   );
 
-  const disponiveis = indicadores.data?.filter((i) => i.valor !== null) ?? [];
-  const pendentes = indicadores.data?.filter((i) => i.valor === null) ?? [];
+  const disponiveis = indicators.data?.filter((i) => i.valor !== null) ?? [];
+  const pending = indicators.data?.filter((i) => i.valor === null) ?? [];
 
   return (
     <>
@@ -58,7 +58,7 @@ function Relatorios() {
           </AlertTitle>
           <AlertDescription>
             {alerta.data
-              .map((turma) => `${turma.nome} (${percentText(turma.frequencia)})`)
+              .map((turma) => `${turma.name} (${percentText(turma.attendanceRate)})`)
               .join(" · ")}
           </AlertDescription>
         </Alert>
@@ -67,35 +67,35 @@ function Relatorios() {
       <Card className="flex flex-col gap-4">
         <CardEyebrow>Indicadores-chave</CardEyebrow>
 
-        {indicadores.isLoading ? (
+        {indicators.isLoading ? (
           <ListSkeleton rows={5} />
-        ) : indicadores.isError ? (
+        ) : indicators.isError ? (
           <ErrorState
             title="Não foi possível calcular os indicadores"
             description="Atualize a página em instantes."
           />
         ) : (
           <ul className="flex flex-col">
-            {disponiveis.map((indicador) => (
+            {disponiveis.map((indicator) => (
               <li
-                key={indicador.chave}
+                key={indicator.key}
                 className="flex flex-wrap items-baseline gap-3 border-border border-t py-3 first:border-t-0"
               >
-                <span className="min-w-52 font-bold text-corpo">{indicador.rotulo}</span>
+                <span className="min-w-52 font-bold text-corpo">{indicator.label}</span>
                 <span className="font-extrabold text-xl">
-                  {indicador.formato === "percentual"
-                    ? percentText(indicador.valor)
-                    : integerText(indicador.valor ?? 0)}
+                  {indicator.formato === "percentual"
+                    ? percentText(indicator.valor)
+                    : integerText(indicator.valor ?? 0)}
                 </span>
                 {/* A fórmula fica na tela: número sem fórmula é fé. */}
-                <span className="text-meta text-muted-foreground">{indicador.formula}</span>
+                <span className="text-meta text-muted-foreground">{indicator.formula}</span>
               </li>
             ))}
           </ul>
         )}
       </Card>
 
-      {pendentes.length > 0 ? (
+      {pending.length > 0 ? (
         <Card className="flex flex-col gap-3">
           <CardEyebrow>O que ainda não dá para medir</CardEyebrow>
           <p className="text-corpo text-muted-foreground">
@@ -103,17 +103,17 @@ function Relatorios() {
             Aparecem aqui em vez de sumirem — e em vez de virarem zero, que seria mentira.
           </p>
           <ul className="flex flex-col">
-            {pendentes.map((indicador) => (
+            {pending.map((indicator) => (
               <li
-                key={indicador.chave}
+                key={indicator.key}
                 className="flex flex-col gap-1 border-border border-t py-3 first:border-t-0"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <Info size={14} strokeWidth={1.8} aria-hidden className="text-muted-foreground" />
-                  <span className="font-bold text-corpo">{indicador.rotulo}</span>
+                  <span className="font-bold text-corpo">{indicator.label}</span>
                   <Badge variant="secondary">sem dado</Badge>
                 </div>
-                <p className="text-meta text-muted-foreground">{indicador.indisponivel}</p>
+                <p className="text-meta text-muted-foreground">{indicator.indisponivel}</p>
               </li>
             ))}
           </ul>
@@ -129,17 +129,17 @@ function Relatorios() {
           <ul className="flex flex-col">
             {catalogo.data?.map((relatorio) => (
               <li
-                key={relatorio.chave}
+                key={relatorio.key}
                 className="flex flex-wrap items-center gap-3 border-border border-t py-3 first:border-t-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-corpo">{relatorio.titulo}</p>
+                  <p className="font-bold text-corpo">{relatorio.title}</p>
                   <p className="text-meta text-muted-foreground">{relatorio.descricao}</p>
                 </div>
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => exportar.mutate({ chave: relatorio.chave, academicYear: year })}
+                  onClick={() => exportar.mutate({ key: relatorio.key, academicYear: year })}
                   disabled={exportar.isPending}
                 >
                   <Download size={16} strokeWidth={1.8} aria-hidden />
@@ -173,13 +173,13 @@ function Relatorios() {
  * mecânica de download — reimplementar o recorte no cliente criaria duas
  * versões da verdade que divergem na primeira mudança.
  */
-function baixar(nome: string, conteudo: string) {
+function baixar(name: string, conteudo: string) {
   const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement("a");
   link.href = url;
-  link.download = nome;
+  link.download = name;
   document.body.appendChild(link);
   link.click();
   link.remove();

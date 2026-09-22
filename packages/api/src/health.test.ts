@@ -11,15 +11,15 @@ describe("checkHealth", () => {
 
   it("reporta indisponível quando o banco falha, sem vazar o erro", async () => {
     const log = vi.fn();
-    const erro = new Error("connect ECONNREFUSED postgres://admin@db-interno:5432/integra");
+    const error = new Error("connect ECONNREFUSED postgres://admin@db-interno:5432/integra");
 
     const report = await checkHealth(async () => {
-      throw erro;
+      throw error;
     }, log);
 
     expect(report).toEqual({ status: "indisponivel", checks: { database: "falhou" } });
     expect(JSON.stringify(report)).not.toContain("db-interno");
     // O detalhe não some: vai para o log, onde quem opera consegue ler.
-    expect(log).toHaveBeenCalledWith(expect.any(String), erro);
+    expect(log).toHaveBeenCalledWith(expect.any(String), error);
   });
 });

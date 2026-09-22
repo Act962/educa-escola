@@ -18,7 +18,7 @@ function fakeRepository(
 ): OrbitaRepository {
   let workspace = estado.workspace ?? null;
   const installs = [...(estado.installs ?? [])];
-  const eventos: { type: string; appKey?: string | null }[] = [];
+  const events: { type: string; appKey?: string | null }[] = [];
 
   return {
     workspace: async () => workspace,
@@ -69,11 +69,11 @@ function fakeRepository(
     },
 
     appendEvent: async (data) => {
-      eventos.push({ type: data.type, appKey: data.appKey });
+      events.push({ type: data.type, appKey: data.appKey });
       return { ...data, id: "ev", schoolId: "escola-1", occurredAt: AGORA } as never;
     },
 
-    listEvents: async () => eventos as never,
+    listEvents: async () => events as never,
   };
 }
 
@@ -301,9 +301,9 @@ describe("installed", () => {
       ],
     });
 
-    const lista = await servico(repo).installed();
+    const list = await servico(repo).installed();
 
-    expect(lista).toEqual([{ appKey: "chat", installedAt: AGORA }]);
+    expect(list).toEqual([{ appKey: "chat", installedAt: AGORA }]);
   });
 
   /** Sem conexão não há instalação — e a lista vazia não pode virar erro. */

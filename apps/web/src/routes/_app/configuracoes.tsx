@@ -117,14 +117,14 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
      * mensagem diz exatamente o que ficou de fora.
      */
     onSubmit: async ({ value, formApi }) => {
-      const nome = value.name.trim();
+      const name = value.name.trim();
       const inep = value.inepCode.trim();
       const salvou: string[] = [];
 
-      if (nome !== escola.name) {
+      if (name !== escola.name) {
         const { error } = await authClient.organization.update({
           organizationId: escola.id,
-          data: { name: nome },
+          data: { name: name },
         });
         if (error) {
           toast.error(error.message ?? "Não foi possível salvar o nome da escola.");
@@ -137,11 +137,11 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
         try {
           await salvarInep.mutateAsync({ inepCode: inep });
           salvou.push("código INEP");
-        } catch (erro) {
+        } catch (error) {
           toast.error(
             salvou.length > 0
               ? "O nome foi salvo, mas o código INEP não. Tente de novo só o código."
-              : ((erro as Error).message ?? "Não foi possível salvar o código INEP."),
+              : ((error as Error).message ?? "Não foi possível salvar o código INEP."),
           );
           return;
         }
@@ -150,7 +150,7 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
       if (salvou.length === 0) return;
 
       toast.success(`Salvo: ${salvou.join(" e ")}.`);
-      formApi.reset({ name: nome, inepCode: inep });
+      formApi.reset({ name: name, inepCode: inep });
       // O nome da escola aparece na barra de contexto de toda tela e vem do
       // `me`; sem invalidar, o cabeçalho continuaria com o nome antigo.
       await Promise.all([
@@ -198,9 +198,9 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
                 <p className="text-meta text-muted-foreground">
                   Aparece no topo de toda tela e nos comunicados.
                 </p>
-                {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-danger text-meta">
-                    {erro?.message}
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-danger text-meta">
+                    {error?.message}
                   </p>
                 ))}
               </div>
@@ -228,9 +228,9 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
                 <p className="text-meta text-muted-foreground">
                   Oito dígitos do Censo Escolar. Deixe em branco se a escola ainda não tem.
                 </p>
-                {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-danger text-meta">
-                    {erro?.message}
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-danger text-meta">
+                    {error?.message}
                   </p>
                 ))}
               </div>
@@ -240,12 +240,12 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <CampoFixo
-            rotulo="Identificador"
+            label="Identificador"
             valor={escola.slug}
             nota="Definido no provisionamento. Mudar quebraria o vínculo com o que já foi emitido."
           />
           <CampoFixo
-            rotulo="Fuso horário"
+            label="Fuso horário"
             valor={escola.timezone}
             nota="Fixo nesta versão: o servidor ainda formata toda data em America/Sao_Paulo."
           />
@@ -287,8 +287,8 @@ function AnoLetivo() {
   const trpc = useTRPC();
   const { year } = useSchoolContext();
 
-  const ano = useQuery(trpc.calendar.year.queryOptions({ academicYear: year }));
-  const contagem = ano.data?.contagem;
+  const yearQuery = useQuery(trpc.calendar.year.queryOptions({ academicYear: year }));
+  const count = yearQuery.data?.count;
   return (
     <Card className="flex flex-col gap-5">
       <div className="flex items-center gap-2">
@@ -303,25 +303,25 @@ function AnoLetivo() {
         </p>
       </div>
 
-      {ano.isLoading ? (
+      {yearQuery.isLoading ? (
         <ListSkeleton rows={2} />
       ) : (
         <>
-          {contagem ? (
+          {count ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
               <StatCard icon={CalendarDays} label="Dias letivos" hint="úteis − perdidos + repostos">
-                {integerText(contagem.letivos)}
+                {integerText(count.letivos)}
               </StatCard>
               <StatCard icon={CalendarDays} label="Mínimo exigido" hint="LDB, art. 24, I">
-                {integerText(contagem.minimo)}
+                {integerText(count.minimo)}
               </StatCard>
               <StatCard
                 icon={CalendarDays}
                 label="Faltam"
-                hint={contagem.cumpreOMinimo ? "mínimo cumprido" : "para cumprir o mínimo"}
-                tone={contagem.cumpreOMinimo ? undefined : "warning"}
+                hint={count.cumpreOMinimo ? "mínimo cumprido" : "para cumprir o mínimo"}
+                tone={count.cumpreOMinimo ? undefined : "warning"}
               >
-                {integerText(contagem.faltam)}
+                {integerText(count.faltam)}
               </StatCard>
             </div>
           ) : (
@@ -333,7 +333,7 @@ function AnoLetivo() {
             </Alert>
           )}
 
-          <FormularioDoAno definido={ano.data?.ano ?? null} />
+          <FormularioDoAno definido={yearQuery.data?.year ?? null} />
         </>
       )}
     </Card>
@@ -365,7 +365,7 @@ function FormularioDoAno({
         toast.success(`Ano letivo de ${year} definido.`);
         await queryClient.invalidateQueries({ queryKey: [["calendar"]] });
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -421,9 +421,9 @@ function FormularioDoAno({
                 // recusa o vazio com a mensagem certa.
                 onChange={(iso) => field.handleChange(iso ?? "")}
               />
-              {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-danger text-meta">
-                  {erro?.message}
+              {field.state.meta.errors.map((error) => (
+                <p key={error?.message} className="text-danger text-meta">
+                  {error?.message}
                 </p>
               ))}
             </div>
@@ -442,9 +442,9 @@ function FormularioDoAno({
                 // recusa o vazio com a mensagem certa.
                 onChange={(iso) => field.handleChange(iso ?? "")}
               />
-              {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-danger text-meta">
-                  {erro?.message}
+              {field.state.meta.errors.map((error) => (
+                <p key={error?.message} className="text-danger text-meta">
+                  {error?.message}
                 </p>
               ))}
             </div>
@@ -465,9 +465,9 @@ function FormularioDoAno({
                   field.handleChange(evento.target.value.replace(/\D/g, "").slice(0, 3))
                 }
               />
-              {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-danger text-meta">
-                  {erro?.message}
+              {field.state.meta.errors.map((error) => (
+                <p key={error?.message} className="text-danger text-meta">
+                  {error?.message}
                 </p>
               ))}
             </div>
@@ -614,9 +614,9 @@ function RegrasEmVigor({ visao }: { visao: Visao }) {
 
       <ul className="flex flex-col gap-2">
         {visao.regras.map((regra) => (
-          <li key={regra.chave} className="flex flex-col gap-1 rounded-control bg-muted px-4 py-3">
+          <li key={regra.key} className="flex flex-col gap-1 rounded-control bg-muted px-4 py-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="font-bold text-corpo">{regra.titulo}</span>
+              <span className="font-bold text-corpo">{regra.title}</span>
               <span className="font-extrabold text-corpo text-primary">{regra.valor}</span>
             </div>
             <span className="text-apoio text-muted-foreground">{regra.porque}</span>
@@ -629,11 +629,11 @@ function RegrasEmVigor({ visao }: { visao: Visao }) {
 }
 
 /** Mesmo padrão de "Meu perfil": texto, não `<Input disabled>`. */
-function CampoFixo({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: string }) {
+function CampoFixo({ label, valor, nota }: { label: string; valor: string; nota?: string }) {
   return (
     <div className="flex flex-col gap-1 rounded-control bg-muted px-4 py-3">
       <span className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
-        {rotulo}
+        {label}
       </span>
       <span className="truncate font-bold text-corpo">{valor}</span>
       {nota ? <span className="text-meta text-muted-foreground">{nota}</span> : null}

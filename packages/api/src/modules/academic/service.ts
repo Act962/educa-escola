@@ -17,18 +17,18 @@ export function normalizeSubjectName(name: string): string {
 export interface SerieNaGrade {
   stage: Stage;
   gradeLevel: number;
-  turmas: number;
-  disciplinas: {
+  classrooms: number;
+  subjects: {
     id: string;
     subjectId: string;
-    nome: string;
+    name: string;
     sigla: string | null;
     tipo: string;
-    aulasPorSemana: number;
+    lessonsPerWeek: number;
     horasAnuais: number | null;
   }[];
   /** Soma das aulas semanais. É o que a grade horária terá de acomodar. */
-  aulasPorSemana: number;
+  lessonsPerWeek: number;
 }
 
 export function createAcademicService(repo: AcademicRepository) {
@@ -72,10 +72,10 @@ export function createAcademicService(repo: AcademicRepository) {
       const atual = await repo.findSubject(id);
       if (!atual) throw new NotFoundError("Disciplina não encontrada");
 
-      const aulas = await repo.lessonCountBySubject(id);
-      if (aulas > 0) {
+      const lessons = await repo.lessonCountBySubject(id);
+      if (lessons > 0) {
         throw new ValidationError(
-          `"${atual.name}" tem ${aulas} aula${aulas > 1 ? "s" : ""} registrada${aulas > 1 ? "s" : ""}. ` +
+          `"${atual.name}" tem ${lessons} aula${lessons > 1 ? "s" : ""} registrada${lessons > 1 ? "s" : ""}. ` +
             "Remova-a da grade curricular em vez de excluir — apagar levaria junto chamada e diário.",
         );
       }
@@ -94,31 +94,34 @@ export function createAcademicService(repo: AcademicRepository) {
      */
     async curriculum(filters: CurriculumFilters): Promise<SerieNaGrade[]> {
       const [series, linhas] = await Promise.all([
-        repo.seriesEmUso(filters.academicYear),
+        repo.gradeLevelsInUse(filters.academicYear),
         repo.listCurriculum(filters.academicYear, filters.stage),
       ]);
 
       return series
-        .filter((serie) => !filters.stage || serie.stage === filters.stage)
-        .map((serie) => {
-          const disciplinas = linhas
-            .filter((linha) => linha.stage === serie.stage && linha.gradeLevel === serie.gradeLevel)
+        .filter((gradeLevel) => !filters.stage || gradeLevel.stage === filters.stage)
+        .map((gradeLevel) => {
+          const subjects = linhas
+            .filter(
+              (linha) =>
+                linha.stage === gradeLevel.stage && linha.gradeLevel === gradeLevel.gradeLevel,
+            )
             .map((linha) => ({
               id: linha.id,
               subjectId: linha.subjectId,
-              nome: linha.subjectName,
+              name: linha.subjectName,
               sigla: linha.subjectCode,
               tipo: linha.subjectKind,
-              aulasPorSemana: linha.weeklyHours,
+              lessonsPerWeek: linha.weeklyHours,
               horasAnuais: linha.annualHours,
             }));
 
           return {
-            stage: serie.stage as Stage,
-            gradeLevel: serie.gradeLevel as number,
-            turmas: serie.turmas,
-            disciplinas,
-            aulasPorSemana: disciplinas.reduce((soma, d) => soma + d.aulasPorSemana, 0),
+            stage: gradeLevel.stage as Stage,
+            gradeLevel: gradeLevel.gradeLevel as number,
+            classrooms: gradeLevel.classrooms,
+            subjects,
+            lessonsPerWeek: subjects.reduce((soma, d) => soma + d.lessonsPerWeek, 0),
           };
         });
     },

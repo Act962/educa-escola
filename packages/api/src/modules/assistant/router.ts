@@ -20,7 +20,7 @@ type Ctx = { db: DbHandle; tenant: TenantContext; membership: Membership };
 function serviceFor(ctx: Ctx) {
   return createAssistantService(createAssistantRepository(ctx.db, ctx.tenant), {
     now: () => new Date(),
-    chave: env.ASSISTANT_ENCRYPTION_KEY,
+    key: env.ASSISTANT_ENCRYPTION_KEY,
     modelo: createCompatibleClient,
   });
 }
@@ -103,19 +103,19 @@ export const assistantRouter = router({
    * aula: quem vê é quem assina. Professor e aluno recebem o que lhes serve —
    * quantas perguntas ainda cabem hoje — na própria resposta do Astro.
    */
-  uso: permitted({ assistant: ["manage"] }).query(({ ctx }) => serviceFor(ctx).uso()),
+  usage: permitted({ assistant: ["manage"] }).query(({ ctx }) => serviceFor(ctx).usage()),
 
-  situacao: schoolProcedure.query(({ ctx }) => serviceFor(ctx).situacao(ctx.membership.role)),
+  situation: schoolProcedure.query(({ ctx }) => serviceFor(ctx).situation(ctx.membership.role)),
 
   perguntar: schoolProcedure.input(askInput).mutation(async ({ ctx, input }) => {
-    const fatos = await fatosDe(ctx);
+    const facts = await fatosDe(ctx);
 
     return serviceFor(ctx).perguntar(
-      { ...input, fatos },
+      { ...input, facts },
       {
         userId: ctx.membership.userId,
         role: ctx.membership.role,
-        nome: ctx.session.user.name,
+        name: ctx.session.user.name,
         escola: ctx.membership.schoolName,
       },
     );

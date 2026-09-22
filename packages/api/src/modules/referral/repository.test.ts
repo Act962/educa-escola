@@ -91,7 +91,7 @@ describe("createReferralRepository", () => {
 
       // O nome da constraint mora no `cause`, não na mensagem que o Drizzle
       // devolve — conferir por `violatesUnique` é o que o service faz.
-      const erro = await repo
+      const error = await repo
         .createLink({
           studentId: aluno.id,
           code: "OUTRO1",
@@ -100,7 +100,7 @@ describe("createReferralRepository", () => {
         })
         .catch((e) => e);
 
-      expect(violatesUnique(erro, "referral_link_student_uidx")).toBe(true);
+      expect(violatesUnique(error, "referral_link_student_uidx")).toBe(true);
     });
   });
 
@@ -166,8 +166,8 @@ describe("createReferralRepository", () => {
 
       await premiar(linkDaMaria.id);
 
-      const erro = await premiar(linkDaAna.id).catch((e) => e);
-      expect(violatesUnique(erro, "referral_conversion_enrollment_uidx")).toBe(true);
+      const error = await premiar(linkDaAna.id).catch((e) => e);
+      expect(violatesUnique(error, "referral_conversion_enrollment_uidx")).toBe(true);
     });
   });
 
@@ -185,7 +185,7 @@ describe("createReferralRepository", () => {
         createdByUserId: conta.id,
       });
 
-      for (const [ano, status] of [
+      for (const [year, status] of [
         [2026, "ativa"],
         [2026, "cancelada"],
         [2025, "ativa"],
@@ -194,7 +194,7 @@ describe("createReferralRepository", () => {
         const matricula = await createTestEnrollment(tx, {
           schoolId: escola.id,
           studentId: novato.id,
-          academicYear: ano,
+          academicYear: year,
           status,
         });
         await repo.createConversion({
@@ -210,7 +210,7 @@ describe("createReferralRepository", () => {
 
       expect(de2026).toHaveLength(2);
       expect(de2026.map((c) => c.enrollmentStatus).sort()).toEqual(["ativa", "cancelada"]);
-      expect(de2026[0]?.indicanteNome).toBe("Maria Clara");
+      expect(de2026[0]?.referrerName).toBe("Maria Clara");
       expect(await repo.listConversions(2025)).toHaveLength(1);
     });
   });

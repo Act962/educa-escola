@@ -4,8 +4,8 @@ import { LEVELS, levelOf, nextLevel, pointsFor, RULES, ruleFor } from "./rules";
 
 describe("catálogo de regras", () => {
   it("não repete chave", () => {
-    const chaves = RULES.map((regra) => regra.key);
-    expect(new Set(chaves).size).toBe(chaves.length);
+    const keys = RULES.map((regra) => regra.key);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   /** Regra com zero ponto é regra que não existe; negativa é punição, e não temos. */

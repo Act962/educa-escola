@@ -32,21 +32,21 @@ function Turmas() {
   const doVinculo = useQuery({ ...trpc.lesson.myClassrooms.queryOptions(), enabled: professor });
 
   const carregando = professor ? doVinculo.isLoading : daEscola.isLoading;
-  const erro = professor ? doVinculo.error : daEscola.error;
+  const error = professor ? doVinculo.error : daEscola.error;
 
   const itens = professor
     ? (doVinculo.data ?? []).map((turma) => ({
         id: turma.classroomId,
-        nome: turma.classroomName,
-        detalhe: turma.subjectName,
+        name: turma.classroomName,
+        detail: turma.subjectName,
       }))
     : (daEscola.data ?? []).map((turma) => ({
         id: turma.id,
-        nome: turma.name,
-        detalhe: `Ano letivo ${turma.academicYear}`,
+        name: turma.name,
+        detail: `Ano letivo ${turma.academicYear}`,
       }));
 
-  if (erro) {
+  if (error) {
     return (
       <Card>
         <PermissionState
@@ -95,20 +95,20 @@ function Turmas() {
         ) : (
           <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
             {itens.map((turma) => (
-              <li key={`${turma.id}-${turma.detalhe}`}>
+              <li key={`${turma.id}-${turma.detail}`}>
                 {professor ? (
                   <Link
                     to="/notas"
                     search={{ turma: turma.id }}
                     className="flex flex-col gap-1 rounded-field bg-muted p-4 hover:bg-accent"
                   >
-                    <span className="font-extrabold text-base tracking-[-0.2px]">{turma.nome}</span>
-                    <span className="text-meta text-muted-foreground">{turma.detalhe}</span>
+                    <span className="font-extrabold text-base tracking-[-0.2px]">{turma.name}</span>
+                    <span className="text-meta text-muted-foreground">{turma.detail}</span>
                   </Link>
                 ) : (
                   <div className="flex flex-col gap-1 rounded-field bg-muted p-4">
-                    <span className="font-extrabold text-base tracking-[-0.2px]">{turma.nome}</span>
-                    <span className="text-meta text-muted-foreground">{turma.detalhe}</span>
+                    <span className="font-extrabold text-base tracking-[-0.2px]">{turma.name}</span>
+                    <span className="text-meta text-muted-foreground">{turma.detail}</span>
                   </div>
                 )}
               </li>

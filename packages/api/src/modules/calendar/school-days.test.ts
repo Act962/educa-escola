@@ -4,7 +4,7 @@ import {
   countSchoolDays,
   type DayAffectingEvent,
   dayOfWeek,
-  diasEntre,
+  daysBetween,
   isWeekday,
 } from "./school-days";
 
@@ -22,7 +22,7 @@ const reposicao = (startsOn: string): DayAffectingEvent => ({
 
 describe("diasEntre", () => {
   it("inclui as duas pontas", () => {
-    expect([...diasEntre("2026-02-05", "2026-02-07")]).toEqual([
+    expect([...daysBetween("2026-02-05", "2026-02-07")]).toEqual([
       "2026-02-05",
       "2026-02-06",
       "2026-02-07",
@@ -30,12 +30,12 @@ describe("diasEntre", () => {
   });
 
   it("um dia só devolve um dia", () => {
-    expect([...diasEntre("2026-02-05", "2026-02-05")]).toEqual(["2026-02-05"]);
+    expect([...daysBetween("2026-02-05", "2026-02-05")]).toEqual(["2026-02-05"]);
   });
 
   /** Fevereiro de 2028 tem 29 dias. Aritmética de data não pode chutar. */
   it("atravessa mês e ano bissexto", () => {
-    expect([...diasEntre("2028-02-28", "2028-03-01")]).toEqual([
+    expect([...daysBetween("2028-02-28", "2028-03-01")]).toEqual([
       "2028-02-28",
       "2028-02-29",
       "2028-03-01",
@@ -43,7 +43,7 @@ describe("diasEntre", () => {
   });
 
   it("atravessa a virada do ano", () => {
-    expect([...diasEntre("2026-12-31", "2027-01-01")]).toEqual(["2026-12-31", "2027-01-01"]);
+    expect([...daysBetween("2026-12-31", "2027-01-01")]).toEqual(["2026-12-31", "2027-01-01"]);
   });
 });
 
@@ -62,13 +62,13 @@ describe("contarDiasLetivos", () => {
   const semana = { startsOn: "2026-02-02", endsOn: "2026-02-06", minimo: 200 };
 
   it("conta só os dias úteis do período", () => {
-    const conta = countSchoolDays({ ...semana, endsOn: "2026-02-08", eventos: [] });
-    expect(conta.diasUteis).toBe(5);
+    const conta = countSchoolDays({ ...semana, endsOn: "2026-02-08", events: [] });
+    expect(conta.weekdays).toBe(5);
     expect(conta.letivos).toBe(5);
   });
 
   it("feriado em dia útil tira um dia", () => {
-    const conta = countSchoolDays({ ...semana, eventos: [feriado("2026-02-04")] });
+    const conta = countSchoolDays({ ...semana, events: [feriado("2026-02-04")] });
     expect(conta.perdidos).toBe(1);
     expect(conta.letivos).toBe(4);
   });
@@ -79,7 +79,7 @@ describe("contarDiasLetivos", () => {
       startsOn: "2026-02-02",
       endsOn: "2026-02-08",
       minimo: 200,
-      eventos: [feriado("2026-02-07")],
+      events: [feriado("2026-02-07")],
     });
     expect(conta.perdidos).toBe(0);
     expect(conta.letivos).toBe(5);
@@ -93,7 +93,7 @@ describe("contarDiasLetivos", () => {
   it("dia perdido conta uma vez só, mesmo com eventos sobrepostos", () => {
     const conta = countSchoolDays({
       ...semana,
-      eventos: [feriado("2026-02-03", "2026-02-05"), feriado("2026-02-04", "2026-02-06")],
+      events: [feriado("2026-02-03", "2026-02-05"), feriado("2026-02-04", "2026-02-06")],
     });
 
     expect(conta.perdidos).toBe(4);
@@ -105,7 +105,7 @@ describe("contarDiasLetivos", () => {
       startsOn: "2026-02-02",
       endsOn: "2026-02-08",
       minimo: 200,
-      eventos: [reposicao("2026-02-07")],
+      events: [reposicao("2026-02-07")],
     });
     expect(conta.repostos).toBe(1);
     expect(conta.letivos).toBe(6);
@@ -115,7 +115,7 @@ describe("contarDiasLetivos", () => {
   it("reposição vence o feriado no mesmo dia", () => {
     const conta = countSchoolDays({
       ...semana,
-      eventos: [feriado("2026-02-04"), reposicao("2026-02-04")],
+      events: [feriado("2026-02-04"), reposicao("2026-02-04")],
     });
     expect(conta.perdidos).toBe(0);
     expect(conta.letivos).toBe(5);
@@ -124,27 +124,27 @@ describe("contarDiasLetivos", () => {
   it("evento sem efeito não mexe na conta", () => {
     const conta = countSchoolDays({
       ...semana,
-      eventos: [{ startsOn: "2026-02-03", endsOn: "2026-02-03", dayEffect: "nenhum" }],
+      events: [{ startsOn: "2026-02-03", endsOn: "2026-02-03", dayEffect: "nenhum" }],
     });
     expect(conta.letivos).toBe(5);
   });
 
   describe("mínimo legal", () => {
     it("diz quanto falta e que não cumpre", () => {
-      const conta = countSchoolDays({ ...semana, minimo: 200, eventos: [] });
+      const conta = countSchoolDays({ ...semana, minimo: 200, events: [] });
       expect(conta.cumpreOMinimo).toBe(false);
       expect(conta.faltam).toBe(195);
     });
 
     it("cumprir na trave já é cumprir, e não falta nada", () => {
-      const conta = countSchoolDays({ ...semana, minimo: 5, eventos: [] });
+      const conta = countSchoolDays({ ...semana, minimo: 5, events: [] });
       expect(conta.cumpreOMinimo).toBe(true);
       expect(conta.faltam).toBe(0);
     });
 
     /** Passar do mínimo não devolve "faltam -3". */
     it("sobrar não vira falta negativa", () => {
-      const conta = countSchoolDays({ ...semana, minimo: 2, eventos: [] });
+      const conta = countSchoolDays({ ...semana, minimo: 2, events: [] });
       expect(conta.faltam).toBe(0);
     });
   });
@@ -155,7 +155,7 @@ describe("contarDiasLetivos", () => {
       startsOn: "2026-02-02",
       endsOn: "2026-12-18",
       minimo: 200,
-      eventos: [
+      events: [
         feriado("2026-02-16", "2026-02-17"),
         feriado("2026-04-03"),
         feriado("2026-04-21"),
@@ -170,7 +170,7 @@ describe("contarDiasLetivos", () => {
     });
 
     // Números conferidos contra uma contagem independente, não estimados.
-    expect(conta.diasUteis).toBe(230);
+    expect(conta.weekdays).toBe(230);
     expect(conta.perdidos).toBe(19);
     expect(conta.letivos).toBe(211);
     expect(conta.cumpreOMinimo).toBe(true);
