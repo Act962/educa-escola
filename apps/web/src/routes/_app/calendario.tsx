@@ -26,7 +26,16 @@ import { StatCard } from "@educa-escola/ui/integra/stat-card";
 import { EmptyState, ErrorState, ListSkeleton } from "@educa-escola/ui/integra/states";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarCheck, CalendarX, Download, Plus, TriangleAlert, X } from "lucide-react";
+import {
+  CalendarCheck,
+  CalendarDays,
+  CalendarX,
+  Download,
+  List,
+  Plus,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { CalendarioMes } from "@/components/calendario-mes";
 import { alvoDe, CampoDeAlvo, type Turma } from "@/components/campo-de-alvo";
@@ -164,12 +173,18 @@ function Calendario() {
           ))}
           <SegmentedControl
             label="Como ver o calendário"
+            apenasIcone
             options={[
               // `tone` é obrigatório no controle: ele existe para presença,
               // onde cada opção tem cor semântica. Aqui as duas são neutras —
               // trocar de visão não é estado.
-              { value: "lista", label: "Lista", tone: "secondary" },
-              { value: "calendario", label: "Calendário", tone: "secondary" },
+              { value: "lista", label: "Ver em lista", tone: "secondary", icon: List },
+              {
+                value: "calendario",
+                label: "Ver em grade de mês",
+                tone: "secondary",
+                icon: CalendarDays,
+              },
             ]}
             value={visao}
             onChange={(valor) => {
