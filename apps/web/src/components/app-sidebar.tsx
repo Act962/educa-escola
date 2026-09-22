@@ -71,10 +71,12 @@ export function AppSidebar({
 
   return (
     <Sidebar variant="floating" collapsible="icon">
-      <SidebarHeader className="gap-4 p-0">
+      {/* `pt-2` só no celular: ali a barra é um `Sheet` e a marca nascia
+          colada na borda de cima da tela. */}
+      <SidebarHeader className="gap-4 p-0 pt-2 md:pt-0">
         <Link
           to="/inicio"
-          className="flex items-center gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          className="flex items-center justify-center gap-2 px-2 group-data-[collapsible=icon]:px-0"
         >
           {/*
             A assinatura quando a barra está aberta, o símbolo quando ela
@@ -168,7 +170,14 @@ export function AppSidebar({
         ) : null}
       </SidebarContent>
 
-      <SidebarFooter className="mt-auto p-0">
+      {/*
+        Só no celular.
+        No desktop estas três entradas viviam aqui **e** no menu da conta, no
+        cabeçalho — dois caminhos para a mesma coisa, e o de cima é o que as
+        pessoas procuram. No celular o menu da conta sai do cabeçalho para
+        caber a busca, então aqui é o único caminho.
+      */}
+      <SidebarFooter className="mt-auto p-0 md:hidden">
         <SidebarSeparator className="mx-0" />
         <SidebarMenu>
           <SidebarMenuItem>

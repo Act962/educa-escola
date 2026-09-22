@@ -239,14 +239,31 @@ export function AppShell({ me, pendingCalls, unreadNotices, children }: AppShell
         onSignOut={sair}
       />
 
-      <SidebarInset>
+      {/*
+        Respiro no topo só no celular.
+        A casca já tinha `p-4`, e ainda assim a busca encostava na borda — 16px
+        é pouco para a primeira coisa da tela num aparelho com entalhe. No
+        desktop o espaçamento de sempre continua valendo.
+      */}
+      <SidebarInset className="pt-7 sm:pt-4 md:pt-5">
         <header className="flex flex-wrap items-center gap-3">
           <SidebarTrigger variant="outline" size="icon" className="shrink-0" />
           <BuscaDeAlunos role={me.role} />
-          {/* `min-w-0` para o grupo poder encolher em vez de empurrar a
-              página: sem ele o `flex` respeita o conteúdo e o estouro vira
-              barra de rolagem horizontal no celular. */}
-          <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
+          {/*
+            Só no desktop. No celular estes dois controles disputavam a linha
+            com o botão da barra e a busca — quatro coisas numa faixa de 375px,
+            e a busca, que é o que se usa, era a que encolhia. O bimestre e a
+            conta continuam alcançáveis pela barra lateral, que ali é um
+            `Sheet` de tela inteira. O corte é em 768px, o mesmo ponto em que
+            a barra vira `Sheet` — com limites diferentes havia uma faixa de
+            tela em que os dois apareciam ao mesmo tempo, que é justamente a
+            duplicação que isto veio eliminar.
+
+            `min-w-0` para o grupo encolher em vez de empurrar a página: sem
+            ele o `flex` respeita o conteúdo e o estouro vira rolagem
+            horizontal.
+          */}
+          <div className="ml-auto hidden min-w-0 items-center gap-2 md:flex md:gap-3">
             <ContextBar />
             <MenuDoUsuario me={me} onSignOut={sair} />
           </div>
