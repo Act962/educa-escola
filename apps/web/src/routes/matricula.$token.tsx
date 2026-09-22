@@ -18,6 +18,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Clock, Lock, TriangleAlert } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { dataHora, telefone } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
@@ -129,7 +130,129 @@ function ConfirmacaoMatricula() {
     );
   }
 
+  /*
+   * O link curto pergunta uma coisa só.
+   *
+   * A finalidade vem do convite, não de uma rota diferente: é o mesmo token,
+   * a mesma conferência de data de nascimento e a mesma máquina de prazo e
+   * revogação. Só o que se pergunta depois muda — e reabrir a ficha inteira
+   * para marcar uma caixa faria a família reconfirmar telefone e endereço,
+   * que é uma chance a mais de sobrescrever dado certo por dado velho.
+   */
+  if (abertura.data?.finalidade === "biometria") {
+    return <AutorizacaoDeBiometria token={token} ficha={ficha} escola={abertura.data.schoolName} />;
+  }
+
   return <Formulario token={token} ficha={ficha} onEnviado={setProtocolo} />;
+}
+
+/**
+ * A pergunta única: a família autoriza a identificação facial?
+ *
+ * Recusar é resposta legítima e está na mesma altura do aceitar. Quem recusa
+ * entra pela carteirinha, e a tela diz isso — família que teme ser punida por
+ * dizer não acaba dizendo sim, e aí o consentimento deixa de ser livre.
+ */
+function AutorizacaoDeBiometria({
+  token,
+  ficha,
+  escola,
+}: {
+  token: string;
+  ficha: Ficha;
+  escola: string;
+}) {
+  const trpc = useTRPC();
+  const [nome, setNome] = useState(ficha.guardian?.name ?? "");
+  const [respondido, setRespondido] = useState<boolean | null>(null);
+
+  const responder = useMutation(
+    trpc.enrollmentLink.autorizarBiometria.mutationOptions({
+      onSuccess: (saida) => setRespondido(saida.autorizou),
+      onError: (erro) => toast.error(erro.message),
+    }),
+  );
+
+  if (respondido !== null) {
+    return (
+      <Casca escola={escola}>
+        <Card className="flex w-full max-w-md flex-col gap-4">
+          <Estado
+            tom={respondido ? "success" : "info"}
+            icone={<Check size={22} strokeWidth={1.8} aria-hidden />}
+            titulo={respondido ? "Autorização registrada" : "Resposta registrada"}
+            descricao={
+              respondido
+                ? `${ficha.student.name} vai poder entrar pelo reconhecimento facial. Você pode retirar esta autorização a qualquer momento, falando com a escola.`
+                : `${ficha.student.name} vai entrar pela carteirinha, normalmente. Nada muda no dia a dia.`
+            }
+          />
+        </Card>
+      </Casca>
+    );
+  }
+
+  return (
+    <Casca escola={escola}>
+      <Card className="flex w-full max-w-md flex-col gap-5">
+        <div>
+          <CardEyebrow>Autorização</CardEyebrow>
+          <h1 className="font-extrabold text-xl tracking-[-0.4px]">
+            Identificação facial na entrada
+          </h1>
+          <p className="mt-2 text-corpo text-muted-foreground">
+            A escola quer usar o reconhecimento do rosto de {ficha.student.name} para registrar a
+            entrada e a saída. É opcional.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 rounded-card bg-muted p-4 text-apoio leading-relaxed">
+          <p>
+            <b>Se você autorizar:</b> a escola guarda a foto e os códigos do rosto, cifrados. Eles
+            servem só para a portaria, e somem se você retirar a autorização.
+          </p>
+          <p>
+            {/* Sem pronome: o nome do aluno não diz o gênero dele, e errar
+                isso na cara da família é o tipo de descuido que custa
+                confiança. */}
+            <b>Se você não autorizar:</b> {ficha.student.name} entra pela carteirinha, com o QR do
+            número de matrícula. Não muda nada no dia a dia.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="quem-responde">Seu nome</Label>
+          <Input
+            id="quem-responde"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="Quem está respondendo"
+          />
+        </div>
+
+        {/*
+          Os dois botões têm o mesmo peso visual de propósito. "Não autorizo"
+          escondido num link pequeno é recusa desencorajada, e consentimento
+          desencorajado não é livre.
+        */}
+        <div className="flex flex-col gap-2">
+          <Button
+            disabled={!nome.trim() || responder.isPending}
+            onClick={() => responder.mutate({ token, autoriza: true, acceptedBy: nome.trim() })}
+          >
+            Autorizo a identificação facial
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={!nome.trim() || responder.isPending}
+            onClick={() => responder.mutate({ token, autoriza: false, acceptedBy: nome.trim() })}
+          >
+            Não autorizo
+          </Button>
+        </div>
+      </Card>
+    </Casca>
+  );
 }
 
 /** Etapa 1: nenhum dado do aluno aparece antes da conferência. */

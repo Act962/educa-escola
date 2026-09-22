@@ -42,12 +42,27 @@ type Motivo = (typeof MOTIVOS)[number]["value"];
  * clique vira evento na trilha. Foto de criança não fica aberta na tela de
  * quem só passou por ali.
  */
-export function IdentificacaoFacial({ studentId }: { studentId: string }) {
+export function IdentificacaoFacial({
+  studentId,
+  enrollmentId,
+}: {
+  studentId: string;
+  /**
+   * A matrícula do aluno, quando a tela a conhece.
+   *
+   * Sem ela o painel funciona igual, menos o pedido de autorização: o link
+   * pende da matrícula, não do cadastro do aluno — autorizar em 2026 não
+   * autoriza para sempre.
+   */
+  enrollmentId?: string;
+}) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [modo, setModo] = useState<"resumo" | "capturando" | "revogando">("resumo");
   const [foto, setFoto] = useState<string | null>(null);
   const [gravando, setGravando] = useState(false);
+  /** O endereço da autorização, mostrado uma única vez, para copiar. */
+  const [linkDaAutorizacao, setLinkDaAutorizacao] = useState<string | null>(null);
 
   const status = useQuery(trpc.photo.status.queryOptions({ studentId }));
 
@@ -119,6 +134,24 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
     setFoto(null);
     queryClient.invalidateQueries();
   }
+
+  /**
+   * Pede à família a autorização, com um link curto.
+   *
+   * O endereço aparece uma vez e é copiado — mesma costura do link da ficha,
+   * enquanto o envio automático não existe. Ele **não** é gerado sozinho ao
+   * abrir a tela: emitir link revoga o anterior, e um clique acidental
+   * mataria o endereço que a família já tem na mão.
+   */
+  const pedirAutorizacao = useMutation(
+    trpc.enrollment.pedirAutorizacaoBiometria.mutationOptions({
+      onSuccess: (saida) => {
+        setLinkDaAutorizacao(saida.url);
+        queryClient.invalidateQueries();
+      },
+      onError: (erro) => toast.error(erro.message),
+    }),
+  );
 
   const revogar = useMutation(
     trpc.photo.revoke.mutationOptions({
@@ -196,6 +229,44 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
               pedido vai no mesmo link de confirmação da matrícula.
             </AlertDescription>
           </Alert>
+          {/*
+            O caminho que faltava. O consentimento de biometria só era
+            capturado dentro da ficha, e a ficha só vive enquanto a matrícula
+            está pendente: depois de confirmada não havia como autorizar, e
+            família decide depois o tempo todo.
+          */}
+          {linkDaAutorizacao ? (
+            <div className="flex flex-col gap-2 rounded-card bg-info-soft p-4">
+              <p className="font-bold text-apoio">Mande este endereço ao responsável</p>
+              <p className="break-all font-mono text-meta">{linkDaAutorizacao}</p>
+              <p className="text-meta text-muted-foreground">
+                Ele aparece só agora. O responsável pode abri-lo no celular dele ou aqui mesmo, no
+                computador da secretaria — quem autoriza é ele, não a escola.
+              </p>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="self-start"
+                onClick={() => {
+                  void navigator.clipboard.writeText(linkDaAutorizacao);
+                  toast.success("Endereço copiado.");
+                }}
+              >
+                Copiar endereço
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="secondary"
+              className="self-start"
+              disabled={pedirAutorizacao.isPending}
+              onClick={() => pedirAutorizacao.mutate({ id: enrollmentId as string, expiryDays: 7 })}
+            >
+              <IdCard size={18} strokeWidth={1.7} aria-hidden />
+              {pedirAutorizacao.isPending ? "Emitindo…" : "Pedir autorização ao responsável"}
+            </Button>
+          )}
+
           <Carteirinha nome={dados.studentName} registration={dados.registration} />
         </>
       ) : (

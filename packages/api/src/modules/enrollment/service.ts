@@ -293,6 +293,69 @@ export function createEnrollmentService(repo: EnrollmentRepository, deps: Enroll
       return { id: created.id, url, envio };
     },
 
+    /**
+     * Emite o link curto que pede **só** a autorização da identificação facial.
+     *
+     * Existe porque o consentimento de biometria só era capturado dentro da
+     * ficha, e a ficha só vive enquanto a matrícula está pendente: depois de
+     * confirmada não havia caminho nenhum para autorizar — e família decide
+     * depois o tempo todo, ou a foto é tirada noutro dia.
+     *
+     * Vale em matrícula confirmada de propósito, que é justamente o caso que
+     * não tinha saída. Só não vale em cancelada: pedir biometria de quem saiu
+     * da escola não tem sentido.
+     *
+     * Não mexe em `expiresAt` da matrícula nem revoga o link da ficha — são
+     * dois pedidos independentes, e a família pode estar com os dois na mão.
+     */
+    async emitirAutorizacaoBiometria(id: string, expiryDays = 7) {
+      const row = await getOrThrow(id);
+      if (row.status === "cancelada") {
+        throw new ValidationError("Matrícula cancelada não pede autorização de biometria.");
+      }
+
+      const guardians = await repo.listGuardians(id);
+      const guardian = guardians[0];
+      if (!guardian) {
+        throw new ValidationError(
+          "A matrícula precisa de um responsável antes de pedir a autorização",
+        );
+      }
+
+      const now = deps.now();
+      await repo.revokeInvitesOf(id, now, "biometria");
+
+      const token = generateToken();
+      const invite = await repo.createInvite({
+        enrollmentId: id,
+        tokenHash: hashToken(token),
+        purpose: "biometria",
+        expiresAt: expiryFrom(now, expiryDays),
+        recipientPhone: guardian.phoneE164,
+        createdByUserId: deps.actor.userId,
+      });
+
+      await repo.appendEvent({
+        enrollmentId: id,
+        type: "autorizacao_solicitada",
+        actor: "gestao",
+        actorUserId: deps.actor.userId,
+        payload: { inviteId: invite.id, finalidade: "biometria" },
+      });
+
+      const expiresAt = expiryFrom(now, expiryDays);
+      const url = enrollmentLinkFor(deps.linkBaseUrl, token);
+      const envio = await deps.messenger.sendEnrollmentLink({
+        to: guardian.phoneE164,
+        studentName: (await repo.findDetail(id))?.studentName ?? "",
+        schoolName: deps.schoolName,
+        url,
+        expiresAt,
+      });
+
+      return { url, envio };
+    },
+
     async resendLink(id: string, expiryDays = 7) {
       const row = await getOrThrow(id);
       if (row.status !== "pendente") {

@@ -383,7 +383,7 @@ function DetalheMatricula() {
       </Card>
 
       <div className="flex flex-col gap-4">
-        <IdentificacaoFacial studentId={dados.enrollment.studentId} />
+        <IdentificacaoFacial studentId={dados.enrollment.studentId} enrollmentId={enrollmentId} />
 
         <Card className="flex flex-col gap-4">
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Link de confirmação</h2>

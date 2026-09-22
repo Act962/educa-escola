@@ -74,10 +74,29 @@ export const enrollmentEventType = pgEnum("enrollment_event_type", [
   "foto_revogada",
   /** Cada abertura da foto fica registrada (§13.3). */
   "foto_aberta",
+  /** A escola pediu à família a autorização da identificação facial. */
+  "autorizacao_solicitada",
+  /** A família respondeu — autorizando ou recusando. Os dois são resposta. */
+  "consentimento_atualizado",
 ]);
 
 /** Quem agiu. `responsavel` é anônimo: não tem conta, só o token. */
 export const enrollmentActor = pgEnum("enrollment_actor", ["gestao", "responsavel", "sistema"]);
+
+/**
+ * Para que serve o convite.
+ *
+ * `ficha` é o link de confirmação da matrícula, com todo o formulário.
+ * `biometria` é o link curto que pergunta uma coisa só: a família autoriza a
+ * identificação facial? Existe porque o consentimento de biometria só era
+ * capturado dentro da ficha, e a ficha só existe enquanto a matrícula está
+ * pendente — depois de confirmada não havia caminho nenhum para autorizar, e
+ * família decide depois o tempo todo.
+ *
+ * Reabrir a ficha inteira para marcar uma caixa seria pior: cada
+ * reconfirmação é uma chance de sobrescrever dado certo por dado velho.
+ */
+export const enrollmentInvitePurpose = pgEnum("enrollment_invite_purpose", ["ficha", "biometria"]);
 
 /**
  * Finalidade do consentimento, para registrar a base legal separadamente.
@@ -202,6 +221,7 @@ export const enrollmentInvite = pgTable(
       .notNull()
       .references(() => enrollment.id, { onDelete: "cascade" }),
     tokenHash: text("token_hash").notNull(),
+    purpose: enrollmentInvitePurpose("purpose").default("ficha").notNull(),
     expiresAt: timestamp("expires_at").notNull(),
     verifiedAt: timestamp("verified_at"),
     consumedAt: timestamp("consumed_at"),
@@ -256,6 +276,14 @@ export const enrollmentConsent = pgTable(
     revokedAt: timestamp("revoked_at"),
     /** Nome digitado por quem aceitou, que nem sempre é o do cadastro. */
     actorName: text("actor_name").notNull(),
+    /**
+     * Qual convite trouxe este aceite.
+     *
+     * Sem isso, dois aceites de biometria da mesma matrícula — o da ficha e o
+     * do link curto — ficam indistinguíveis numa conferência. A coluna diz
+     * qual ato gerou qual linha.
+     */
+    inviteId: text("invite_id").references(() => enrollmentInvite.id, { onDelete: "set null" }),
     ipHash: text("ip_hash"),
     userAgent: text("user_agent"),
     createdAt: timestamp("created_at").defaultNow().notNull(),

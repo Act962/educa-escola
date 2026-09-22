@@ -71,6 +71,21 @@ export const enrollmentRouter = router({
     .input(cancelEnrollmentInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).cancel(input)),
 
+  /**
+   * Pede à família a autorização da identificação facial.
+   *
+   * `enrollment: ["update"]` como o reenvio do link: é a secretaria pedindo,
+   * não concedendo — quem autoriza continua sendo o responsável, abrindo o
+   * link. O sistema nunca marca consentimento em nome de ninguém.
+   */
+  pedirAutorizacaoBiometria: permitted({ enrollment: ["update"] })
+    .input(
+      z.object({ id: z.string().min(1), expiryDays: z.number().int().min(1).max(30).default(7) }),
+    )
+    .mutation(({ ctx, input }) =>
+      serviceFor(ctx).emitirAutorizacaoBiometria(input.id, input.expiryDays),
+    ),
+
   resendLink: permitted({ enrollment: ["update"] })
     .input(
       z.object({ id: z.string().min(1), expiryDays: z.number().int().min(1).max(60).default(7) }),

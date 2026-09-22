@@ -4,11 +4,11 @@ import { publicProcedure, router } from "../../index";
 import type { TenantContext } from "../../trpc/tenant";
 import { createEnrollmentRepository } from "../enrollment/repository";
 import { createEnrollmentLinkRepository, createInviteLookup } from "./repository";
-import { linkToken, submitLinkInput, verifyLinkInput } from "./schema";
+import { autorizarBiometriaInput, linkToken, submitLinkInput, verifyLinkInput } from "./schema";
 import { createEnrollmentLinkService } from "./service";
 
 /**
- * As três procedures anônimas do sistema.
+ * As quatro procedures anônimas do sistema.
  *
  * `publicProcedure` e não `permitted(...)` porque o responsável não tem conta
  * nem papel — a autorização dele é a posse do token mais a conferência da data
@@ -36,4 +36,11 @@ export const enrollmentLinkRouter = router({
   submit: publicProcedure
     .input(submitLinkInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).submit(input, ctx.getRequestOrigin())),
+
+  /** A resposta ao link curto: a família autoriza a identificação facial? */
+  autorizarBiometria: publicProcedure
+    .input(autorizarBiometriaInput)
+    .mutation(({ ctx, input }) =>
+      serviceFor(ctx).autorizarBiometria(input, ctx.getRequestOrigin()),
+    ),
 });

@@ -47,3 +47,19 @@ export const submitLinkInput = linkToken.extend({
 
 export type VerifyLinkInput = z.infer<typeof verifyLinkInput>;
 export type SubmitLinkInput = z.infer<typeof submitLinkInput>;
+
+/**
+ * A resposta ao link curto de autorização.
+ *
+ * `autoriza` é booleano, e recusar é resposta legítima: quem não autoriza
+ * entra pela carteirinha, e recusar não pode barrar criança na escola. Por
+ * isso não é `z.literal(true)` como os termos da matrícula.
+ */
+export const autorizarBiometriaInput = z.object({
+  token: linkToken.shape.token,
+  autoriza: z.boolean(),
+  /** Nome de quem está respondendo, que nem sempre é o do cadastro. */
+  acceptedBy: z.string().trim().min(1, "Informe seu nome").max(120),
+});
+
+export type AutorizarBiometriaInput = z.infer<typeof autorizarBiometriaInput>;
