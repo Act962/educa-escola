@@ -11,13 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@educa-escola/ui/components/dropdown-menu";
 import { Input } from "@educa-escola/ui/components/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@educa-escola/ui/components/select";
 import { Separator } from "@educa-escola/ui/components/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@educa-escola/ui/components/sidebar";
 import { initialsOf } from "@educa-escola/ui/lib/initials";
@@ -28,9 +21,10 @@ import { useState } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Astro } from "@/components/astro";
+import { SeletorDeBimestre } from "@/components/seletor-de-bimestre";
 import { authClient } from "@/lib/auth-client";
 import { roleLabel } from "@/lib/navigation";
-import { TERMS, type Term, useSchoolContext } from "@/lib/school-context";
+import { useSchoolContext } from "@/lib/school-context";
 
 export interface CurrentUser {
   name: string;
@@ -94,7 +88,7 @@ function BuscaDeAlunos({ role }: { role: AppRole }) {
  * Windows, no macOS e no Android.
  */
 function ContextBar() {
-  const { year, term, setTerm } = useSchoolContext();
+  const { year } = useSchoolContext();
 
   return (
     <div className="flex min-w-0 items-center gap-2 rounded-control bg-card py-1 pr-1 pl-3 sm:gap-3 sm:pl-4">
@@ -109,35 +103,14 @@ function ContextBar() {
       </span>
       <span className="shrink-0 font-extrabold text-corpo">{year}</span>
       <Separator orientation="vertical" className="h-4" />
-      {/* `items` faz o gatilho mostrar o rótulo ("3º bimestre") em vez do valor
-          cru ("3") — é como o Base UI resolve o texto do selecionado. */}
-      <Select
-        items={TERMS.map((option) => ({ value: String(option), label: `${option}º bimestre` }))}
-        value={String(term)}
-        onValueChange={(value) => setTerm(Number(value) as Term)}
-      >
-        {/*
-          `size="sm"` para o cabeçalho ficar todo na mesma altura. O gatilho
-          padrão tem 44px e, somado aos 4px de respiro da barra, deixava a
-          barra de contexto com 52 contra os 44 do botão da sidebar, da busca
-          e do menu da conta — quatro controles lado a lado, um mais alto que
-          os outros. Com 36 aqui, os quatro fecham em 44.
-        */}
-        <SelectTrigger
-          size="sm"
-          aria-label="Bimestre"
-          className="border-none bg-transparent text-info"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {TERMS.map((option) => (
-            <SelectItem key={option} value={String(option)}>
-              {option}º bimestre
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/*
+        `size="sm"` dentro do seletor para o cabeçalho ficar todo na mesma
+        altura. O gatilho padrão tem 44px e, somado aos 4px de respiro da
+        barra, deixava a barra de contexto com 52 contra os 44 do botão da
+        sidebar, da busca e do menu da conta — quatro controles lado a lado,
+        um mais alto que os outros.
+      */}
+      <SeletorDeBimestre className="border-none bg-transparent text-info" />
     </div>
   );
 }

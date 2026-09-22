@@ -21,8 +21,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { LogOut, Settings, UserRound } from "lucide-react";
 
+import { SeletorDeBimestre } from "@/components/seletor-de-bimestre";
 import { appOrbitaDe } from "@/lib/apps-orbita";
 import { navigationFor } from "@/lib/navigation";
+import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
 /**
@@ -64,6 +66,7 @@ export function AppSidebar({
   onSignOut,
 }: AppSidebarProps) {
   const entries = navigationFor(role);
+  const { year } = useSchoolContext();
   const recolher = useRecolherAoNavegar();
   const podeConfigurar = role === "owner" || role === "admin";
   const disponiveis = entries.filter((entry) => entry.to);
@@ -104,6 +107,23 @@ export function AppSidebar({
             </span>
             <span className="truncate font-extrabold text-corpo">{schoolName}</span>
           </span>
+        </div>
+
+        {/*
+          O bimestre, só no celular.
+          Ele saiu do cabeçalho para a busca caber, e sem isto não havia como
+          trocá-lo em tela estreita: as telas respeitavam o bimestre escolhido
+          e ninguém conseguia escolher. Aqui há espaço de sobra — o `Sheet`
+          ocupa a tela inteira.
+        */}
+        <div className="flex items-center justify-between gap-2 rounded-control bg-muted p-3 md:hidden">
+          <span className="flex min-w-0 flex-col">
+            <span className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
+              Ano letivo
+            </span>
+            <span className="font-extrabold text-corpo tabular-nums">{year}</span>
+          </span>
+          <SeletorDeBimestre className="w-36 shrink-0 bg-card text-info" />
         </div>
       </SidebarHeader>
 
