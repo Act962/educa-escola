@@ -47,6 +47,11 @@ export const statement = {
    * trabalho, com pendências e carga horária.
    */
   faculty: ["read", "manage"],
+  /**
+   * Calendário. `read` para todos: é o que diz quando tem aula, e esconder
+   * isso de aluno ou professor não protege nada. Quem monta é a gestão.
+   */
+  calendar: ["read", "manage"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -61,6 +66,7 @@ const fullAcademicAccess = {
   grade: ["create", "read", "update"],
   score: ["read", "apurar"],
   faculty: ["read", "manage"],
+  calendar: ["read", "manage"],
 } as const;
 
 /** Diretor(a) / mantenedor(a) da escola. Único papel que pode excluir a escola. */
@@ -105,6 +111,8 @@ export const teacher = ac.newRole({
   /** Vê os próprios pontos; não reprocessa o ano da escola. */
   score: ["read"],
   ranking: [],
+  /** Lê o calendário da escola; quem o monta é a gestão. */
+  calendar: ["read"],
   /**
    * Vazio: a lista de docentes carrega pendência de colega, que é dado de
    * pessoal. O professor vê o que ele mesmo deve no próprio painel.
@@ -138,6 +146,7 @@ export const student = ac.newRole({
   score: ["read"],
   ranking: [],
   faculty: [],
+  calendar: ["read"],
 });
 
 export const roles = { owner, admin, teacher, student };
