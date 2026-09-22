@@ -70,6 +70,24 @@ export async function createContext({ req }: { req: Request }) {
         undefined,
       userAgent: req.headers.get("user-agent") ?? undefined,
     }),
+    /**
+     * Token de uso único para entregar a identidade ao Órbita.
+     *
+     * Fecha sobre os headers em vez de expô-los no contexto: com
+     * `declaration: true` o tipo `Headers` vem do `undici-types` e não é
+     * nomeável na emissão (TS2883). Mesmo motivo de `getMembership`.
+     *
+     * Devolve `null` quando não há sessão ou o plugin recusa — quem chama
+     * decide o que dizer, em vez de receber uma URL sem token.
+     */
+    issueOrbitaToken: async () => {
+      try {
+        const resultado = await auth.api.generateOneTimeToken({ headers: req.headers });
+        return resultado?.token ?? null;
+      } catch {
+        return null;
+      }
+    },
   };
 }
 

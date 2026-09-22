@@ -22,6 +22,14 @@ export const statement = {
   attendance: ["create", "read", "update"],
   assessment: ["create", "read", "update", "delete", "publish"],
   grade: ["create", "read", "update"],
+  /**
+   * Apps do ecossistema Órbita, mostrados por dentro do Integra.
+   *
+   * `install` é separado de `read` de propósito: instalar é contratar — cria a
+   * organização no Órbita e debita Stars da escola. Quem abre não é quem
+   * assina.
+   */
+  app: ["read", "install", "remove"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -40,12 +48,15 @@ const fullAcademicAccess = {
 export const owner = ac.newRole({
   ...ownerAc.statements,
   ...fullAcademicAccess,
+  // Só a direção instala: instalar app gera custo em Stars na conta da escola.
+  app: ["read", "install", "remove"],
 });
 
 /** Secretaria / administrativo: opera a escola inteira, menos excluí-la. */
 export const admin = ac.newRole({
   ...adminAc.statements,
   ...fullAcademicAccess,
+  app: ["read"],
 });
 
 /**
@@ -65,6 +76,7 @@ export const teacher = ac.newRole({
   attendance: ["create", "read", "update"],
   assessment: ["create", "read", "update", "delete", "publish"],
   grade: ["create", "read", "update"],
+  app: ["read"],
 });
 
 /**
@@ -84,6 +96,7 @@ export const student = ac.newRole({
   attendance: ["read"],
   assessment: ["read"],
   grade: ["read"],
+  app: [],
 });
 
 export const roles = { owner, admin, teacher, student };

@@ -19,6 +19,14 @@ export const env = createEnv({
      * erro com a instrução de como gerar, em vez de gravar em claro.
      */
     MEDIA_ENCRYPTION_KEY: z.string().min(1).optional(),
+    /**
+     * Onde o Órbita atende.
+     *
+     * Opcional para o app subir sem ela — o CI não tem, e a aba Apps funciona
+     * mostrando catálogo e estado. Sem ela, abrir um app é recusado com
+     * instrução, em vez de mandar a pessoa para uma URL inventada.
+     */
+    ORBITA_BASE_URL: z.url().optional(),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
