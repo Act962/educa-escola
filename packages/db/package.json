@@ -16,7 +16,7 @@
     "check-types": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:migrate:deploy": "drizzle-kit migrate",
+    "db:migrate:deploy": "jiti src/migrate-cli.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "test": "vitest run",
@@ -33,6 +33,7 @@
     "@educa-escola/config": "workspace:*",
     "@types/pg": "^8.20.0",
     "drizzle-kit": "^0.31.10",
+    "jiti": "^2.7.0",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

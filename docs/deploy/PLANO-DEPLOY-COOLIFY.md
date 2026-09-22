@@ -43,19 +43,21 @@ Com A, o fluxo fica: CI verde na `main` → job `publish` gera
 
 Em ordem de prioridade. Cada um vira um PR pequeno.
 
-1. **Rota de saúde `/api/health`** que faz `select 1` no banco. Hoje o
-   healthcheck bate em `/`, que redireciona para `/login` e passa mesmo com o
-   banco fora. O Coolify precisa saber a diferença para não trocar o
-   container por um que não conecta.
-2. **Migrations no deploy.** `drizzle-kit` é devDependency, mas o estágio
-   `runner` copia o `/app` inteiro, então o binário está lá. Proposta:
-   comando de *pre-deployment* do Coolify
-   `cd /app/packages/db && node_modules/.bin/drizzle-kit migrate`.
-   Atenção: `drizzle-kit migrate` engole a mensagem de erro e sai só com
-   exit 1 (ver `packages/db/scripts/reparar-bookkeeping-migrations.mjs`) — o
-   deploy tem de **abortar** nesse caso, nunca subir com schema pela metade.
-   Alternativa mais robusta: script próprio com `drizzle-orm/node-postgres/migrator`,
-   que propaga o erro.
+1. ✅ **Rota de saúde `/api/health`** que faz `select 1` no banco (200 / 503).
+   O healthcheck antigo batia em `/`, que redireciona para `/login` e passava
+   mesmo com o banco fora.
+2. ✅ **Migrations na subida do container.** `packages/db/src/migrate.ts`
+   aplica o lote pendente numa transação, sob lock advisory, e devolve o erro
+   do Postgres inteiro — `drizzle-kit migrate` engolia a mensagem. O `CMD` do
+   Dockerfile migra e só então faz `exec` do servidor; migração que falha
+   impede o servidor de subir, o healthcheck não passa e o Coolify mantém o
+   container anterior.
+   **Não usar o pre-deployment do Coolify para isso:** segundo a documentação,
+   ele roda *no container antigo* (com as migrations da versão anterior) e é
+   pulado no primeiro deploy.
+   Consequência a lembrar: durante o rolling update o container antigo atende
+   com o schema novo. Migration tem de ser compatível com a versão anterior
+   (adicionar antes, remover num deploy seguinte).
 3. **Imagem mais enxuta.** O `runner` carrega o store do pnpm, devDependencies
    e o código-fonte de todos os pacotes. Funciona, mas é pesado. Avaliar
    `pnpm deploy --prod` ou copiar só `.output` + dependências de runtime.
@@ -115,8 +117,8 @@ empresa) antes do primeiro cadastro de foto.
    atrás de IP permitido ou do próprio domínio com TLS.
 3. Criar `integra-db`, configurar backup S3 e rodar um backup manual.
 4. Gerar os três segredos e guardar no cofre.
-5. Criar `integra-web` com a imagem, variáveis, domínio, healthcheck
-   `/api/health` e o comando de pre-deployment das migrations.
+5. Criar `integra-web` com a imagem, variáveis, domínio e healthcheck
+   `/api/health` (as migrations rodam sozinhas na subida do container).
 6. Deploy. Conferir logs e `/api/health`.
 7. Provisionar a primeira escola pelo terminal do container no Coolify:
    ```bash
@@ -164,7 +166,7 @@ material da portaria por rosto (`packages/db/src/schema/gate.ts`) — biometria
 
 ## 12. Riscos conhecidos
 
-- **`drizzle-kit migrate` silencioso no erro** — já mordeu uma vez; ver §4.2.
+- **Migration incompatível com a versão anterior** quebra o container antigo durante o rolling update; ver §4.2.
 - **OOM no build** se a imagem for construída na própria VPS.
 - **`nitro@3.x` beta** como runtime de produção.
 - **Chaves de cifragem sem cópia fora do Coolify** = perda irreversível de

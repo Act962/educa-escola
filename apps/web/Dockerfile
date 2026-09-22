@@ -24,4 +24,10 @@ EXPOSE 3001
 
 # SSR chunks require workspace dependencies at runtime
 WORKDIR /app/apps/web
-CMD ["node", ".output/server/index.mjs"]
+
+# Migra antes de servir, no container novo. O pre-deployment do Coolify não
+# serve: roda no container antigo, com as migrations da versão anterior, e é
+# pulado no primeiro deploy. Se a migração falhar, o servidor não sobe, o
+# healthcheck não passa, e o Coolify mantém o container anterior no ar.
+# `exec` faz do node o PID 1, para receber o SIGTERM do orquestrador.
+CMD ["sh", "-c", "/app/packages/db/node_modules/.bin/jiti /app/packages/db/src/migrate-cli.ts && exec node .output/server/index.mjs"]
