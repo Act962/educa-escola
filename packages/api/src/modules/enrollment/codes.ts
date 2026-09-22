@@ -27,11 +27,19 @@ export interface ClassCode {
 }
 
 /**
- * A série sai do nome da turma porque `classroom` não a guarda como campo.
+ * A série sai do nome da turma. **Isto agora é o plano B.**
  *
- * É leitura de texto, e é frágil: turma chamada "Berçário II" não produz série.
- * Devolve `null` em vez de inventar — mostrar "0M" seria pior que não mostrar.
- * Some no dia em que a turma ganhar série de verdade.
+ * `classroom.gradeLevel` existe desde a grade curricular, e é a fonte certa.
+ * Esta leitura de texto continua aqui porque os chamadores em
+ * `enrollment/service.ts` ainda não trazem a coluna nas suas consultas —
+ * trocar exige mexer no repositório da matrícula, que é outro módulo.
+ *
+ * Enquanto isso não acontece, o resultado é o mesmo: a migration da grade
+ * preencheu a coluna com exatamente esta regra. A diferença aparece no dia em
+ * que alguém corrigir a série de uma turma na tela e o nome não acompanhar.
+ *
+ * É leitura frágil: turma chamada "Berçário II" não produz série. Devolve
+ * `null` em vez de inventar — mostrar "0M" seria pior que não mostrar.
  */
 export function classCodeOf(
   classroomName: string | null | undefined,

@@ -49,7 +49,7 @@ const GESTAO: NavEntry[] = [
   { label: "Apps", to: "/apps", icon: Blocks },
   { label: "Professores", to: "/professores", icon: Users },
   { label: "Matrículas", to: "/matriculas", icon: IdCard },
-  { label: "Acadêmico", icon: BookOpen, soon: true },
+  { label: "Acadêmico", to: "/academico", icon: BookOpen },
   { label: "Frequência", to: "/frequencia", icon: ClipboardCheck },
   /**
    * O financeiro é o app Payment do Órbita, não uma tela daqui.

@@ -2,13 +2,15 @@
  * Apaga os bancos de teste descartáveis desta máquina.
  *
  * Existe porque `psql` não está instalado — usa o `pg` que o monorepo já traz.
+ * Mora aqui, e não na raiz, porque o pnpm isola as dependências por pacote:
+ * `pg` só resolve de dentro deste workspace.
  * Só toca em bancos com sufixo conhecido de teste; o banco de desenvolvimento
  * de `DATABASE_URL` nunca entra na lista.
  */
 import { readFileSync } from "node:fs";
 import { Client } from "pg";
 
-const env = readFileSync(new URL("../apps/web/.env", import.meta.url), "utf8");
+const env = readFileSync(new URL("../../../apps/web/.env", import.meta.url), "utf8");
 const base = env.match(/^DATABASE_URL=(.+)$/m)?.[1]?.trim();
 if (!base) throw new Error("DATABASE_URL não encontrada em apps/web/.env");
 

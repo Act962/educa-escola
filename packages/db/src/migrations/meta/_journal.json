@@ -57,6 +57,13 @@
       "when": 1790067560220,
       "tag": "0007_ranking-escolas",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790069722040,
+      "tag": "0008_academico",
+      "breakpoints": true
     }
   ]
 }

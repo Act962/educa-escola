@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   date,
   index,
   integer,
@@ -12,7 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
-import { classroom, school } from "./school";
+import { classroom, school, stage } from "./school";
 
 const id = () =>
   text("id")
@@ -47,15 +48,89 @@ export const attendanceStatus = pgEnum("attendance_status", ["presente", "falta"
  */
 export const assessmentStatus = pgEnum("assessment_status", ["rascunho", "publicada"]);
 
+/**
+ * Tipo de disciplina na grade (§5.6).
+ *
+ * `complementar` é o que não entra na média nem na carga obrigatória —
+ * reforço, projeto, oficina. Separado de `eletiva` porque eletiva o aluno
+ * escolhe e complementar a escola oferece.
+ */
+export const subjectKind = pgEnum("subject_kind", ["obrigatoria", "eletiva", "complementar"]);
+
 export const subject = pgTable(
   "subject",
   {
     id: id(),
     schoolId: schoolId(),
     name: text("name").notNull(),
+    /** Sigla curta para grade horária e boletim, onde o nome não cabe. */
+    code: text("code"),
+    /** Área do conhecimento (BNCC): Linguagens, Matemática, Ciências… */
+    area: text("area"),
+    kind: subjectKind("kind").default("obrigatoria").notNull(),
+    /**
+     * Se entra na média do período.
+     *
+     * Existe porque nem toda disciplina avalia: projeto de vida e orientação
+     * de estudos aparecem no boletim sem nota. Hoje o cálculo da média não
+     * consulta esta coluna — quando consultar, será uma mudança no
+     * `assessment/service.ts`, não aqui.
+     */
+    composesAverage: boolean("composes_average").default(true).notNull(),
+    /** Se controla frequência. Disciplina de reforço muitas vezes não. */
+    tracksAttendance: boolean("tracks_attendance").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (table) => [uniqueIndex("subject_school_name_uidx").on(table.schoolId, table.name)],
+);
+
+/**
+ * A grade curricular de uma série (§5.6).
+ *
+ * Uma linha por disciplina que a série cursa naquele ano letivo, com a carga
+ * horária. É o que faz "turma" deixar de ser só um nome: a partir daqui dá
+ * para dizer o que o 8º ano cursa, e quantas aulas de cada coisa.
+ *
+ * **Por série e não por turma** de propósito: 8º A e 8º B cursam a mesma
+ * grade. Amarrar por turma obrigaria a secretaria a repetir a montagem para
+ * cada turma da série, e as duas divergiriam no primeiro esquecimento.
+ */
+export const curriculum = pgTable(
+  "curriculum",
+  {
+    id: id(),
+    schoolId: schoolId(),
+    academicYear: integer("academic_year").notNull(),
+    stage: stage("stage").notNull(),
+    /** A série dentro do segmento: 1 a 9 no fundamental, 1 a 3 no médio. */
+    gradeLevel: integer("grade_level").notNull(),
+    subjectId: text("subject_id")
+      .notNull()
+      .references(() => subject.id, { onDelete: "cascade" }),
+    /** Aulas por semana. É o número que a grade horária tem de acomodar. */
+    weeklyHours: integer("weekly_hours").default(1).notNull(),
+    /** Carga anual prevista. Alimenta o mínimo legal de horas (§5.7). */
+    annualHours: integer("annual_hours"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("curriculum_serie_disciplina_uidx").on(
+      table.schoolId,
+      table.academicYear,
+      table.stage,
+      table.gradeLevel,
+      table.subjectId,
+    ),
+    index("curriculum_serie_idx").on(table.schoolId, table.academicYear, table.stage),
+  ],
 );
 
 export const student = pgTable(
