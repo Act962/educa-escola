@@ -84,5 +84,28 @@ export const createEventInput = z
 
 export const eventId = z.object({ id: z.string().min(1) });
 
+/**
+ * Edição de um evento já criado.
+ *
+ * O ano letivo **não** entra: mudar um evento de 2026 para 2027 não é editar,
+ * é criar outro. Quem quer isso apaga e remarca, e o histórico fica honesto.
+ */
+export const updateEventInput = z
+  .object({
+    id: z.string().min(1),
+    type: z.enum(EVENT_TYPES),
+    dayEffect: z.enum(DAY_EFFECTS),
+    title: z.string().trim().min(2, "Informe o título do evento").max(120),
+    description: z.string().trim().max(500).nullable().optional(),
+    startsOn: dataCivil,
+    endsOn: dataCivil.optional(),
+  })
+  .refine((v) => !v.endsOn || v.startsOn <= v.endsOn, {
+    message: "O fim do evento não pode ser antes do início",
+    path: ["endsOn"],
+  });
+
+export type UpdateEventInput = z.infer<typeof updateEventInput>;
+
 export type DefineYearInput = z.infer<typeof defineYearInput>;
 export type CreateEventInput = z.infer<typeof createEventInput>;

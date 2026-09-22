@@ -2,7 +2,7 @@ import { NotFoundError, ValidationError } from "../../errors";
 import { type ContagemDeDiasLetivos, contarDiasLetivos } from "./dias-letivos";
 import { calendarioBrasileiro } from "./feriados";
 import type { CalendarRepository } from "./repository";
-import type { CreateEventInput, DefineYearInput } from "./schema";
+import type { CreateEventInput, DefineYearInput, UpdateEventInput } from "./schema";
 
 export interface VisaoDoAno {
   /** `null` quando o ano letivo ainda não foi definido. */
@@ -132,6 +132,35 @@ export function createCalendarService(repo: CalendarRepository) {
         jaExistiam: sugestoes.filter((s) => s.jaExiste).length,
         foraDoPeriodo: sugestoes.filter((s) => !s.jaExiste && s.foraDoPeriodo).length,
       };
+    },
+
+    /**
+     * Edita um evento.
+     *
+     * Passa pela mesma checagem de período da criação: corrigir a data de uma
+     * reunião para fora do ano letivo tiraria o evento da contagem sem avisar
+     * ninguém, o que é pior que recusar.
+     */
+    async updateEvent(input: UpdateEventInput) {
+      const atual = await repo.findEvent(input.id);
+      if (!atual) throw new NotFoundError("Evento não encontrado");
+
+      const ano = await repo.findYear(atual.academicYear);
+      if (!ano) {
+        throw new ValidationError("O ano letivo deste evento não está mais definido.");
+      }
+
+      const endsOn = input.endsOn ?? input.startsOn;
+      if (input.startsOn < ano.startsOn || endsOn > ano.endsOn) {
+        throw new ValidationError(
+          `O evento precisa estar entre ${ano.startsOn} e ${ano.endsOn}, que é o ano letivo de ${atual.academicYear}.`,
+        );
+      }
+
+      const { id, ...resto } = input;
+      const atualizado = await repo.updateEvent(id, { ...resto, endsOn });
+      if (!atualizado) throw new NotFoundError("Evento não encontrado");
+      return atualizado;
     },
 
     async removeEvent(id: string) {

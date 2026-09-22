@@ -58,6 +58,35 @@ export function createCalendarRepository(db: DbHandle, tenant: TenantContext) {
       return row as NonNullable<typeof row>;
     },
 
+    /** Um evento desta escola. É dele que sai o ano letivo a validar. */
+    async findEvent(id: string) {
+      const [row] = await db
+        .select()
+        .from(calendarEvent)
+        .where(and(noEvento, eq(calendarEvent.id, id)))
+        .limit(1);
+      return row ?? null;
+    },
+
+    async updateEvent(
+      id: string,
+      data: {
+        type: CreateEventInput["type"];
+        dayEffect: CreateEventInput["dayEffect"];
+        title: string;
+        description?: string | null;
+        startsOn: string;
+        endsOn: string;
+      },
+    ) {
+      const [row] = await db
+        .update(calendarEvent)
+        .set(data)
+        .where(and(noEvento, eq(calendarEvent.id, id)))
+        .returning();
+      return row ?? null;
+    },
+
     async removeEvent(id: string) {
       const [row] = await db
         .delete(calendarEvent)

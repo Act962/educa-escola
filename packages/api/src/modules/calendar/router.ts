@@ -3,7 +3,13 @@ import type { DbHandle } from "@educa-escola/db/types";
 import { permitted, router } from "../../index";
 import type { TenantContext } from "../../trpc/tenant";
 import { createCalendarRepository } from "./repository";
-import { calendarYearInput, createEventInput, defineYearInput, eventId } from "./schema";
+import {
+  calendarYearInput,
+  createEventInput,
+  defineYearInput,
+  eventId,
+  updateEventInput,
+} from "./schema";
 import { createCalendarService } from "./service";
 
 function serviceFor(ctx: { db: DbHandle; tenant: TenantContext }) {
@@ -34,6 +40,10 @@ export const calendarRouter = router({
     .mutation(({ ctx, input }) =>
       serviceFor(ctx).importar(input.academicYear, ctx.membership.userId),
     ),
+
+  updateEvent: permitted({ calendar: ["manage"] })
+    .input(updateEventInput)
+    .mutation(({ ctx, input }) => serviceFor(ctx).updateEvent(input)),
 
   removeEvent: permitted({ calendar: ["manage"] })
     .input(eventId)

@@ -62,6 +62,7 @@ function Calendario() {
   const definir = useMutation(trpc.calendar.defineYear.mutationOptions({ onSuccess: recarregar }));
   const criar = useMutation(trpc.calendar.createEvent.mutationOptions({ onSuccess: recarregar }));
   const remover = useMutation(trpc.calendar.removeEvent.mutationOptions({ onSuccess: recarregar }));
+  const editar = useMutation(trpc.calendar.updateEvent.mutationOptions({ onSuccess: recarregar }));
 
   const sugestoes = useQuery(trpc.calendar.sugestoes.queryOptions({ academicYear: year }));
   const importar = useMutation(trpc.calendar.importar.mutationOptions({ onSuccess: recarregar }));
@@ -242,8 +243,9 @@ function Calendario() {
         )}
         aoCriar={(dados) => criar.mutate({ academicYear: year, ...dados })}
         aoApagar={(id) => remover.mutate({ id })}
-        ocupado={criar.isPending || remover.isPending}
-        erro={criar.isError ? criar.error.message : null}
+        aoEditar={(dados) => editar.mutate(dados)}
+        ocupado={criar.isPending || remover.isPending || editar.isPending}
+        erro={criar.isError ? criar.error.message : editar.isError ? editar.error.message : null}
       />
     </>
   );
