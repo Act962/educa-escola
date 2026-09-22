@@ -141,6 +141,38 @@ describe("createClienteCompativel", () => {
     expect(erro.message).not.toContain("289");
   });
 
+  /**
+   * O código é curto, fixo e é o que diz o que fazer: `invalid_api_key` manda
+   * trocar a chave, `insufficient_quota` manda pôr saldo. Sem ele, os dois
+   * chegam à tela como "o provedor recusou" e a escola fica adivinhando.
+   */
+  it("repassa o código do provedor, e só o código", async () => {
+    vi.stubGlobal(
+      "fetch",
+      respondeCom(
+        { error: { code: "invalid_api_key", message: "chave de Júlia, 289 alunos" } },
+        401,
+      ),
+    );
+
+    const erro: Error = await createClienteCompativel(config)
+      .responder(pedido)
+      .then(() => new Error("não deveria ter respondido"))
+      .catch((e: Error) => e);
+
+    expect(erro.message).toContain("invalid_api_key");
+    expect(erro.message).not.toContain("Júlia");
+  });
+
+  /** Campo grande ali não é código, é texto — e texto pode ecoar requisição. */
+  it("descarta o que vier no lugar do código e for longo demais", async () => {
+    vi.stubGlobal("fetch", respondeCom({ error: { code: "x".repeat(200) } }, 401));
+
+    await expect(createClienteCompativel(config).responder(pedido)).rejects.toThrow(
+      /credencial\. Confira a chave nas configurações\.$/,
+    );
+  });
+
   it("recusa resposta em formato desconhecido", async () => {
     vi.stubGlobal("fetch", respondeCom({ resultado: "oi" }));
 

@@ -102,8 +102,10 @@ export function createClienteCompativel(config: {
       }
 
       if (!resposta.ok) {
-        const corpo = await resposta.text().catch(() => "");
-        throw new ErroDoModelo(mensagemDoStatus(resposta.status, corpo), resposta.status < 500);
+        throw new ErroDoModelo(
+          mensagemDoStatus(resposta.status, await codigoDoProvedor(resposta)),
+          resposta.status < 500,
+        );
       }
 
       const dados = (await resposta.json().catch(() => null)) as {
@@ -138,8 +140,12 @@ export function createClienteCompativel(config: {
         );
       }
 
-      if (!resposta.ok)
-        throw new ErroDoModelo(mensagemDoStatus(resposta.status, ""), resposta.status < 500);
+      if (!resposta.ok) {
+        throw new ErroDoModelo(
+          mensagemDoStatus(resposta.status, await codigoDoProvedor(resposta)),
+          resposta.status < 500,
+        );
+      }
 
       const dados = (await resposta.json().catch(() => null)) as {
         data?: { id?: string }[];
@@ -164,23 +170,50 @@ export function createClienteCompativel(config: {
 }
 
 /**
+ * O `error.code` que o provedor devolveu — `invalid_api_key`,
+ * `insufficient_quota`, `model_not_found`.
+ *
+ * Só o código, **nunca a mensagem**: a mensagem às vezes ecoa parte da
+ * requisição, e a requisição carrega os fatos da escola. O código é um token
+ * curto e fixo do provedor, e é justamente ele que distingue chave inválida de
+ * chave sem saldo — duas coisas que a direção resolve em lugares diferentes.
+ */
+async function codigoDoProvedor(resposta: Response): Promise<string | null> {
+  try {
+    const corpo = (await resposta.json()) as { error?: { code?: string } };
+    const codigo = corpo?.error?.code;
+    // Limita o tamanho porque quem garante que aquilo é código somos nós, não
+    // o provedor: campo grande ali não é código, é texto, e texto não passa.
+    return typeof codigo === "string" && codigo.length > 0 && codigo.length <= 40 ? codigo : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Traduz o status para quem vai resolver o problema.
  *
  * "401" não diz nada para a secretaria; "a chave foi recusada" manda ela para
  * a tela certa. O corpo da resposta do provedor **não** entra na mensagem: ele
- * às vezes ecoa parte da requisição, e a requisição tem dado de aluno.
+ * às vezes ecoa parte da requisição, e a requisição tem dado de aluno. Só o
+ * `error.code` passa, e passa porque sem ele a escola não sabe se troca a
+ * chave ou se põe saldo.
  */
-function mensagemDoStatus(status: number, _corpo: string): string {
+function mensagemDoStatus(status: number, codigo: string | null): string {
+  const sufixo = codigo ? ` (o provedor respondeu "${codigo}")` : "";
+
   if (status === 401 || status === 403) {
-    return "O modelo recusou a credencial. Confira a chave nas configurações.";
+    return `O modelo recusou a credencial. Confira a chave nas configurações${sufixo}.`;
   }
   if (status === 404) {
-    return "O endereço ou o nome do modelo não existe. Confira as configurações.";
+    return `O endereço ou o nome do modelo não existe. Confira as configurações${sufixo}.`;
   }
   if (status === 429) {
-    return "O provedor limitou o uso agora. Tente de novo em instantes.";
+    // 429 é tanto "muitas requisições" quanto "acabou o saldo", e só o código
+    // separa as duas — uma se resolve esperando, a outra no cartão.
+    return `O provedor limitou o uso agora${sufixo}. Tente de novo em instantes.`;
   }
   return status >= 500
     ? "O provedor do modelo está com problema. Tente de novo mais tarde."
-    : `O provedor recusou a requisição (${status}).`;
+    : `O provedor recusou a requisição (${status})${sufixo}.`;
 }
