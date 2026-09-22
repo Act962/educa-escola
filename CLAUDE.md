@@ -36,6 +36,7 @@ Está em fase de fundação: a base arquitetural existe e está testada (ver
 | `docs/design/{gestao,professor,aluno}/` | PNGs exportados do canvas — **a referência que o código persegue** |
 | `DEMO.md` | Como subir com dados e o que mostrar numa apresentação |
 | `docs/deploy/` | Plano de deploy e o roteiro tela a tela do Coolify |
+| `docs/storage/SPEC-STORAGE-R2.md` | A camada de arquivos: porta, adaptadores, contrato e as três fases |
 
 Canvas de origem do fluxo do Professor:
 <https://claude.ai/code/artifact/06b60c49-cbb7-4c62-8389-f9a3f2611436>
@@ -373,6 +374,40 @@ endereço deixa de precisar aparecer.
 `overview` importa esses limiares dos outros services em vez de repeti-los; do
 contrário o painel e o boletim discordariam sobre quem está aprovado.
 
+### Armazenamento de arquivos
+
+`packages/api/src/storage/` é uma porta com adaptadores, como `messaging/`:
+`ObjectStorage` (`port.ts`) tem seis métodos — `put`, `get`, `head`, `delete`,
+`list`, `deletePrefix` — e **nenhum devolve endereço, todos devolvem bytes**.
+`r2.ts` é o Cloudflare R2 pela API do S3 e o **único arquivo que conhece o
+`@aws-sdk`**; `memory.ts` é o dublê que roda em todo PR. Os dois passam pela
+mesma suíte (`contract.ts`), porque "passa em memória" precisa significar "passa
+no R2". Detalhes e decisões em `docs/storage/SPEC-STORAGE-R2.md`; o roteiro do
+bucket em `docs/deploy/BUCKET-R2.md`.
+
+Quatro coisas que não são óbvias:
+
+- **Não existe URL pré-assinada, e é decisão.** A §24.2 diz que anexo não é
+  acessível por endereço direto sem verificação de permissão, e a §13.3 pede
+  registro de *cada* leitura — link assinado falha nas duas. Para o que é
+  cifrado pela aplicação ele nem funcionaria: entregaria texto cifrado a um
+  navegador sem a chave. A leitura passa pelo servidor.
+- **`createTenantStorage` é o `eq(table.schoolId, …)` do bucket.** Toda chave
+  precisa começar por `escolas/{schoolId}/`, e a barra final não é cosmética:
+  sem ela `escolas/abc` alcança `escolas/abc2/...`. `list` e `deletePrefix`
+  conferem também — é neles que o descuido deixa de ser um objeto errado e passa
+  a ser o bucket inteiro.
+- **Dois tetos de tamanho, de propósito.** `MAX_OBJECT_BYTES` é o arquivo do
+  usuário (10 MB) e `MAX_BODY_BYTES` é ele já com os 28 bytes do envelope de
+  cifragem. Com um teto só, o arquivo no limite passaria na validação de cima e
+  seria recusado pela de baixo, falando de um tamanho que ninguém escolheu.
+- **Versionamento do bucket fica desligado.** "Revogar apaga" não convive com
+  versão anterior retida — e essa é a configuração que falha em silêncio.
+
+Os segmentos fixos da chave (`escolas`, `alunos`, `documentos`) ficam em
+português porque são dado gravado, na mesma convenção dos valores de enum do
+banco (`biometria`, `foto_aberta`). Traduzi-los depois seria migração de dado.
+
 ### Anatomia de um módulo
 
 `packages/api/src/modules/classroom/` é a referência a copiar:
@@ -677,6 +712,10 @@ versão por pacote.
   `packages/env/src/load.ts` sobe até a raiz do workspace e o carrega por caminho
   absoluto, então qualquer cwd enxerga o mesmo ambiente. Não crie `.env` por
   pacote.
+- **Arquivo vai para o bucket, nunca para uma coluna nova.** A camada é
+  `packages/api/src/storage/`; ver "Armazenamento de arquivos". Quem consome
+  monta por `storageFromEnv()` e embrulha com `createTenantStorage` — um teste
+  de arquitetura reprova quem construir `createR2Storage` direto num service.
 - **Variável de ambiente nova precisa ser declarada em `packages/env`**
   (`src/server.ts` para servidor, `src/web.ts` para `VITE_` no cliente). São
   schemas do `@t3-oss/env-core`: variável não declarada é invisível ao app, e
