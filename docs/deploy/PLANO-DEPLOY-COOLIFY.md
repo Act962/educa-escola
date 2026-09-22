@@ -63,10 +63,22 @@ Em ordem de prioridade. Cada um vira um PR pequeno.
    `pnpm deploy --prod` ou copiar só `.output` + dependências de runtime.
    Não bloqueia o primeiro deploy.
 4. **Remover `CORS_ORIGIN` do compose** — nenhum código lê essa variável.
-5. **IP real atrás do proxy.** O rate limit do Better Auth usa o IP do
-   cliente; atrás do Traefik ele precisa ler `x-forwarded-for`
-   (`advanced.ipAddress.ipAddressHeaders`). Sem isso, todo login conta como
-   o mesmo IP e um aluno esquecendo a senha bloqueia a escola inteira.
+5. ✅ **Limite de login por conta, e por IP folgado** (opção C, decidida em
+   2026-09-22). O padrão do Better Auth é 3 logins a cada 10 s **por IP** — e
+   uma escola inteira sai por um IP só, então uma turma entrando junta no
+   laboratório seria bloqueada no quarto aluno. Agora:
+   - por IP: 60 logins por minuto (`rateLimit.customRules`), só contra
+     varredura de muitas contas;
+   - por conta: 5 senhas erradas em 15 min bloqueiam aquele e-mail por
+     15 min, a partir da sexta tentativa (`packages/auth/src/login-throttle.ts`,
+     tabela `login_throttle`). E-mail sem cadastro bloqueia igual, para não
+     denunciar quem tem conta.
+   **A conferir no primeiro deploy:** o Better Auth já lê `x-forwarded-for`,
+   mas só aceita o cabeçalho com **um** IP. Com proxy extra na frente (ex.:
+   Cloudflare) vem uma cadeia, o IP fica indeterminado e o limite por IP vira
+   um balde único para todos. O sintoma é o aviso "Rate limiting could not
+   determine a client IP" no log — se aparecer, configurar
+   `advanced.ipAddress.trustedProxies`.
 6. **Workflow de publicação da imagem** no GitHub Actions (opção 3A).
 
 ## 5. Variáveis de ambiente de produção
@@ -126,7 +138,8 @@ empresa) antes do primeiro cadastro de foto.
      --name "..." --slug ... --owner-name "..." --owner-email ... --owner-password "..."
    ```
 8. Smoke test: login da direção, criar turma, abrir a portaria num tablet
-   por HTTPS e confirmar que a câmera abre.
+   por HTTPS e confirmar que a câmera abre. Procurar no log o aviso
+   "could not determine a client IP" — não pode aparecer (§4.5).
 9. Restaurar o backup do passo 3 num banco descartável — prova de que o
    backup presta.
 
