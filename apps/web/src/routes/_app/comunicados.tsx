@@ -23,7 +23,7 @@ import { Textarea } from "@educa-escola/ui/components/textarea";
 import { EmptyState, ErrorState, ListSkeleton } from "@educa-escola/ui/integra/states";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Megaphone, Send, TriangleAlert, X } from "lucide-react";
+import { Megaphone, PenLine, Send, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
 
 import { inteiro, percentualCurto } from "@/lib/format";
@@ -59,6 +59,8 @@ function Comunicados() {
   const [corpo, setCorpo] = useState("");
   const [publico, setPublico] = useState<Audience>("toda_a_escola");
   const [prioridade, setPrioridade] = useState<Priority>("normal");
+  /** Quando preenchido, salvar cria uma retificação em vez de um comunicado novo. */
+  const [retificando, setRetificando] = useState<{ id: string; titulo: string } | null>(null);
 
   const lista = useQuery(trpc.communication.list.queryOptions({ academicYear: year }));
   const alcance = useQuery(trpc.communication.previewAudience.queryOptions({ audience: publico }));
@@ -75,6 +77,16 @@ function Comunicados() {
   );
   const publicar = useMutation(
     trpc.communication.publish.mutationOptions({ onSuccess: recarregar }),
+  );
+  const retificar = useMutation(
+    trpc.communication.rectify.mutationOptions({
+      onSuccess: () => {
+        setTitulo("");
+        setCorpo("");
+        setRetificando(null);
+        recarregar();
+      },
+    }),
   );
   const apagar = useMutation(trpc.communication.remove.mutationOptions({ onSuccess: recarregar }));
 
@@ -95,7 +107,20 @@ function Comunicados() {
       </div>
 
       <Card className="flex flex-col gap-4">
-        <CardEyebrow>Novo comunicado</CardEyebrow>
+        <CardEyebrow>{retificando ? "Retificação" : "Novo comunicado"}</CardEyebrow>
+
+        {retificando ? (
+          <Alert variant="info">
+            <AlertTitle>Retificando “{retificando.titulo}”</AlertTitle>
+            <AlertDescription>
+              O comunicado anterior fica no histórico marcado como retificado. Esta versão nasce
+              como rascunho — nada vai para ninguém até você publicar.{" "}
+              <button type="button" className="underline" onClick={() => setRetificando(null)}>
+                Cancelar a retificação
+              </button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="titulo-comunicado">Título</Label>
@@ -162,20 +187,27 @@ function Comunicados() {
           </div>
 
           <Button
-            onClick={() =>
-              criar.mutate({
+            onClick={() => {
+              const dados = {
                 academicYear: year,
                 title: titulo,
                 body: corpo,
                 audience: publico,
                 priority: prioridade,
                 requiresAck: false,
-              })
+              };
+              if (retificando) retificar.mutate({ ...dados, replacesId: retificando.id });
+              else criar.mutate(dados);
+            }}
+            disabled={
+              criar.isPending ||
+              retificar.isPending ||
+              titulo.trim().length < 3 ||
+              corpo.trim().length < 10
             }
-            disabled={criar.isPending || titulo.trim().length < 3 || corpo.trim().length < 10}
           >
             <Megaphone size={18} strokeWidth={1.8} aria-hidden />
-            Salvar rascunho
+            {retificando ? "Salvar retificação" : "Salvar rascunho"}
           </Button>
         </div>
 
@@ -187,10 +219,10 @@ function Comunicados() {
             : `Alcança ${inteiro(alcance.data)} pessoa${alcance.data === 1 ? "" : "s"} nesta escola.`}
         </p>
 
-        {criar.isError ? (
+        {criar.isError || retificar.isError ? (
           <Alert variant="danger">
             <AlertTitle>Não foi possível salvar</AlertTitle>
-            <AlertDescription>{criar.error.message}</AlertDescription>
+            <AlertDescription>{(criar.error ?? retificar.error)?.message}</AlertDescription>
           </Alert>
         ) : null}
       </Card>
@@ -246,6 +278,21 @@ function Comunicados() {
                 <Badge variant={STATUS[comunicado.status as keyof typeof STATUS].variante}>
                   {STATUS[comunicado.status as keyof typeof STATUS].rotulo}
                 </Badge>
+
+                {comunicado.status === "publicado" ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setRetificando({ id: comunicado.id, titulo: comunicado.title });
+                      setTitulo(`${comunicado.title} — retificação`);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  >
+                    <PenLine size={16} strokeWidth={1.8} aria-hidden />
+                    Retificar
+                  </Button>
+                ) : null}
 
                 {comunicado.status === "rascunho" ? (
                   <>

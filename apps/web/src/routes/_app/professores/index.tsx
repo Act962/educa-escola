@@ -15,7 +15,7 @@ import { StatCard } from "@educa-escola/ui/integra/stat-card";
 import { EmptyState, ErrorState, ListSkeleton } from "@educa-escola/ui/integra/states";
 import { initialsOf } from "@educa-escola/ui/lib/initials";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClipboardList, Search, TriangleAlert, Users } from "lucide-react";
 import { useState } from "react";
 
@@ -23,7 +23,7 @@ import { inteiro } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
-export const Route = createFileRoute("/_app/professores")({
+export const Route = createFileRoute("/_app/professores/")({
   component: Professores,
 });
 
@@ -160,7 +160,11 @@ function Professores() {
                 return (
                   <TableRow key={docente.userId}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
+                      <Link
+                        to="/professores/$userId"
+                        params={{ userId: docente.userId }}
+                        className="flex items-center gap-3"
+                      >
                         <Avatar>
                           <AvatarFallback>{initialsOf(docente.name)}</AvatarFallback>
                         </Avatar>
@@ -170,7 +174,7 @@ function Professores() {
                             {docente.email}
                           </p>
                         </div>
-                      </div>
+                      </Link>
                     </TableCell>
                     <TableCell>{inteiro(docente.turmas)}</TableCell>
                     <TableCell>{inteiro(docente.disciplinas)}</TableCell>

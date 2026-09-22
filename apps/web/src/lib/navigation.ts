@@ -39,7 +39,7 @@ export interface NavEntry {
    */
   params?: Record<string, string>;
   soon?: boolean;
-  badge?: "chamadasPendentes";
+  badge?: "chamadasPendentes" | "comunicadosNaoLidos";
 }
 
 const GESTAO: NavEntry[] = [
@@ -79,7 +79,7 @@ const PROFESSOR: NavEntry[] = [
   { label: "Meus pontos", to: "/meus-pontos", icon: Sparkles },
   { label: "Atividades", icon: FileText, soon: true },
   { label: "Agenda", icon: CalendarDays, soon: true },
-  { label: "Comunicados", to: "/mural", icon: MessageCircle },
+  { label: "Comunicados", to: "/mural", icon: MessageCircle, badge: "comunicadosNaoLidos" },
 ];
 
 const ALUNO: NavEntry[] = [
@@ -90,7 +90,7 @@ const ALUNO: NavEntry[] = [
   { label: "Atividades", icon: FileText, soon: true },
   { label: "Materiais", icon: FolderOpen, soon: true },
   { label: "Agenda", icon: CalendarDays, soon: true },
-  { label: "Comunicados", to: "/mural", icon: MessageCircle },
+  { label: "Comunicados", to: "/mural", icon: MessageCircle, badge: "comunicadosNaoLidos" },
 ];
 
 /**

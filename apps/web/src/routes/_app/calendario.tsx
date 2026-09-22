@@ -26,6 +26,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarCheck, CalendarX, Plus, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
+import { CampoDeData } from "@/components/campo-de-data";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -127,6 +128,7 @@ function Calendario() {
           {ano.data?.ano ? (
             <NovoEvento
               ano={year}
+              periodo={ano.data.ano}
               aoCriar={(dados) => criar.mutate({ academicYear: year, ...dados })}
               criando={criar.isPending}
               erro={criar.isError ? criar.error.message : null}
@@ -207,19 +209,18 @@ function DefinirAno({
       )}
 
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="inicio-do-ano">Início</Label>
-          <Input
-            id="inicio-do-ano"
-            type="date"
-            value={inicio}
-            onChange={(e) => setInicio(e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="fim-do-ano">Fim</Label>
-          <Input id="fim-do-ano" type="date" value={fim} onChange={(e) => setFim(e.target.value)} />
-        </div>
+        <CampoDeData
+          id="inicio-do-ano"
+          label="Início"
+          value={inicio}
+          onChange={(iso) => setInicio(iso ?? "")}
+        />
+        <CampoDeData
+          id="fim-do-ano"
+          label="Fim"
+          value={fim}
+          onChange={(iso) => setFim(iso ?? "")}
+        />
         <div className="flex w-36 flex-col gap-2">
           <Label htmlFor="minimo-de-dias">Mínimo de dias</Label>
           <Input
@@ -257,11 +258,13 @@ function DefinirAno({
 
 function NovoEvento({
   ano,
+  periodo,
   aoCriar,
   criando,
   erro,
 }: {
   ano: number;
+  periodo: { startsOn: string; endsOn: string } | null;
   aoCriar: (dados: {
     type: EventType;
     dayEffect: "nenhum" | "nao_letivo" | "letivo_extra";
@@ -313,24 +316,24 @@ function NovoEvento({
             maxLength={120}
           />
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="inicio-do-evento">Início</Label>
-          <Input
-            id="inicio-do-evento"
-            type="date"
-            value={inicio}
-            onChange={(e) => setInicio(e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="fim-do-evento">Fim (opcional)</Label>
-          <Input
-            id="fim-do-evento"
-            type="date"
-            value={fim}
-            onChange={(e) => setFim(e.target.value)}
-          />
-        </div>
+        {/* O intervalo vem do ano letivo: a pessoa vê que 05/01 está fora
+            antes de clicar, em vez de descobrir pela recusa do servidor. */}
+        <CampoDeData
+          id="inicio-do-evento"
+          label="Início"
+          value={inicio}
+          onChange={(iso) => setInicio(iso ?? "")}
+          min={periodo?.startsOn}
+          max={periodo?.endsOn}
+        />
+        <CampoDeData
+          id="fim-do-evento"
+          label="Fim (opcional)"
+          value={fim}
+          onChange={(iso) => setFim(iso ?? "")}
+          min={periodo?.startsOn}
+          max={periodo?.endsOn}
+        />
         <Button
           variant="secondary"
           onClick={() =>

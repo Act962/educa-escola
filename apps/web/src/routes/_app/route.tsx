@@ -27,6 +27,17 @@ function AppLayout() {
     enabled: me.data?.role === "teacher",
   });
 
+  /**
+   * Comunicados não lidos, para o contador da barra lateral.
+   *
+   * Só para quem recebe mural: a gestão escreve, não é destinatária, e pedir
+   * isto na tela dela seria consulta à toa em toda navegação.
+   */
+  const mural = useQuery({
+    ...trpc.communication.inbox.queryOptions({ academicYear: new Date().getFullYear() }),
+    enabled: me.data?.role === "teacher" || me.data?.role === "student",
+  });
+
   if (me.isLoading) {
     return (
       <div className="grid min-h-svh place-items-center bg-background">
@@ -50,7 +61,11 @@ function AppLayout() {
 
   return (
     <SchoolProvider year={new Date().getFullYear()}>
-      <AppShell me={me.data} pendingCalls={agenda.data?.overdue.length}>
+      <AppShell
+        me={me.data}
+        pendingCalls={agenda.data?.overdue.length}
+        unreadNotices={mural.data?.filter((aviso) => aviso.readAt === null).length}
+      >
         <Outlet />
       </AppShell>
     </SchoolProvider>
