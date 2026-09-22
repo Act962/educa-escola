@@ -7,9 +7,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## O produto
 
-**Integra Edu** — software de gestão escolar multi-instituição, com três vias de
-acesso: **Gestão**, **Professor** e **Aluno**. O repositório e os pacotes ainda
-se chamam `educa-escola`, nome do scaffold; o produto é Integra Edu.
+**Órbita Edu** — software de gestão escolar multi-instituição, com três vias de
+acesso: **Gestão**, **Professor** e **Aluno**. Faz parte do ecossistema Órbita,
+de onde vêm os apps da aba Apps.
+
+Duas camadas de nome antigo continuam no lugar, e nenhuma é acidente:
+
+- **`educa-escola`** é o nome do scaffold, e batiza o repositório e os pacotes
+  (`@educa-escola/api`…). Renomear pacote em monorepo é mudança mecânica e
+  barulhenta que não muda nada para quem usa o produto.
+- **`Integra Edu`** foi o nome anterior do produto, e ainda aparece nos
+  documentos de requisito (`INTEGRA-EDU-*.md`), nos comentários que descrevem
+  a identidade visual e nos nomes de token (`--ie-*`, `packages/ui/src/integra/`).
+  **Nenhuma tela mostra mais esse nome** — a troca da marca foi feita; o que
+  sobrou é nomenclatura interna, e vale trocar num passo próprio, para o
+  histórico não misturar renomeação com mudança de comportamento.
 
 Está em fase de fundação: a base arquitetural existe e está testada (ver
 "Decisões estruturais"), o domínio praticamente todo ainda não foi construído.
@@ -438,7 +450,7 @@ era ele que sobrescrevia a identidade.
 Três coisas que não são óbvias:
 
 - **O app roda no tema claro**, sem `className="dark"`, porque os mockups
-  aprovados são claros e a paleta do Integra vive no `:root`. O bloco `.dark`
+  aprovados são claros e a paleta do produto vive no `:root`. O bloco `.dark`
   continua sendo o neutro do scaffold: funciona, mas não está na identidade —
   falta o tema escuro do design.
 - **`--radius` fica em `0.625rem`.** A escala do shadcn então produz `xl = 14px`

@@ -169,7 +169,7 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
           <CardEyebrow>Instituição</CardEyebrow>
           <p className="truncate font-extrabold text-lg tracking-[-0.3px]">{escola.name}</p>
           <p className="text-apoio text-muted-foreground">
-            No Integra desde {dataDoInstante(escola.criadaEm)}
+            No Órbita Edu desde {dataDoInstante(escola.criadaEm)}
           </p>
         </div>
       </div>

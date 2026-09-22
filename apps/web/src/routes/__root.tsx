@@ -24,7 +24,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "Integra Edu",
+        title: "Órbita Edu",
       },
     ],
     links: [

@@ -4,7 +4,6 @@ import { Button } from "@educa-escola/ui/components/button";
 import { Card, CardEyebrow } from "@educa-escola/ui/components/card";
 import { Input } from "@educa-escola/ui/components/input";
 import { Label } from "@educa-escola/ui/components/label";
-import { OrbitaMarca } from "@educa-escola/ui/integra/orbita";
 import { ErrorState, ListSkeleton, PermissionState } from "@educa-escola/ui/integra/states";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -110,12 +109,11 @@ function Apps() {
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          {/* A assinatura no lugar do rótulo de texto: esta é a única tela do
-              produto que é do ecossistema, e a marca diz de quem é o catálogo
-              melhor que a palavra. `text-primary` porque o traço é
-              `currentColor` — a marca entra na paleta do Integra em vez de
-              trazer o azul do arquivo original. */}
-          <OrbitaMarca titulo="Órbita Edu" className="mb-1 w-36 text-primary" />
+          {/* Voltou a ser texto: a assinatura passou a viver na barra lateral,
+              e duas marcas na mesma tela deixam de destacar qualquer coisa. O
+              rótulo continua dizendo que o catálogo é do ecossistema, que é o
+              que esta tela precisa informar. */}
+          <CardEyebrow>Ecossistema Órbita</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Apps</h1>
           <p className="text-corpo text-muted-foreground">
             {dados.installedCount === 0
