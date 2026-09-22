@@ -6,6 +6,7 @@ import {
   CalendarDays,
   CircleCheck,
   ClipboardCheck,
+  DoorOpen,
   FileText,
   FolderOpen,
   GraduationCap,
@@ -60,6 +61,7 @@ const GESTAO: NavEntry[] = [
   { label: "Matrículas", to: "/matriculas", icon: IdCard },
   { label: "Acadêmico", to: "/academico", icon: BookOpen },
   { label: "Frequência", to: "/frequencia", icon: ClipboardCheck },
+  { label: "Portaria", to: "/portaria-do-dia", icon: DoorOpen },
   /**
    * O financeiro é o app Payment do Órbita, não uma tela daqui.
    *
@@ -94,6 +96,9 @@ const PROFESSOR: NavEntry[] = [
   { label: "Início", to: "/inicio", icon: Home },
   { label: "Minhas turmas", to: "/turmas", icon: Users },
   { label: "Chamada", to: "/chamada", icon: CircleCheck, badge: "chamadasPendentes" },
+  /* O professor lê a portaria: é o que responde "o aluno chegou?" antes da
+     chamada. Ele não opera o quiosque — `gate: ["read"]`. */
+  { label: "Portaria", to: "/portaria-do-dia", icon: DoorOpen },
   { label: "Notas e avaliações", to: "/notas", icon: BookOpen },
   { label: "Meus pontos", to: "/meus-pontos", icon: Sparkles },
   { label: "Atividades", icon: FileText, soon: true },

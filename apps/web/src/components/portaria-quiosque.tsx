@@ -100,6 +100,16 @@ export function PortariaQuiosque({
   const leitorRef = useRef<HTMLInputElement>(null);
   /** Quando o rosto apareceu. Alimenta a paciência antes de desistir. */
   const desdeRef = useRef<number>(0);
+  /**
+   * Trava até o quadro ficar vazio de novo.
+   *
+   * Sem ela, quem fica parado na frente da câmera vira uma passagem por
+   * minuto: a tela volta a hibernar, o sensor vê o mesmo rosto e lê outra vez.
+   * Apareceu na primeira vez que a portaria rodou de verdade — quatro
+   * "entrou" do mesmo aluno, em quatro minutos seguidos. Uma aproximação vale
+   * uma passagem, e a próxima só depois de a pessoa sair do quadro.
+   */
+  const esperandoSairRef = useRef(false);
 
   const situacao = useQuery({ ...trpc.gate.situacao.queryOptions(), refetchInterval: 30_000 });
 
@@ -258,11 +268,18 @@ export function PortariaQuiosque({
       if (!vivo || ocupado || !videoRef.current) return;
       ocupado = true;
       try {
-        if (await extratorDeRosto.temRosto(videoRef.current)) {
-          if (!vivo) return;
-          desdeRef.current = performance.now();
-          setEstado({ tipo: "lendo" });
+        const tem = await extratorDeRosto.temRosto(videoRef.current);
+        if (!vivo) return;
+
+        // Quadro vazio destrava: é a prova de que a pessoa anterior saiu.
+        if (!tem) {
+          esperandoSairRef.current = false;
+          return;
         }
+        if (esperandoSairRef.current) return;
+
+        desdeRef.current = performance.now();
+        setEstado({ tipo: "lendo" });
       } finally {
         ocupado = false;
       }
@@ -300,6 +317,8 @@ export function PortariaQuiosque({
         if (descritor) {
           const veredito = identificar(descritor, moldes);
           if (veredito.tipo === "reconhecido") {
+            // Só volta a ler quando o quadro esvaziar.
+            esperandoSairRef.current = true;
             registrar.mutate({
               studentId: veredito.studentId,
               direction: sentido,
@@ -313,6 +332,9 @@ export function PortariaQuiosque({
         // Desistiu: ou ninguém foi reconhecido, ou a pessoa saiu da frente.
         // A carteirinha resolve, e insistir para sempre pararia a fila.
         if (performance.now() - desdeRef.current > PACIENCIA_MS) {
+          // Desistir também trava: insistir no mesmo rosto que não foi
+          // reconhecido repetiria a recusa em laço, na cara da pessoa.
+          esperandoSairRef.current = true;
           setEstado(
             descritor
               ? {
