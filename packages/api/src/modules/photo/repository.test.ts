@@ -9,6 +9,7 @@ import { createManualMessenger } from "../../messaging/messenger";
 import { createTestClassroom, createTestSchool, createTestUser } from "../../testing/fixtures";
 import { createEnrollmentRepository } from "../enrollment/repository";
 import { createEnrollmentService } from "../enrollment/service";
+import { createGateRepository } from "../gate/repository";
 import { createPhotoRepository } from "./repository";
 import { createPhotoService } from "./service";
 
@@ -53,15 +54,20 @@ async function cenario(tx: Tx, opcoes: { semChave?: boolean } = {}) {
   await matriculas.confirm({ id: criada.id });
 
   const detalhe = await matriculas.get(criada.id);
+  // Portaria de verdade, e não dublê: revogar precisa apagar o molde no mesmo
+  // gesto, e é esse acoplamento que o teste existe para provar.
+  const faces = createGateRepository(tx, tenant);
   const photos = createPhotoService(createPhotoRepository(tx, tenant), enrollments, {
     now: () => new Date("2026-09-21T12:00:00Z"),
     encryptionKey: opcoes.semChave ? undefined : CHAVE,
     actor: { userId: operador.id },
+    apagarMoldeFacial: (studentId) => faces.deleteTemplate(studentId),
   });
 
   return {
     escola,
     photos,
+    faces,
     enrollments,
     enrollmentId: criada.id,
     studentId: detalhe.enrollment.studentId,
@@ -226,6 +232,8 @@ describe("createPhotoService", () => {
           now: () => new Date(),
           encryptionKey: CHAVE,
           actor: { userId: operador.id },
+          apagarMoldeFacial: (studentId) =>
+            createGateRepository(tx, { schoolId: outra.id }).deleteTemplate(studentId),
         },
       );
 

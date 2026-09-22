@@ -2,6 +2,7 @@ import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components
 import { Badge } from "@educa-escola/ui/components/badge";
 import { Button } from "@educa-escola/ui/components/button";
 import { Card, CardEyebrow } from "@educa-escola/ui/components/card";
+import { Input } from "@educa-escola/ui/components/input";
 import { Label } from "@educa-escola/ui/components/label";
 import {
   Select,
@@ -12,10 +13,12 @@ import {
 } from "@educa-escola/ui/components/select";
 import { Skeleton } from "@educa-escola/ui/components/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, CameraOff, IdCard, Lock, Trash2, UserRound } from "lucide-react";
+import { Camera, CameraOff, Check, IdCard, Lock, Trash2, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { detectorDeVivacidade, vivacidadeDisponivel } from "@/lib/detector-de-vivacidade";
+import { extratorDeRosto, NOME_DO_EXTRATOR, rostoDisponivel } from "@/lib/extrator-de-rosto";
 import { dataHora } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
@@ -45,6 +48,12 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
   const queryClient = useQueryClient();
   const [modo, setModo] = useState<"resumo" | "capturando" | "revogando">("resumo");
   const [foto, setFoto] = useState<string | null>(null);
+  const [gravando, setGravando] = useState(false);
+  /** O endereço da autorização, mostrado uma única vez, para copiar. */
+  const [linkDaAutorizacao, setLinkDaAutorizacao] = useState<string | null>(null);
+  /** O formulário curto do registro presencial, aberto pelo botão. */
+  const [registrando, setRegistrando] = useState(false);
+  const [quemAutorizou, setQuemAutorizou] = useState("");
 
   const status = useQuery(trpc.photo.status.queryOptions({ studentId }));
 
@@ -55,12 +64,104 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
     }),
   );
 
-  const salvar = useMutation(
-    trpc.photo.save.mutationOptions({
-      onSuccess: () => {
-        toast.success("Foto cadastrada.");
-        setModo("resumo");
-        setFoto(null);
+  /**
+   * O molde é cadastrado junto da foto, e não numa tela à parte.
+   *
+   * É o mesmo consentimento, a mesma câmera e a mesma pessoa na frente dela:
+   * separar em dois momentos faria a escola capturar a criança duas vezes, e
+   * criança que volta para a secretaria é a coisa que este fluxo existe para
+   * evitar.
+   */
+  const cadastrarMolde = useMutation(
+    trpc.gate.cadastrarMolde.mutationOptions({
+      // Falhar aqui não desfaz a foto: ela vale por si, e a portaria atende
+      // pela carteirinha. O aviso diz o que ficou de fora.
+      onError: (erro) =>
+        toast.warning(`Foto salva, mas o rosto não entrou na portaria: ${erro.message}`),
+    }),
+  );
+
+  const salvar = useMutation(trpc.photo.save.mutationOptions({}));
+
+  /**
+   * Grava a foto e, se houver, o molde — nesta ordem e com o valor na mão.
+   *
+   * A primeira versão guardava o descritor em estado e lia dentro do
+   * `onSuccess` da foto. `setDescritor` e `mutate` aconteciam no mesmo clique,
+   * então o retorno chegava a ler o valor anterior — `null` — e o molde
+   * simplesmente não era gravado. A tela dizia "foto cadastrada", o banco
+   * ficava sem rosto nenhum, e a portaria não tinha o que comparar.
+   *
+   * Agora o valor vem por parâmetro, direto de quem capturou. Estado do React
+   * não serve para carregar dado entre o clique e a resposta.
+   */
+  async function gravar(dataUrl: string, codigos: number[] | null) {
+    setGravando(true);
+    try {
+      await salvar.mutateAsync({ studentId, dataUrl });
+    } catch (erro) {
+      toast.error(erro instanceof Error ? erro.message : "Não foi possível salvar a foto.");
+      setGravando(false);
+      return;
+    }
+
+    if (codigos) {
+      try {
+        await cadastrarMolde.mutateAsync({
+          studentId,
+          descritor: codigos,
+          extractor: NOME_DO_EXTRATOR,
+        });
+        toast.success("Foto e rosto cadastrados. A portaria já reconhece.");
+      } catch {
+        // O aviso sai no `onError` da mutation. A foto continua valendo.
+      }
+    } else {
+      toast.success("Foto cadastrada. No portão, use a carteirinha.");
+    }
+
+    setGravando(false);
+    setModo("resumo");
+    setFoto(null);
+    queryClient.invalidateQueries();
+  }
+
+  /**
+   * Pede à família a autorização, com um link curto.
+   *
+   * O endereço aparece uma vez e é copiado — mesma costura do link da ficha,
+   * enquanto o envio automático não existe. Ele **não** é gerado sozinho ao
+   * abrir a tela: emitir link revoga o anterior, e um clique acidental
+   * mataria o endereço que a família já tem na mão.
+   */
+  const pedirAutorizacao = useMutation(
+    trpc.enrollment.pedirAutorizacaoBiometria.mutationOptions({
+      onSuccess: (saida) => {
+        setLinkDaAutorizacao(saida.url);
+        queryClient.invalidateQueries();
+      },
+      onError: (erro) => toast.error(erro.message),
+    }),
+  );
+
+  /**
+   * O caminho da secretaria: o responsável declarou no balcão.
+   *
+   * A linha grava `origin: presencial`, o nome de quem declarou e o id de
+   * quem registrou — não finge que a família usou o link. As duas coisas
+   * juntas são o que separa "a mãe declarou aqui" de "a escola marcou
+   * sozinha" numa conferência.
+   */
+  const registrarPresencial = useMutation(
+    trpc.enrollment.registrarAutorizacaoPresencial.mutationOptions({
+      onSuccess: (saida) => {
+        toast.success(
+          saida.autorizou
+            ? "Autorização registrada. A portaria já pode cadastrar o rosto."
+            : "Recusa registrada. O aluno entra pela carteirinha.",
+        );
+        setRegistrando(false);
+        setQuemAutorizou("");
         queryClient.invalidateQueries();
       },
       onError: (erro) => toast.error(erro.message),
@@ -89,13 +190,22 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
   }
 
   const dados = status.data;
+  /*
+   * A matrícula vem do servidor, não de quem renderiza.
+   *
+   * Era uma prop, e a tela de Alunos não a tinha — os dois botões de
+   * autorização nasciam desabilitados justamente onde a secretaria mais os
+   * usa. Consentimento pende da matrícula, e quem sabe qual é ela é quem
+   * respondeu o status.
+   */
+  const enrollmentId = dados.enrollmentId;
 
   if (modo === "capturando") {
     return (
       <Captura
-        enviando={salvar.isPending}
+        enviando={gravando}
         onCancelar={() => setModo("resumo")}
-        onCapturar={(dataUrl) => salvar.mutate({ studentId, dataUrl })}
+        onCapturar={(dataUrl, codigos) => void gravar(dataUrl, codigos)}
       />
     );
   }
@@ -139,10 +249,133 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
                   : "Falta a autorização do responsável"}
             </AlertTitle>
             <AlertDescription>
-              Dado biométrico de menor exige autorização específica de quem responde por ele. O
-              pedido vai no mesmo link de confirmação da matrícula.
+              Dado biométrico de menor exige autorização específica de quem responde por ele. Mande
+              o link para a família responder, ou registre aqui se ela autorizou presencialmente.
             </AlertDescription>
           </Alert>
+          {/*
+            O caminho que faltava. O consentimento de biometria só era
+            capturado dentro da ficha, e a ficha só vive enquanto a matrícula
+            está pendente: depois de confirmada não havia como autorizar, e
+            família decide depois o tempo todo.
+          */}
+          {registrando ? (
+            <div className="flex flex-col gap-3 rounded-card bg-muted p-4">
+              <div>
+                <p className="font-bold text-corpo">O responsável autorizou aqui na escola</p>
+                {/*
+                  A frase existe para quem digita saber o que está afirmando.
+                  Registro presencial transfere a responsabilidade para a
+                  escola, e isso precisa estar escrito na tela, não só no banco.
+                */}
+                <p className="mt-1 text-meta text-muted-foreground">
+                  Fica gravado que {quemAutorizou.trim() || "o responsável"} declarou
+                  presencialmente, com a data, a versão do termo e o seu nome como quem registrou.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="quem-autorizou">Quem autorizou</Label>
+                <Input
+                  id="quem-autorizou"
+                  value={quemAutorizou}
+                  onChange={(e) => setQuemAutorizou(e.target.value)}
+                  placeholder="Nome do responsável"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={!quemAutorizou.trim() || registrarPresencial.isPending}
+                  onClick={() =>
+                    registrarPresencial.mutate({
+                      id: enrollmentId as string,
+                      purpose: "biometria",
+                      granted: true,
+                      declaredBy: quemAutorizou.trim(),
+                    })
+                  }
+                >
+                  Registrar autorização
+                </Button>
+                <Button
+                  variant="warning"
+                  disabled={!quemAutorizou.trim() || registrarPresencial.isPending}
+                  onClick={() =>
+                    registrarPresencial.mutate({
+                      id: enrollmentId as string,
+                      purpose: "biometria",
+                      granted: false,
+                      declaredBy: quemAutorizou.trim(),
+                    })
+                  }
+                >
+                  Registrar recusa
+                </Button>
+                <Button variant="ghost" onClick={() => setRegistrando(false)}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : linkDaAutorizacao ? (
+            <div className="flex flex-col gap-2 rounded-card bg-info-soft p-4">
+              <p className="font-bold text-apoio">Mande este endereço ao responsável</p>
+              <p className="break-all font-mono text-meta">{linkDaAutorizacao}</p>
+              <p className="text-meta text-muted-foreground">
+                Ele aparece só agora. O responsável pode abri-lo no celular dele ou aqui mesmo, no
+                computador da secretaria — quem autoriza é ele, não a escola.
+              </p>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="self-start"
+                onClick={() => {
+                  void navigator.clipboard.writeText(linkDaAutorizacao);
+                  toast.success("Endereço copiado.");
+                }}
+              >
+                Copiar endereço
+              </Button>
+            </div>
+          ) : !enrollmentId ? (
+            /*
+              Sem matrícula não há a que prender o consentimento: ele pende do
+              vínculo, não do cadastro — autorizar em 2026 não autoriza para
+              sempre. Dois botões desabilitados sem explicação seriam um beco
+              sem saída; a frase diz para onde ir.
+            */
+            <p className="rounded-card bg-muted p-4 text-apoio text-muted-foreground">
+              Este aluno não tem matrícula registrada, e o consentimento pende dela. Cadastre a
+              matrícula em <b>Matrículas</b> para pedir ou registrar a autorização.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {/*
+                Os dois caminhos lado a lado. O link vem primeiro porque é o
+                preferível — ali o ato é da família. O presencial existe para
+                quando ele não serve: família sem aparelho, ou que já está no
+                balcão.
+              */}
+              <Button
+                variant="secondary"
+                disabled={pedirAutorizacao.isPending}
+                onClick={() => pedirAutorizacao.mutate({ id: enrollmentId, expiryDays: 7 })}
+              >
+                <IdCard size={18} strokeWidth={1.7} aria-hidden />
+                {pedirAutorizacao.isPending ? "Emitindo…" : "Mandar link ao responsável"}
+              </Button>
+              <Button
+                onClick={() => {
+                  setQuemAutorizou(dados.guardianName ?? "");
+                  setRegistrando(true);
+                }}
+              >
+                <Check size={18} strokeWidth={1.8} aria-hidden />
+                Autorizar aqui
+              </Button>
+            </div>
+          )}
+
           <Carteirinha nome={dados.studentName} registration={dados.registration} />
         </>
       ) : (
@@ -262,11 +495,21 @@ function Captura({
 }: {
   enviando: boolean;
   onCancelar: () => void;
-  onCapturar: (dataUrl: string) => void;
+  onCapturar: (dataUrl: string, descritor: number[] | null) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [previa, setPrevia] = useState<string | null>(null);
+  const [codigos, setCodigos] = useState<number[] | null>(null);
+  const [lendoRosto, setLendoRosto] = useState(false);
+  /** A imagem parece uma foto de foto — tela de celular, papel impresso. */
+  const [reproducao, setReproducao] = useState(false);
+
+  /* Carrega o modelo enquanto a pessoa se posiciona, não no clique. */
+  useEffect(() => {
+    if (rostoDisponivel()) void extratorDeRosto.preparar();
+    if (vivacidadeDisponivel()) void detectorDeVivacidade.preparar();
+  }, []);
 
   useEffect(() => {
     if (previa) return;
@@ -288,7 +531,7 @@ function Captura({
     };
   }, [previa]);
 
-  function capturar() {
+  async function capturar() {
     const video = videoRef.current;
     if (!video) return;
 
@@ -312,7 +555,34 @@ function Captura({
       lado,
     );
 
+    /*
+     * Os códigos saem do **canvas**, que é o mesmo quadro que virou a foto.
+     *
+     * A primeira versão extraía do `<video>` depois de `setPrevia`, e mostrar
+     * a prévia desmonta o vídeo: o elemento solto fica com `videoWidth` zero e
+     * a leitura desistia na guarda. A tela dizia "não foi possível ler o
+     * rosto" numa foto nítida, de frente e bem iluminada. O canvas não depende
+     * de nada continuar montado.
+     */
+    setLendoRosto(true);
     setPrevia(canvas.toDataURL("image/jpeg", 0.85));
+    setReproducao(false);
+    try {
+      /*
+       * Cadastrar a partir de uma reprodução envenenaria o molde: a portaria
+       * passaria a reconhecer a foto, não a pessoa. A vivacidade é conferida
+       * aqui pelo mesmo motivo que no portão, e antes de qualquer gravação.
+       */
+      const vida = vivacidadeDisponivel() ? await detectorDeVivacidade.avaliar(canvas) : null;
+      if (vida && !vida.aprovado) {
+        setReproducao(true);
+        setCodigos(null);
+        return;
+      }
+      setCodigos(rostoDisponivel() ? await extratorDeRosto.extrair(canvas) : null);
+    } finally {
+      setLendoRosto(false);
+    }
   }
 
   return (
@@ -355,16 +625,46 @@ function Captura({
         </div>
       )}
 
+      {/*
+        Diz o que a captura conseguiu, antes de gravar. Sem isso a escola
+        acharia que cadastrou o rosto e descobriria no portão, com a criança
+        na fila.
+      */}
+      {previa ? (
+        <p className="text-center text-meta text-muted-foreground">
+          {lendoRosto
+            ? "Lendo o rosto…"
+            : reproducao
+              ? "Isto parece uma foto de uma foto — tela ou papel. Capture a pessoa na frente da câmera."
+              : codigos
+                ? "Rosto reconhecido: ele vai abrir a portaria."
+                : rostoDisponivel()
+                  ? "Não foi possível ler o rosto nesta foto. Ela vale para a ficha; no portão, use a carteirinha."
+                  : "A leitura de rosto não está disponível. No portão, use a carteirinha."}
+        </p>
+      ) : null}
+
       <div className="flex items-center justify-between gap-3">
-        <Button variant="ghost" onClick={previa ? () => setPrevia(null) : onCancelar}>
+        <Button
+          variant="ghost"
+          onClick={
+            previa
+              ? () => {
+                  setPrevia(null);
+                  setCodigos(null);
+                  setReproducao(false);
+                }
+              : onCancelar
+          }
+        >
           {previa ? "Capturar de novo" : "Voltar"}
         </Button>
         {previa ? (
-          <Button disabled={enviando} onClick={() => onCapturar(previa)}>
+          <Button disabled={enviando || lendoRosto} onClick={() => onCapturar(previa, codigos)}>
             {enviando ? "Salvando…" : "Usar esta foto"}
           </Button>
         ) : (
-          <Button disabled={Boolean(erro)} onClick={capturar}>
+          <Button disabled={Boolean(erro)} onClick={() => void capturar()}>
             <Camera size={18} strokeWidth={1.7} aria-hidden />
             Capturar
           </Button>

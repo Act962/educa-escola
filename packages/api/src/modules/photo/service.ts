@@ -9,6 +9,15 @@ export interface PhotoServiceDeps {
   /** Base64 da chave. Ausente = cadastro de foto recusado, nunca em claro. */
   encryptionKey: string | undefined;
   actor: { userId: string };
+  /**
+   * Apaga o molde facial junto com a foto.
+   *
+   * Obrigatório, e não opcional, porque meia revogação é pior que nenhuma: se
+   * a imagem sumisse e o molde ficasse, a portaria continuaria reconhecendo a
+   * criança cuja família pediu para parar. Exigir aqui faz o compilador
+   * reclamar de quem montar o serviço sem ligar as duas coisas.
+   */
+  apagarMoldeFacial: (studentId: string) => Promise<void>;
 }
 
 /**
@@ -21,9 +30,10 @@ export interface PhotoServiceDeps {
  *    facial na entrada.
  * 2. **Cada leitura da foto vira evento.** A §13.3 pede registro de leitura em
  *    documento sensível, e foto de criança é isso.
- * 3. **Revogar apaga.** Some a foto; permanece o registro de que houve
- *    consentimento e de que ele foi revogado — é o que prova que a escola agiu
- *    certo.
+ * 3. **Revogar apaga.** Some a foto **e o molde facial**; permanece o registro
+ *    de que houve consentimento e de que ele foi revogado — é o que prova que
+ *    a escola agiu certo. Apagar só a imagem deixaria a portaria reconhecendo
+ *    quem pediu para não ser mais reconhecido.
  */
 export function createPhotoService(
   photos: PhotoRepository,
@@ -36,21 +46,35 @@ export function createPhotoService(
 
     const matricula = await photos.currentEnrollment(studentId);
     const consent = matricula ? await photos.biometricConsent(matricula.id) : null;
+    const responsavel = matricula
+      ? ((await enrollments.listGuardians(matricula.id))[0] ?? null)
+      : null;
     const autorizado = Boolean(consent?.granted && !consent.revokedAt);
 
-    return { aluno, matricula, consent, autorizado };
+    return { aluno, matricula, consent, autorizado, responsavel };
   }
 
   return {
     /** O que a tela precisa saber sem baixar a foto. */
     async status(studentId: string) {
-      const { aluno, consent, autorizado } = await contexto(studentId);
+      const { aluno, consent, autorizado, matricula, responsavel } = await contexto(studentId);
       const photo = await photos.findByStudent(studentId);
 
       return {
         studentId: aluno.id,
         studentName: aluno.name,
         registration: aluno.registration,
+        /**
+         * A matrícula corrente e o responsável, para a tela pedir ou registrar
+         * a autorização sem uma segunda consulta.
+         *
+         * O nome do responsável vem daqui porque é ele que vai preencher o
+         * campo "quem autorizou" no registro presencial: digitar à mão o nome
+         * que o sistema já sabe é onde nascem os erros de grafia que depois
+         * ninguém consegue conferir.
+         */
+        enrollmentId: matricula?.id ?? null,
+        guardianName: responsavel?.name ?? null,
         authorized: autorizado,
         consent: consent
           ? {
@@ -137,6 +161,8 @@ export function createPhotoService(
       const now = deps.now();
 
       const removida = await photos.remove(input.studentId);
+      // A biometria some inteira ou não some: imagem e molde no mesmo gesto.
+      await deps.apagarMoldeFacial(input.studentId);
       if (consent && !consent.revokedAt) await photos.revokeConsent(consent.id, now);
 
       if (matricula) {

@@ -41,7 +41,11 @@ function Login() {
             toast.error(
               error.error.message === "Invalid email or password"
                 ? "E-mail ou senha incorretos."
-                : (error.error.message ?? "Não foi possível entrar."),
+                : // O limite por IP do Better Auth responde em inglês; o por
+                  // conta já vem em português, com o tempo de espera.
+                  error.error.message === "Too many requests. Please try again later."
+                  ? "Muitas tentativas desta rede. Aguarde um minuto e tente de novo."
+                  : (error.error.message ?? "Não foi possível entrar."),
             );
           },
         },

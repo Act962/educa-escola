@@ -356,7 +356,19 @@ function createBaseEnrollmentRepository(db: DbHandle, tenant: TenantContext) {
     },
 
     /** Reemitir mata o link anterior: dois links válidos seria um bug. */
-    async revokeInvitesOf(enrollmentId: string, now: Date) {
+    /**
+     * Revoga os convites abertos da matrícula.
+     *
+     * O `purpose` existe porque há dois links vivos ao mesmo tempo: o da ficha
+     * e o da autorização de biometria. Emitir um não pode matar o outro — a
+     * família estaria com o endereço da ficha na mão quando a secretaria
+     * pedisse a autorização, e o link morreria no bolso dela.
+     */
+    async revokeInvitesOf(
+      enrollmentId: string,
+      now: Date,
+      purpose?: (typeof enrollmentInvite.$inferSelect)["purpose"],
+    ) {
       return db
         .update(enrollmentInvite)
         .set({ revokedAt: now })
@@ -364,6 +376,7 @@ function createBaseEnrollmentRepository(db: DbHandle, tenant: TenantContext) {
           and(
             eq(enrollmentInvite.schoolId, tenant.schoolId),
             eq(enrollmentInvite.enrollmentId, enrollmentId),
+            purpose ? eq(enrollmentInvite.purpose, purpose) : undefined,
             sql`${enrollmentInvite.revokedAt} is null`,
             sql`${enrollmentInvite.consumedAt} is null`,
           ),
@@ -384,6 +397,21 @@ function createBaseEnrollmentRepository(db: DbHandle, tenant: TenantContext) {
           ),
         )
         .orderBy(asc(enrollmentConsent.purpose));
+    },
+
+    /**
+     * Grava um consentimento. Append-only, como o resto da trilha.
+     *
+     * Nunca atualiza a linha anterior: a história do que a família autorizou e
+     * quando é o que prova que a escola agiu certo. O que vale é o aceite mais
+     * recente daquela finalidade, e quem decide isso é quem lê.
+     */
+    async recordConsent(data: Omit<typeof enrollmentConsent.$inferInsert, "schoolId">) {
+      const [row] = await db
+        .insert(enrollmentConsent)
+        .values({ ...data, schoolId: tenant.schoolId })
+        .returning({ id: enrollmentConsent.id });
+      return row as { id: string };
     },
 
     /** Append-only: não existe update nem delete de evento, de propósito. */

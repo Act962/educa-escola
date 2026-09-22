@@ -379,3 +379,237 @@ describe("numeração da matrícula", () => {
     });
   });
 });
+
+/**
+ * O buraco que esta PR fecha: o consentimento de biometria só era capturado
+ * dentro da ficha, e a ficha só vive enquanto a matrícula está pendente.
+ * Depois de confirmada não havia caminho nenhum para autorizar — e família
+ * decide depois o tempo todo, ou a foto é tirada noutro dia.
+ */
+describe("autorização de biometria depois da matrícula confirmada", () => {
+  const tokenDe = (url: string) => url.split("/").at(-1) as string;
+
+  async function linkServiceFor(tx: Tx) {
+    const { createInviteLookup, createEnrollmentLinkRepository } = await import(
+      "../enrollment-link/repository"
+    );
+    const { createEnrollmentLinkService } = await import("../enrollment-link/service");
+    return createEnrollmentLinkService({
+      lookup: createInviteLookup(tx),
+      repoFor: (tenant) => createEnrollmentRepository(tx, tenant),
+      linkRepoFor: (tenant) => createEnrollmentLinkRepository(tx, tenant),
+      now: () => new Date("2026-09-21T12:10:00Z"),
+    });
+  }
+
+  async function cenarioConfirmado(tx: Tx) {
+    const escola = await createTestSchool(tx);
+    const turma = await createTestClassroom(tx, escola.id, "5º A", ANO);
+    const service = await serviceFor(tx, escola.id);
+
+    const criada = await service.create({
+      student: { name: "Helena Prado", birthDate: "2016-07-09", shift: "manha" },
+      guardian: {
+        name: "Vera Prado",
+        relationship: "mae",
+        phoneE164: "+5586998122039",
+        isLegal: true,
+      },
+      classroomId: turma.id,
+      academicYear: ANO,
+      expiryDays: 7,
+    });
+    await service.confirm({ id: criada.id });
+
+    return { escola, service, enrollmentId: criada.id, linkDaFicha: criada.url };
+  }
+
+  it("a secretaria pede, a família autoriza, e o consentimento passa a valer", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenarioConfirmado(tx);
+      const repo = createEnrollmentRepository(tx, { schoolId: c.escola.id });
+
+      const pedido = await c.service.emitirAutorizacaoBiometria(c.enrollmentId);
+      const link = await linkServiceFor(tx);
+      const token = tokenDe(pedido.url);
+
+      // A tela pública precisa saber que é o link curto antes de perguntar.
+      const aberto = await link.open(token);
+      expect(aberto.state).toBe("conferencia");
+      expect("finalidade" in aberto && aberto.finalidade).toBe("biometria");
+
+      await link.verify({ token, birthDate: "2016-07-09" });
+      const saida = await link.autorizarBiometria(
+        { token, autoriza: true, acceptedBy: "Vera Prado" },
+        {},
+      );
+
+      expect(saida.autorizou).toBe(true);
+
+      const { createGateRepository } = await import("../gate/repository");
+      const portaria = createGateRepository(tx, { schoolId: c.escola.id });
+      const detalhe = await repo.findDetail(c.enrollmentId);
+      const studentId = detalhe?.enrollment.studentId as string;
+      expect(studentId).toBeTruthy();
+      expect(await portaria.hasBiometricConsent(studentId)).toBe(true);
+    });
+  });
+
+  /**
+   * "Nunca respondeu" e "disse não" são coisas diferentes para quem confere
+   * depois. Só registrar o sim apagaria a segunda.
+   */
+  it("recusar também é resposta, e fica gravada", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenarioConfirmado(tx);
+      const pedido = await c.service.emitirAutorizacaoBiometria(c.enrollmentId);
+      const link = await linkServiceFor(tx);
+      const token = tokenDe(pedido.url);
+
+      await link.verify({ token, birthDate: "2016-07-09" });
+      await link.autorizarBiometria({ token, autoriza: false, acceptedBy: "Vera Prado" }, {});
+
+      const repo = createEnrollmentRepository(tx, { schoolId: c.escola.id });
+      const eventos = await repo.listEvents(c.enrollmentId);
+      expect(eventos.some((e) => e.type === "consentimento_atualizado")).toBe(true);
+
+      const { createGateRepository } = await import("../gate/repository");
+      const portaria = createGateRepository(tx, { schoolId: c.escola.id });
+      const detalhe = await repo.findDetail(c.enrollmentId);
+      const studentId = detalhe?.enrollment.studentId as string;
+      // Sem esta linha o teste passaria por acidente: um id indefinido também
+      // não acha consentimento, e "false" diria nada.
+      expect(studentId).toBeTruthy();
+      expect(await portaria.hasBiometricConsent(studentId)).toBe(false);
+    });
+  });
+
+  /**
+   * Dois atos diferentes com a mesma prova de posse. Se um respondesse pelo
+   * outro, quem tem o link da ficha gravaria consentimento sem ver os termos.
+   */
+  it("o link da ficha não responde à pergunta da biometria", async () => {
+    await withRollback(async (tx) => {
+      const escola = await createTestSchool(tx);
+      const turma = await createTestClassroom(tx, escola.id, "4º B", ANO);
+      const service = await serviceFor(tx, escola.id);
+      const criada = await service.create({
+        student: { name: "Tiago Lemos", birthDate: "2017-01-20", shift: "tarde" },
+        guardian: {
+          name: "Rita Lemos",
+          relationship: "mae",
+          phoneE164: "+5586998122039",
+          isLegal: true,
+        },
+        classroomId: turma.id,
+        academicYear: ANO,
+        expiryDays: 7,
+      });
+
+      const link = await linkServiceFor(tx);
+      const token = tokenDe(criada.url);
+      await link.verify({ token, birthDate: "2017-01-20" });
+
+      await expect(
+        link.autorizarBiometria({ token, autoriza: true, acceptedBy: "Rita Lemos" }, {}),
+      ).rejects.toThrow(/não é o de autorização/i);
+    });
+  });
+
+  /** Matrícula cancelada não pede biometria: o aluno saiu da escola. */
+  it("matrícula cancelada não pede autorização", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenarioConfirmado(tx);
+      await c.service.cancel({
+        id: c.enrollmentId,
+        reason: "mudanca_de_cidade",
+        effectiveOn: "2026-09-21",
+      });
+
+      await expect(c.service.emitirAutorizacaoBiometria(c.enrollmentId)).rejects.toThrow(
+        /cancelada/i,
+      );
+    });
+  });
+});
+
+/**
+ * O caminho da secretaria, pedido explicitamente: nem toda família abre link,
+ * e nem toda tem aparelho. O que o torna auditável é a linha dizer que foi
+ * presencial, quem declarou e quem registrou.
+ */
+describe("autorização registrada presencialmente", () => {
+  it("grava a origem, quem declarou e quem registrou", async () => {
+    await withRollback(async (tx) => {
+      const escola = await createTestSchool(tx);
+      const turma = await createTestClassroom(tx, escola.id, "3º A", ANO);
+      const service = await serviceFor(tx, escola.id);
+      const criada = await service.create({
+        student: { name: "Lívia Antunes", birthDate: "2018-02-11", shift: "manha" },
+        guardian: {
+          name: "Célia Antunes",
+          relationship: "mae",
+          phoneE164: "+5586998122039",
+          isLegal: true,
+        },
+        classroomId: turma.id,
+        academicYear: ANO,
+        expiryDays: 7,
+      });
+      await service.confirm({ id: criada.id });
+
+      await service.registrarAutorizacaoPresencial({
+        id: criada.id,
+        purpose: "biometria",
+        granted: true,
+        declaredBy: "Célia Antunes",
+      });
+
+      const repo = createEnrollmentRepository(tx, { schoolId: escola.id });
+      const consents = await repo.listConsents(criada.id);
+      const biometria = consents.find((c) => c.purpose === "biometria" && c.granted);
+
+      expect(biometria?.origin).toBe("presencial");
+      expect(biometria?.actorName).toBe("Célia Antunes");
+      // Sem o registrador, "a mãe declarou no balcão" e "a escola marcou
+      // sozinha" ficam idênticos no banco.
+      expect(biometria?.registeredByUserId).toBeTruthy();
+
+      const detalhe = await repo.findDetail(criada.id);
+      const { createGateRepository } = await import("../gate/repository");
+      const portaria = createGateRepository(tx, { schoolId: escola.id });
+      expect(await portaria.hasBiometricConsent(detalhe?.enrollment.studentId as string)).toBe(
+        true,
+      );
+    });
+  });
+
+  it("exige o nome de quem autorizou", async () => {
+    await withRollback(async (tx) => {
+      const escola = await createTestSchool(tx);
+      const turma = await createTestClassroom(tx, escola.id, "3º B", ANO);
+      const service = await serviceFor(tx, escola.id);
+      const criada = await service.create({
+        student: { name: "Otávio Reis", birthDate: "2018-06-01", shift: "tarde" },
+        guardian: {
+          name: "Ana Reis",
+          relationship: "mae",
+          phoneE164: "+5586998122039",
+          isLegal: true,
+        },
+        classroomId: turma.id,
+        academicYear: ANO,
+        expiryDays: 7,
+      });
+
+      await expect(
+        service.registrarAutorizacaoPresencial({
+          id: criada.id,
+          purpose: "biometria",
+          granted: true,
+          declaredBy: "   ",
+        }),
+      ).rejects.toThrow(/quem autorizou/i);
+    });
+  });
+});

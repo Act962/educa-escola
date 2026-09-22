@@ -11,13 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@educa-escola/ui/components/dropdown-menu";
 import { Input } from "@educa-escola/ui/components/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@educa-escola/ui/components/select";
 import { Separator } from "@educa-escola/ui/components/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@educa-escola/ui/components/sidebar";
 import { initialsOf } from "@educa-escola/ui/lib/initials";
@@ -28,9 +21,10 @@ import { useState } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Astro } from "@/components/astro";
+import { SeletorDeBimestre } from "@/components/seletor-de-bimestre";
 import { authClient } from "@/lib/auth-client";
 import { roleLabel } from "@/lib/navigation";
-import { TERMS, type Term, useSchoolContext } from "@/lib/school-context";
+import { useSchoolContext } from "@/lib/school-context";
 
 export interface CurrentUser {
   name: string;
@@ -94,7 +88,7 @@ function BuscaDeAlunos({ role }: { role: AppRole }) {
  * Windows, no macOS e no Android.
  */
 function ContextBar() {
-  const { year, term, setTerm } = useSchoolContext();
+  const { year } = useSchoolContext();
 
   return (
     <div className="flex min-w-0 items-center gap-2 rounded-control bg-card py-1 pr-1 pl-3 sm:gap-3 sm:pl-4">
@@ -109,35 +103,14 @@ function ContextBar() {
       </span>
       <span className="shrink-0 font-extrabold text-corpo">{year}</span>
       <Separator orientation="vertical" className="h-4" />
-      {/* `items` faz o gatilho mostrar o rótulo ("3º bimestre") em vez do valor
-          cru ("3") — é como o Base UI resolve o texto do selecionado. */}
-      <Select
-        items={TERMS.map((option) => ({ value: String(option), label: `${option}º bimestre` }))}
-        value={String(term)}
-        onValueChange={(value) => setTerm(Number(value) as Term)}
-      >
-        {/*
-          `size="sm"` para o cabeçalho ficar todo na mesma altura. O gatilho
-          padrão tem 44px e, somado aos 4px de respiro da barra, deixava a
-          barra de contexto com 52 contra os 44 do botão da sidebar, da busca
-          e do menu da conta — quatro controles lado a lado, um mais alto que
-          os outros. Com 36 aqui, os quatro fecham em 44.
-        */}
-        <SelectTrigger
-          size="sm"
-          aria-label="Bimestre"
-          className="border-none bg-transparent text-info"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {TERMS.map((option) => (
-            <SelectItem key={option} value={String(option)}>
-              {option}º bimestre
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/*
+        `size="sm"` dentro do seletor para o cabeçalho ficar todo na mesma
+        altura. O gatilho padrão tem 44px e, somado aos 4px de respiro da
+        barra, deixava a barra de contexto com 52 contra os 44 do botão da
+        sidebar, da busca e do menu da conta — quatro controles lado a lado,
+        um mais alto que os outros.
+      */}
+      <SeletorDeBimestre className="border-none bg-transparent text-info" />
     </div>
   );
 }
@@ -239,14 +212,31 @@ export function AppShell({ me, pendingCalls, unreadNotices, children }: AppShell
         onSignOut={sair}
       />
 
-      <SidebarInset>
+      {/*
+        Respiro no topo só no celular.
+        A casca já tinha `p-4`, e ainda assim a busca encostava na borda — 16px
+        é pouco para a primeira coisa da tela num aparelho com entalhe. No
+        desktop o espaçamento de sempre continua valendo.
+      */}
+      <SidebarInset className="pt-7 sm:pt-4 md:pt-5">
         <header className="flex flex-wrap items-center gap-3">
           <SidebarTrigger variant="outline" size="icon" className="shrink-0" />
           <BuscaDeAlunos role={me.role} />
-          {/* `min-w-0` para o grupo poder encolher em vez de empurrar a
-              página: sem ele o `flex` respeita o conteúdo e o estouro vira
-              barra de rolagem horizontal no celular. */}
-          <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
+          {/*
+            Só no desktop. No celular estes dois controles disputavam a linha
+            com o botão da barra e a busca — quatro coisas numa faixa de 375px,
+            e a busca, que é o que se usa, era a que encolhia. O bimestre e a
+            conta continuam alcançáveis pela barra lateral, que ali é um
+            `Sheet` de tela inteira. O corte é em 768px, o mesmo ponto em que
+            a barra vira `Sheet` — com limites diferentes havia uma faixa de
+            tela em que os dois apareciam ao mesmo tempo, que é justamente a
+            duplicação que isto veio eliminar.
+
+            `min-w-0` para o grupo encolher em vez de empurrar a página: sem
+            ele o `flex` respeita o conteúdo e o estouro vira rolagem
+            horizontal.
+          */}
+          <div className="ml-auto hidden min-w-0 items-center gap-2 md:flex md:gap-3">
             <ContextBar />
             <MenuDoUsuario me={me} onSignOut={sair} />
           </div>

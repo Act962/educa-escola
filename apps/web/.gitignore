@@ -58,3 +58,5 @@ dev-dist
 .dev.vars*
 
 .open-next
+public/modelos-de-rosto/
+public/modelos-de-vivacidade/

@@ -4,6 +4,7 @@ import { env } from "@educa-escola/env/server";
 import { permitted, router } from "../../index";
 import type { Membership, TenantContext } from "../../trpc/tenant";
 import { createEnrollmentRepository } from "../enrollment/repository";
+import { createGateRepository } from "../gate/repository";
 import { createPhotoRepository } from "./repository";
 import { revokePhotoInput, savePhotoInput, studentRef } from "./schema";
 import { createPhotoService } from "./service";
@@ -16,6 +17,8 @@ function serviceFor(ctx: { db: DbHandle; tenant: TenantContext; membership: Memb
       now: () => new Date(),
       encryptionKey: env.MEDIA_ENCRYPTION_KEY,
       actor: { userId: ctx.membership.userId },
+      apagarMoldeFacial: (studentId) =>
+        createGateRepository(ctx.db, ctx.tenant).deleteTemplate(studentId),
     },
   );
 }

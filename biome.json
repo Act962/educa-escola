@@ -28,7 +28,9 @@
       "!**/.svelte-kit",
       "!**/wrangler.jsonc",
       "!**/.source",
-      "!**/convex/_generated"
+      "!**/convex/_generated",
+      "!apps/web/public/modelos-de-rosto",
+      "!apps/web/public/modelos-de-vivacidade"
     ]
   },
   "formatter": {

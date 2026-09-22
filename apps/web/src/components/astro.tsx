@@ -6,6 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { SendHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { COR_DA_FAIXA, faixaDeUso, porcentagemDoTeto } from "@/lib/medidor-de-uso";
 import { useTRPC } from "@/utils/trpc";
 
 interface Fala {
@@ -37,6 +38,21 @@ export function Astro() {
 
   const situacao = useQuery({ ...trpc.assistant.situacao.queryOptions(), retry: false });
 
+  /**
+   * O consumo, para o anel e para o rodapé.
+   *
+   * `retry: false` porque quem não tem `assistant: ["manage"]` recebe 403, e
+   * isso é resposta esperada, não falha: professor e aluno continuam com o
+   * botão limpo. Gasto da escola é número de quem assina.
+   */
+  const uso = useQuery({
+    ...trpc.assistant.uso.queryOptions(),
+    retry: false,
+    staleTime: 60_000,
+  });
+
+  const porcentagem = porcentagemDoTeto(uso.data?.tokens.usados ?? 0, uso.data?.tokens.teto);
+
   useEffect(() => {
     if (!aberto) return;
     const aoTeclar = (evento: KeyboardEvent) => {
@@ -54,29 +70,90 @@ export function Astro() {
         <Painel
           disponivel={situacao.data?.disponivel ?? false}
           ligado={situacao.data?.ligado ?? false}
+          uso={uso.data ?? null}
         />
       ) : null}
 
-      <button
-        type="button"
-        onClick={() => setAberto((estado) => !estado)}
-        aria-expanded={aberto}
-        aria-label={aberto ? "Fechar o Astro" : "Abrir o Astro, assistente da escola"}
-        className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-      >
-        {aberto ? (
-          <X size={22} strokeWidth={2} aria-hidden />
-        ) : (
-          // Sem halo: sobre o azul do botão, a silhueta clara da marca
-          // desenharia um contorno branco em volta do traço.
-          <OrbitaAstro className="w-7" />
-        )}
-      </button>
+      <div className="relative size-14 shrink-0">
+        <button
+          type="button"
+          onClick={() => setAberto((estado) => !estado)}
+          aria-expanded={aberto}
+          aria-label={aberto ? "Fechar o Astro" : "Abrir o Astro, assistente da escola"}
+          className="flex size-full items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+        >
+          {aberto ? (
+            <X size={22} strokeWidth={2} aria-hidden />
+          ) : (
+            // Sem halo: sobre o azul do botão, a silhueta clara da marca
+            // desenharia um contorno branco em volta do traço.
+            <OrbitaAstro className="w-7" />
+          )}
+        </button>
+
+        {porcentagem === null ? null : <Anel porcentagem={porcentagem} />}
+      </div>
     </div>
   );
 }
 
-function Painel({ disponivel, ligado }: { disponivel: boolean; ligado: boolean }) {
+/**
+ * O anel de consumo em volta do botão.
+ *
+ * Fica **fora** do botão, com `pointer-events-none`: desenhá-lo dentro faria
+ * o traço competir com a área de clique, e o alvo de toque de um botão
+ * flutuante é a coisa que menos pode encolher.
+ *
+ * Começa às doze horas e enche no sentido horário, que é como qualquer
+ * mostrador é lido sem legenda.
+ */
+function Anel({ porcentagem }: { porcentagem: number }) {
+  const raio = 30;
+  const volta = 2 * Math.PI * raio;
+
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      className="pointer-events-none absolute -inset-1 size-16 -rotate-90"
+      aria-hidden
+    >
+      <title>{`${porcentagem}% do orçamento de tokens`}</title>
+      <circle
+        cx="32"
+        cy="32"
+        r={raio}
+        fill="none"
+        strokeWidth="3"
+        className="stroke-muted-foreground/25"
+      />
+      <circle
+        cx="32"
+        cy="32"
+        r={raio}
+        fill="none"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeDasharray={`${(volta * porcentagem) / 100} ${volta}`}
+        className={`transition-all ${COR_DA_FAIXA[faixaDeUso(porcentagem)]}`}
+      />
+    </svg>
+  );
+}
+
+interface UsoDoAstro {
+  perguntas: { usadas: number; teto: number };
+  tokens: { usados: number; teto: number | null };
+}
+
+function Painel({
+  disponivel,
+  ligado,
+  uso,
+}: {
+  disponivel: boolean;
+  ligado: boolean;
+  uso: UsoDoAstro | null;
+}) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [falas, setFalas] = useState<Fala[]>([]);
@@ -221,11 +298,52 @@ function Painel({ disponivel, ligado }: { disponivel: boolean; ligado: boolean }
             </Button>
           </form>
 
+          {/*
+            O consumo saiu da barra lateral e veio para cá.
+            Ele pertence ao Astro, não à navegação: quem está gastando é esta
+            caixa, e a informação a um clique de distância do gasto é a que
+            alguém de fato olha.
+          */}
+          {uso ? (
+            <div className="grid grid-cols-2 gap-2 border-border border-t pt-3">
+              <Medida
+                rotulo="Perguntas hoje"
+                valor={`${inteiro(uso.perguntas.usadas)}/${inteiro(uso.perguntas.teto)}`}
+              />
+              <Medida
+                rotulo="Tokens no mês"
+                valor={
+                  uso.tokens.teto === null
+                    ? inteiro(uso.tokens.usados)
+                    : `${inteiro(uso.tokens.usados)}/${inteiro(uso.tokens.teto)}`
+                }
+                hint={uso.tokens.teto === null ? "sem teto" : undefined}
+              />
+            </div>
+          ) : null}
+
           <p className="text-meta text-muted-foreground">
             A conversa não fica guardada: some ao fechar a página.
           </p>
         </>
       )}
+    </div>
+  );
+}
+
+const inteiro = (n: number) => n.toLocaleString("pt-BR");
+
+/** Um número do rodapé: rótulo em cima, valor embaixo. */
+function Medida({ rotulo, valor, hint }: { rotulo: string; valor: string; hint?: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="truncate font-bold text-meta text-muted-foreground">{rotulo}</p>
+      <p className="font-extrabold text-apoio tabular-nums">
+        {valor}
+        {hint ? (
+          <span className="ml-1 font-bold text-meta text-muted-foreground">{hint}</span>
+        ) : null}
+      </p>
     </div>
   );
 }

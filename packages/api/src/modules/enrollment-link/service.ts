@@ -13,7 +13,7 @@ import {
   verificationIsFresh,
 } from "../enrollment/token";
 import type { EnrollmentLinkRepository, InviteLookup } from "./repository";
-import type { SubmitLinkInput, VerifyLinkInput } from "./schema";
+import type { AutorizarBiometriaInput, SubmitLinkInput, VerifyLinkInput } from "./schema";
 
 export interface EnrollmentLinkDeps {
   lookup: InviteLookup;
@@ -84,7 +84,83 @@ export function createEnrollmentLinkService(deps: EnrollmentLinkDeps) {
         academicYear: resolved.enrollment.academicYear,
         state: "conferencia" as const,
         expiresAt: resolved.invite.expiresAt,
+        /**
+         * Para que serve este link.
+         *
+         * A tela pública precisa saber antes da conferência: o link curto
+         * mostra uma pergunta só, e carregar o formulário inteiro para depois
+         * escondê-lo assustaria quem só ia marcar uma caixa.
+         */
+        finalidade: resolved.invite.purpose,
       };
+    },
+
+    /**
+     * A resposta ao link curto: a família autoriza a identificação facial?
+     *
+     * Separado de `submit` e recusando o convite de ficha de propósito. São
+     * dois atos diferentes com a mesma prova de posse, e deixar um responder
+     * pelo outro significaria que quem tem o link da ficha grava consentimento
+     * sem ver os termos — ou que o link curto atualiza telefone e endereço
+     * sem ninguém pedir.
+     */
+    async autorizarBiometria(
+      input: AutorizarBiometriaInput,
+      context: { ip?: string; userAgent?: string },
+    ) {
+      const resolved = await resolve(input.token);
+      if (resolved.verdict === "consumido") throw new ExpiredError(EXPIRED_MESSAGE);
+
+      if (resolved.invite.purpose !== "biometria") {
+        throw new ValidationError("Este link não é o de autorização da identificação facial.");
+      }
+
+      if (!verificationIsFresh(resolved.invite.verifiedAt, resolved.now)) {
+        throw new ValidationError(
+          "Sua confirmação expirou. Informe a data de nascimento do aluno novamente.",
+        );
+      }
+
+      const ipHash = context.ip ? createHash("sha256").update(context.ip).digest("hex") : null;
+      const linkRepo = deps.linkRepoFor(resolved.tenant);
+      const repo = deps.repoFor(resolved.tenant);
+
+      await linkRepo.transaction(async (tx) => {
+        const consumed = await tx.markConsumed(resolved.invite.id, resolved.now);
+        if (!consumed) throw new ExpiredError(EXPIRED_MESSAGE);
+
+        await tx.recordConsents([
+          {
+            enrollmentId: resolved.enrollment.id,
+            purpose: "biometria",
+            termVersion: CURRENT_TERM_VERSION,
+            granted: input.autoriza,
+            grantedAt: resolved.now,
+            actorName: input.acceptedBy,
+            inviteId: resolved.invite.id,
+            ipHash,
+            userAgent: context.userAgent ?? null,
+          },
+        ]);
+      });
+
+      /*
+       * Recusar também vira evento. "A família nunca respondeu" e "a família
+       * disse não" são coisas diferentes para quem vai conferir depois, e só
+       * registrar o sim apagaria a segunda.
+       */
+      await repo.appendEvent({
+        enrollmentId: resolved.enrollment.id,
+        type: "consentimento_atualizado",
+        actor: "responsavel",
+        payload: {
+          finalidade: "biometria",
+          autorizou: input.autoriza,
+          respondidoPor: input.acceptedBy,
+        },
+      });
+
+      return { autorizou: input.autoriza, respondidoEm: resolved.now };
     },
 
     /** Conferência da data de nascimento. Erro não diz se o link existe. */

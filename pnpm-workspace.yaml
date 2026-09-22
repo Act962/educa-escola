@@ -5,6 +5,26 @@ allowBuilds:
   esbuild: true
   sharp: true
 catalog:
+  # DECISÃO-JOÃO: a biblioteca de reconhecimento facial da portaria.
+  # Quebra se: for trocada depois de a escola cadastrar rostos — descritor de
+  #   extrator diferente não se compara, e todo mundo precisa recadastrar.
+  # Fiz assim: versão fixa, escolhida para o teste local pedido pelo usuário.
+  #   Os pesos do modelo vêm dentro do pacote, sem CDN e sem rede externa.
+  # Alternativas: @mediapipe/tasks-vision (mais leve, acelerado por GPU) ·
+  #   extrair no servidor, sem lib no navegador.
+  "@vladmandic/face-api": 1.7.15
+  # DECISÃO-JOÃO: a detecção de vivacidade da portaria (anti-spoofing).
+  # Quebra se: ficar de fora — uma foto na tela do celular abre o portão, e
+  #   isso foi confirmado num teste real do usuário.
+  # Fiz assim: `human`, do mesmo autor do `face-api`, que traz os modelos
+  #   `antispoof` e `liveness` prontos e roda no navegador. Entra só para dizer
+  #   "é gente de verdade?" — a identidade continua com o `face-api`, que já
+  #   está calibrado.
+  # Alternativas: trocar tudo por `human` (um detector só, mas recalibra o
+  #   limiar e invalida os moldes já cadastrados) · MiniFASNet convertido para
+  #   ONNX · câmera com profundidade ou infravermelho, que tira o problema do
+  #   navegador.
+  "@vladmandic/human": 3.3.6
   dotenv: ^17.4.2
   zod: ^4.4.3
   typescript: ^6.0.3

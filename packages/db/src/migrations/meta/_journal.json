@@ -106,6 +106,48 @@
       "when": 1790090064864,
       "tag": "0014_brief_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790093164508,
+      "tag": "0015_futuristic_moon_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790099954799,
+      "tag": "0016_ambitious_psylocke",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790101695221,
+      "tag": "0017_mature_dormammu",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790101936127,
+      "tag": "0018_chief_blazing_skull",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790102399701,
+      "tag": "0019_even_vance_astro",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790103398801,
+      "tag": "0020_login-throttle",
+      "breakpoints": true
     }
   ]
 }

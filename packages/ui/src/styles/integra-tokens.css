@@ -58,6 +58,40 @@
   --ie-info: var(--ie-primary-ink);
   --ie-info-soft: var(--ie-primary-soft);
 
+  /* ---- Medidor de consumo ---- */
+  /*
+   * Uma escala de medição, não de estado.
+   *
+   * Os semânticos (`success`, `warning`, `danger`) dizem se algo deu certo ou
+   * errado; aqui a cor diz **quanto já foi gasto**, e 30% não é "aviso" nem
+   * "erro" — é só trinta por cento. Misturar as duas coisas faria um anel azul
+   * claro parecer informação e um amarelo parecer alerta, quando os dois são
+   * a mesma leitura em pontos diferentes da régua.
+   *
+   * Vai do claro ao quente conforme enche, que é como qualquer medidor de
+   * combustível comunica sem precisar de legenda.
+   */
+  --ie-medidor-1: oklch(1 0 0); /* branco, até 25%          */
+  --ie-medidor-2: var(--ie-sky); /* azul claro, até 50%      */
+  --ie-medidor-3: var(--ie-amber); /* amarelo, até 75%         */
+  --ie-medidor-4: oklch(0.75 0.16 62); /* laranja, até 85%         */
+  --ie-medidor-5: var(--ie-red); /* vermelho, até 100%       */
+
+  /* ---- Quiosque da portaria ---- */
+  /*
+   * A única superfície escura do produto, e não é preferência de estilo: o
+   * tablet do portão fica ligado o dia inteiro num corredor, muitas vezes com
+   * sol batendo. Fundo claro ali vira espelho e ofusca quem chega, e o verde
+   * de liberado precisa saltar de longe, para a fila andar sem ninguém parar
+   * para ler.
+   *
+   * Não é o tema escuro do design — esse ainda não existe. É uma superfície
+   * própria, usada só pela portaria.
+   */
+  --ie-kiosk: oklch(0.22 0.022 248);
+  --ie-kiosk-soft: oklch(0.28 0.024 248);
+  --ie-kiosk-foreground: oklch(0.96 0.006 248);
+
   /* ---- Tokens shadcn redefinidos sobre a paleta ---- */
   --background: var(--ie-canvas);
   --foreground: var(--ie-ink);
@@ -200,6 +234,14 @@
   --color-danger-soft: var(--ie-danger-soft);
   --color-info: var(--ie-info);
   --color-info-soft: var(--ie-info-soft);
+  --color-medidor-1: var(--ie-medidor-1);
+  --color-medidor-2: var(--ie-medidor-2);
+  --color-medidor-3: var(--ie-medidor-3);
+  --color-medidor-4: var(--ie-medidor-4);
+  --color-medidor-5: var(--ie-medidor-5);
+  --color-kiosk: var(--ie-kiosk);
+  --color-kiosk-soft: var(--ie-kiosk-soft);
+  --color-kiosk-foreground: var(--ie-kiosk-foreground);
 
   /* A única sombra da identidade, e só para sobreposição real — cartão
    * flutuante, diálogo, popover. O token existia desde o começo e nunca tinha
