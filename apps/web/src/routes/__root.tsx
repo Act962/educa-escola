@@ -6,6 +6,7 @@ import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanst
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 
+import { VLibras } from "@/components/vlibras";
 import appCss from "../index.css?url";
 export interface RouterAppContext {
   trpc: TRPCOptionsProxy<AppRouter>;
@@ -47,6 +48,9 @@ function RootDocument() {
       </head>
       <body>
         <Outlet />
+        {/* Tradutor de Libras. Carrega depois de tudo e não bloqueia nada:
+            sem rede externa, o app segue exatamente como antes. */}
+        <VLibras />
         <Toaster richColors />
         <TanStackRouterDevtools position="bottom-left" />
         <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
