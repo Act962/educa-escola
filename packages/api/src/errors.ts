@@ -49,3 +49,33 @@ export class TooManyAttemptsError extends DomainError {
     super(message, "TOO_MANY_ATTEMPTS");
   }
 }
+
+/**
+ * Código do Postgres para violação de unicidade.
+ *
+ * Existe aqui porque a alternativa — consultar antes de inserir — tem corrida:
+ * entre a consulta e o `insert`, outra requisição grava. O índice é a única
+ * garantia real; isto só traduz o que ele disse.
+ */
+const UNIQUE_VIOLATION = "23505";
+
+/**
+ * O erro foi a violação deste índice único?
+ *
+ * **O Drizzle embrulha o erro do Postgres.** A mensagem do erro de fora é
+ * `"Failed query: insert into …"`, e o nome da constraint só aparece no
+ * `cause`. Procurar o nome em `erro.message` compila, parece certo e nunca
+ * casa — foi exatamente o que um teste contra o Postgres real pegou aqui.
+ * Por isso a busca percorre a cadeia de causas em vez de olhar um nível só.
+ */
+export function violaUnico(erro: unknown, constraint: string): boolean {
+  let atual: unknown = erro;
+
+  for (let nivel = 0; nivel < 5 && atual; nivel += 1) {
+    const candidato = atual as { code?: string; constraint?: string; cause?: unknown };
+    if (candidato.code === UNIQUE_VIOLATION && candidato.constraint === constraint) return true;
+    atual = candidato.cause;
+  }
+
+  return false;
+}

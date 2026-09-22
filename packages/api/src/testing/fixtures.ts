@@ -1,6 +1,7 @@
 import {
   attendance,
   classroom,
+  enrollment,
   lesson,
   member,
   organization,
@@ -107,6 +108,28 @@ export async function createTestStudent(
     })
     .returning({ id: student.id, registration: student.registration });
   return row as { id: string; registration: string };
+}
+
+/** Matrícula mínima. A situação é o que o programa de indicações deriva. */
+export async function createTestEnrollment(
+  tx: TestTransaction,
+  input: {
+    schoolId: string;
+    studentId: string;
+    academicYear?: number;
+    status?: (typeof enrollment.$inferInsert)["status"];
+  },
+) {
+  const [row] = await tx
+    .insert(enrollment)
+    .values({
+      schoolId: input.schoolId,
+      studentId: input.studentId,
+      academicYear: input.academicYear ?? 2026,
+      status: input.status ?? "pendente",
+    })
+    .returning({ id: enrollment.id });
+  return row as { id: string };
 }
 
 export async function createTestSubject(

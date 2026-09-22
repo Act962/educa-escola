@@ -209,6 +209,31 @@ describe("configurações da instituição", () => {
   });
 });
 
+describe("programa de indicações", () => {
+  /** Desenhar a regra de desconto é decisão comercial da direção. */
+  it("só a gestão configura e enxerga quem indicou quem", () => {
+    for (const role of APP_ROLES) {
+      const esperado = role === "owner" || role === "admin";
+      expect(can(role, { referral: ["manage"] })).toBe(esperado);
+      expect(can(role, { referral: ["read"] })).toBe(esperado);
+    }
+  });
+
+  /**
+   * O aluno vê o próprio link e mesmo assim não tem `referral`. A permissão
+   * cobre a lista nominal — quem indicou quem, nome de família e de quem se
+   * matriculou. A tela dele resolve por identidade, como "Meu perfil".
+   */
+  it("aluno divulga sem ganhar permissão de leitura da lista", () => {
+    expect(can("student", { referral: ["read"] })).toBe(false);
+  });
+
+  it("professor fica de fora: ele não tem mensalidade para descontar", () => {
+    expect(can("teacher", { referral: ["read"] })).toBe(false);
+    expect(can("teacher", { referral: ["manage"] })).toBe(false);
+  });
+});
+
 describe("comunicados", () => {
   it("todo papel recebe comunicado", () => {
     for (const role of APP_ROLES) {

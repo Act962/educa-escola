@@ -58,6 +58,13 @@ export const statement = {
    * não se desfaz depois de lido (§8.3).
    */
   communication: ["read", "manage"],
+  /**
+   * Programa de indicações. `manage` é desenhar a regra de desconto, que é
+   * decisão comercial da direção; `read` é ver quem indicou quem, que é lista
+   * nominal de família. Quem divulga o próprio link não precisa de nenhum dos
+   * dois — a tela dele resolve por identidade, como "Meu perfil".
+   */
+  referral: ["read", "manage"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -74,6 +81,7 @@ const fullAcademicAccess = {
   faculty: ["read", "manage"],
   calendar: ["read", "manage"],
   communication: ["read", "manage"],
+  referral: ["read", "manage"],
 } as const;
 
 /** Diretor(a) / mantenedor(a) da escola. Único papel que pode excluir a escola. */
@@ -122,6 +130,8 @@ export const teacher = ac.newRole({
   calendar: ["read"],
   /** Recebe comunicados; escrever para a escola é da gestão. */
   communication: ["read"],
+  /** Professor não entra no programa: ele não tem mensalidade para descontar. */
+  referral: [],
   /**
    * Vazio: a lista de docentes carrega pendência de colega, que é dado de
    * pessoal. O professor vê o que ele mesmo deve no próprio painel.
@@ -157,6 +167,14 @@ export const student = ac.newRole({
   faculty: [],
   calendar: ["read"],
   communication: ["read"],
+  /**
+   * Vazio, e mesmo assim o aluno vê o próprio link.
+   *
+   * `referral: read` é a lista de quem indicou quem — nome de família e de
+   * quem se matriculou. A tela do aluno não passa por ela: resolve por
+   * identidade, como "Meu perfil", e devolve só o que é dele.
+   */
+  referral: [],
 });
 
 export const roles = { owner, admin, teacher, student };
