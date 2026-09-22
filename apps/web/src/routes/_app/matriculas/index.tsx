@@ -158,7 +158,7 @@ function Matriculas() {
         <div>
           <CardEyebrow>Secretaria</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Matrículas</h1>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-corpo text-muted-foreground">
             {pendentes === 0
               ? `Nenhuma pendência no ano letivo de ${ANO_LETIVO}.`
               : `${inteiro(pendentes)} aguardando ação · ano letivo de ${ANO_LETIVO}`}
@@ -320,15 +320,15 @@ function Matriculas() {
                           </Avatar>
                           <div>
                             <div className="font-bold text-sm">{item.studentName}</div>
-                            <div className="text-[11px] text-muted-foreground">
+                            <div className="text-meta text-muted-foreground">
                               {item.registration}
                             </div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-[13px]">{item.classroomName ?? "A definir"}</div>
-                        <div className="text-[11px] text-muted-foreground">{turno(item.shift)}</div>
+                        <div className="text-corpo">{item.classroomName ?? "A definir"}</div>
+                        <div className="text-meta text-muted-foreground">{turno(item.shift)}</div>
                       </TableCell>
                       <TableCell>
                         {item.classCode ? (
@@ -336,12 +336,12 @@ function Matriculas() {
                             {item.classCode}
                           </Badge>
                         ) : (
-                          <span className="text-[11px] text-muted-foreground">—</span>
+                          <span className="text-meta text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="text-[13px]">{item.guardianName ?? "—"}</div>
-                        <div className="text-[11px] text-muted-foreground">
+                        <div className="text-corpo">{item.guardianName ?? "—"}</div>
+                        <div className="text-meta text-muted-foreground">
                           {item.guardianRelationship ? parentesco(item.guardianRelationship) : "—"}
                           {" · "}
                           {telefoneMascarado(item.guardianPhone)}
@@ -357,8 +357,8 @@ function Matriculas() {
                         <span
                           className={
                             urgente
-                              ? "font-bold text-[13px] text-danger"
-                              : "text-[13px] text-muted-foreground"
+                              ? "font-bold text-corpo text-danger"
+                              : "text-corpo text-muted-foreground"
                           }
                         >
                           {item.status === "pendente" ? restante : "—"}
@@ -385,7 +385,7 @@ function Matriculas() {
             </Table>
 
             <div className="flex items-center justify-between gap-4">
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-meta text-muted-foreground">
                 {page * POR_PAGINA + 1}–{Math.min((page + 1) * POR_PAGINA, total)} de{" "}
                 {inteiro(total)} matrículas
               </span>

@@ -52,7 +52,7 @@ export function DashboardProfessor({ me }: { me: CurrentUser }) {
             <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
               {saudacao()}, {primeiroNome(me.name)}
             </h1>
-            <p className="max-w-xl text-[13px] text-muted-foreground">
+            <p className="max-w-xl text-corpo text-muted-foreground">
               Você tem <strong className="text-foreground">{aulas.length} aulas</strong> hoje
               {atrasadas.length > 0 ? (
                 <>
@@ -130,8 +130,8 @@ export function DashboardProfessor({ me }: { me: CurrentUser }) {
                       )}
                     >
                       <span className="flex w-14 flex-col text-center">
-                        <span className="font-extrabold text-[13px]">{aula.startsAt}</span>
-                        <span className="text-[11px] text-muted-foreground">{aula.endsAt}</span>
+                        <span className="font-extrabold text-corpo">{aula.startsAt}</span>
+                        <span className="text-meta text-muted-foreground">{aula.endsAt}</span>
                       </span>
                       <span
                         className={cn(
@@ -144,7 +144,7 @@ export function DashboardProfessor({ me }: { me: CurrentUser }) {
                         <span className="truncate font-extrabold text-sm">
                           {aula.subjectName} · {aula.classroomName}
                         </span>
-                        <span className="truncate text-[11px] text-muted-foreground">
+                        <span className="truncate text-meta text-muted-foreground">
                           {aula.room ? `${aula.room} · ` : ""}
                           {me.schoolName}
                         </span>
@@ -215,7 +215,7 @@ export function DashboardProfessor({ me }: { me: CurrentUser }) {
                       params={{ lessonId: aula.id }}
                       className="flex flex-col gap-0.5 rounded-field bg-danger-soft p-3"
                     >
-                      <span className="font-bold text-[11px] text-danger">
+                      <span className="font-bold text-danger text-meta">
                         {shortDate(aula.date)} · {aula.startsAt}
                       </span>
                       <span className="font-extrabold text-sm">
@@ -255,10 +255,10 @@ export function DashboardProfessor({ me }: { me: CurrentUser }) {
                       </AvatarFallback>
                     </Avatar>
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate font-extrabold text-[13px]">
+                      <span className="truncate font-extrabold text-corpo">
                         {aluno.name} · {aluno.classroomName}
                       </span>
-                      <span className="text-[11px] text-muted-foreground">{aluno.detail}</span>
+                      <span className="text-meta text-muted-foreground">{aluno.detail}</span>
                     </span>
                   </li>
                 ))}
@@ -301,8 +301,8 @@ function TurmasResumo() {
             search={{ turma: turma.classroomId }}
             className="flex items-center justify-between rounded-field bg-muted p-3 hover:bg-accent"
           >
-            <span className="font-extrabold text-[13px]">{turma.classroomName}</span>
-            <span className="text-[11px] text-muted-foreground">{turma.subjectName}</span>
+            <span className="font-extrabold text-corpo">{turma.classroomName}</span>
+            <span className="text-meta text-muted-foreground">{turma.subjectName}</span>
           </Link>
         </li>
       ))}

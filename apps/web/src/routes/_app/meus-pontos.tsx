@@ -31,7 +31,7 @@ function PontosDoProfessor() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Pontuação</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Meus pontos</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Chamada no prazo, diário preenchido e devolutiva rápida em {year}.
         </p>
       </div>
@@ -59,7 +59,7 @@ function PontosDoProfessor() {
 
           <ExtratoDePontos dados={painel.data} />
 
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             Todos os pontos aqui são por <strong className="font-bold">registrar</strong>, nunca
             pelo conteúdo do registro. Marcar falta não custa ponto — a chamada no prazo vale o
             mesmo com a turma cheia ou vazia.

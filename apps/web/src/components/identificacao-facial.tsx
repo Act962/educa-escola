@@ -175,7 +175,7 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
               ) : (
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <UserRound size={34} strokeWidth={1.4} aria-hidden />
-                  <span className="text-[11px]">Sem foto</span>
+                  <span className="text-meta">Sem foto</span>
                 </div>
               )}
             </div>
@@ -195,7 +195,7 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
             </dl>
           </div>
 
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             A foto fica cifrada no banco e não aparece em listagem, nem para a direção. Cada
             abertura fica registrada na linha do tempo. O molde facial vive no equipamento, não
             conosco.
@@ -222,8 +222,8 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
 function Linha({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <dt className="text-[11px] text-muted-foreground">{rotulo}</dt>
-      <dd className="font-bold text-[12px]">{children}</dd>
+      <dt className="text-meta text-muted-foreground">{rotulo}</dt>
+      <dd className="font-bold text-apoio">{children}</dd>
     </div>
   );
 }
@@ -241,8 +241,8 @@ function Carteirinha({ nome, registration }: { nome: string; registration: strin
         <IdCard size={38} strokeWidth={1.3} aria-hidden />
       </div>
       <div className="flex-1">
-        <p className="font-bold text-[13px]">{nome} entra pela carteirinha</p>
-        <p className="mt-1 text-[11px] text-muted-foreground">
+        <p className="font-bold text-corpo">{nome} entra pela carteirinha</p>
+        <p className="mt-1 text-meta text-muted-foreground">
           A catraca lê o QR, que carrega o número de matrícula.
         </p>
         <p className="mt-2 font-extrabold text-base tabular-nums">{registration}</p>
@@ -322,7 +322,7 @@ function Captura({
         <h2 className="font-extrabold text-base tracking-[-0.2px]">
           {previa ? "Confira a foto" : "Capturar rosto"}
         </h2>
-        <p className="mt-1 text-[13px] text-muted-foreground">
+        <p className="mt-1 text-corpo text-muted-foreground">
           Pela câmera do tablet. Peça que o aluno olhe para a câmera, sem boné e sem óculos escuros.
         </p>
       </div>
@@ -330,8 +330,8 @@ function Captura({
       {erro ? (
         <div className="flex flex-col items-center gap-3 rounded-card bg-warning-soft p-6 text-center">
           <CameraOff size={26} strokeWidth={1.7} className="text-warning" aria-hidden />
-          <p className="font-bold text-[13px]">{erro}</p>
-          <p className="max-w-sm text-[12px] text-muted-foreground">
+          <p className="font-bold text-corpo">{erro}</p>
+          <p className="max-w-sm text-apoio text-muted-foreground">
             Autorize o uso da câmera no navegador. Em rede, a página precisa estar em HTTPS — a
             câmera não abre em conexão comum.
           </p>
@@ -395,11 +395,11 @@ function Revogacao({
       </div>
 
       <div className="flex flex-col gap-2 rounded-card bg-danger-soft p-4">
-        <p className="text-[12px] leading-relaxed">
+        <p className="text-apoio leading-relaxed">
           Isto <b>apaga a foto</b> do nosso banco e manda o equipamento remover o molde dele. Não é
           reversível — recadastrar exige nova captura e nova autorização.
         </p>
-        <p className="text-[12px] leading-relaxed">
+        <p className="text-apoio leading-relaxed">
           O registro de que houve consentimento, e de que ele foi revogado, permanece: é o que prova
           que a escola agiu certo. A frequência já registrada também fica.
         </p>

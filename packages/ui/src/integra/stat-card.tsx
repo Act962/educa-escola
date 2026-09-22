@@ -55,8 +55,8 @@ export function StatCard({ icon: Icon, children, label, hint, tone, className }:
       </span>
       <div className="flex flex-col gap-0.5">
         <span className={cn(value({ tone }))}>{children}</span>
-        <span className="text-[13px] text-muted-foreground">{label}</span>
-        {hint ? <span className="text-[11px] text-muted-foreground">{hint}</span> : null}
+        <span className="text-corpo text-muted-foreground">{label}</span>
+        {hint ? <span className="text-meta text-muted-foreground">{hint}</span> : null}
       </div>
     </Card>
   );

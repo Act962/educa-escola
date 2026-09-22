@@ -52,7 +52,7 @@ function Boletim() {
         <div className="flex flex-col gap-1">
           <CardEyebrow>Minhas notas</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Boletim</h1>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-corpo text-muted-foreground">
             {term}º bimestre · apenas notas publicadas pelos professores
           </p>
         </div>
@@ -100,13 +100,13 @@ function Boletim() {
                     className="flex flex-wrap items-center gap-3 rounded-field bg-muted p-3"
                   >
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate font-extrabold text-[13px]">{avaliacao.name}</span>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="truncate font-extrabold text-corpo">{avaliacao.name}</span>
+                      <span className="text-meta text-muted-foreground">
                         peso {avaliacao.weight}
                         {avaliacao.appliedOn ? ` · ${shortDate(avaliacao.appliedOn)}` : ""}
                       </span>
                     </span>
-                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                    <span className="text-meta text-muted-foreground tabular-nums">
                       {nota(avaliacao.score)} × {avaliacao.weight} ={" "}
                       {nota(avaliacao.score * avaliacao.weight)}
                     </span>
@@ -122,7 +122,7 @@ function Boletim() {
                 ))}
               </ul>
 
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-meta text-muted-foreground">
                 Como sua média foi calculada: soma de (nota × peso) dividida pelo peso total (
                 {pesoTotal}). Avaliação ainda não lançada não entra na conta — não vale zero.
               </p>

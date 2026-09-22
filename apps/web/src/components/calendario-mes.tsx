@@ -152,7 +152,7 @@ export function CalendarioMes({
           <Button
             variant="secondary"
             size="sm"
-            className="min-h-8 px-3 text-[11px]"
+            className="min-h-8 px-3 text-meta"
             onClick={() => setMes(inicioDoMes(hoje))}
           >
             Hoje
@@ -180,7 +180,7 @@ export function CalendarioMes({
         {DIAS_DA_SEMANA.map((dia) => (
           <div
             key={dia}
-            className="py-1 text-center font-bold text-[10px] text-muted-foreground uppercase tracking-wide"
+            className="py-1 text-center font-bold text-muted-foreground text-rotulo uppercase tracking-wide"
           >
             {dia}
           </div>
@@ -234,7 +234,7 @@ export function CalendarioMes({
                 onClick={() => aoAbrirDia?.(dia, "ver")}
                 disabled={!aoAbrirDia}
                 className={[
-                  "relative flex size-5 shrink-0 items-center justify-center rounded-full font-bold text-[11px] tabular-nums",
+                  "relative flex size-5 shrink-0 items-center justify-center rounded-full font-bold text-meta tabular-nums",
                   ehHoje ? "bg-primary text-primary-foreground" : "",
                   doMes ? "text-foreground" : "text-muted-foreground",
                 ].join(" ")}
@@ -254,7 +254,7 @@ export function CalendarioMes({
                     evento.classroomName ?? "Toda a escola",
                   ].join(" · ")}
                   className={[
-                    "relative truncate rounded-field px-1.5 py-0.5 text-left text-[10px] leading-tight",
+                    "relative truncate rounded-field px-1.5 py-0.5 text-left text-rotulo leading-tight",
                     evento.dayEffect === "nao_letivo"
                       ? "bg-warning text-card"
                       : evento.dayEffect === "letivo_extra"
@@ -277,7 +277,7 @@ export function CalendarioMes({
                   type="button"
                   onClick={() => aoAbrirDia?.(dia, "ver")}
                   disabled={!aoAbrirDia}
-                  className="relative px-1.5 text-left font-bold text-[10px] text-muted-foreground"
+                  className="relative px-1.5 text-left font-bold text-muted-foreground text-rotulo"
                 >
                   +{sobra}
                 </button>

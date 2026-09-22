@@ -14,7 +14,7 @@ import { cva, type VariantProps } from "class-variance-authority";
  * de ação afirmativa em verde e de aviso em âmbar sem escrever cor solta.
  */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-control border border-transparent bg-clip-padding font-bold text-[13px] outline-none transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg:not([class*='size-'])]:size-[18px] [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "group/button inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-control border border-transparent bg-clip-padding font-bold text-corpo outline-none transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg:not([class*='size-'])]:size-[18px] [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {

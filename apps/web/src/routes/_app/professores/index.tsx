@@ -72,7 +72,7 @@ function Professores() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Instituição</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Professores</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Quem leciona em {year}, com o que está pendente de registro.
         </p>
       </div>
@@ -170,7 +170,7 @@ function Professores() {
                         </Avatar>
                         <div className="min-w-0">
                           <p className="truncate font-bold">{docente.name}</p>
-                          <p className="truncate text-[11px] text-muted-foreground">
+                          <p className="truncate text-meta text-muted-foreground">
                             {docente.email}
                           </p>
                         </div>
@@ -185,7 +185,7 @@ function Professores() {
                       ) : (
                         // Chamada e nota separadas: são cobranças diferentes,
                         // e um número só não diz à coordenação o que pedir.
-                        <span className="text-[11px]">
+                        <span className="text-meta">
                           {docente.chamadasPendentes > 0
                             ? `${inteiro(docente.chamadasPendentes)} chamada${docente.chamadasPendentes > 1 ? "s" : ""}`
                             : null}
@@ -207,7 +207,7 @@ function Professores() {
         )}
       </Card>
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-meta text-muted-foreground">
         A lista é ordenada por nome, nunca por pendência: uma lista que se reordena conforme alguém
         atrasa vira ranking de docentes por acidente. Tudo aqui é sobre registro — nada sobre nota
         da turma ou taxa de aprovação.

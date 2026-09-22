@@ -146,7 +146,7 @@ function Notas() {
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
             Lançamento de notas{atual ? ` — ${atual.classroomName}` : ""}
           </h1>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-corpo text-muted-foreground">
             {term}º bimestre
             {grade.data ? ` · ${grade.data.rows.length} alunos` : ""}
             {atual ? ` · ${atual.subjectName}` : ""}
@@ -215,7 +215,7 @@ function Notas() {
                   {avaliacao.status === "publicada" ? "Publicada" : "Rascunho"}
                 </Badge>
               </div>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-meta text-muted-foreground">
                 Peso {avaliacao.weight}
                 {avaliacao.appliedOn ? ` · aplicada em ${shortDate(avaliacao.appliedOn)}` : ""}
               </span>
@@ -298,7 +298,7 @@ function Notas() {
                         </Avatar>
                         <span className="flex flex-col">
                           <span className="font-extrabold">{linha.name}</span>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-meta text-muted-foreground">
                             {linha.registration}
                           </span>
                         </span>

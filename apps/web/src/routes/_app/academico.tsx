@@ -79,7 +79,7 @@ function Academico() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Instituição</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Acadêmico</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           O catálogo de disciplinas e o que cada série cursa em {year}.
         </p>
       </div>
@@ -140,7 +140,7 @@ function Academico() {
             {disciplinas.data?.map((disciplina) => (
               <li
                 key={disciplina.id}
-                className="flex flex-wrap items-center gap-3 border-border border-t py-2.5 text-[13px] first:border-t-0"
+                className="flex flex-wrap items-center gap-3 border-border border-t py-2.5 text-corpo first:border-t-0"
               >
                 {editando?.id === disciplina.id ? (
                   <>
@@ -274,10 +274,10 @@ function SerieDaGrade({ serie, disciplinas, aoPor, aoTirar, ocupado }: SerieProp
         <CardEyebrow>
           {serie.gradeLevel}º ano · {STAGE_LABEL[serie.stage]}
         </CardEyebrow>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-meta text-muted-foreground">
           {inteiro(serie.turmas)} turma{serie.turmas > 1 ? "s" : ""}
         </span>
-        <span className="ml-auto font-bold text-[13px]">
+        <span className="ml-auto font-bold text-corpo">
           {inteiro(serie.aulasPorSemana)} aulas por semana
         </span>
       </div>
@@ -292,7 +292,7 @@ function SerieDaGrade({ serie, disciplinas, aoPor, aoTirar, ocupado }: SerieProp
           {serie.disciplinas.map((disciplina) => (
             <li
               key={disciplina.id}
-              className="flex items-center gap-3 border-border border-t py-2.5 text-[13px] first:border-t-0"
+              className="flex items-center gap-3 border-border border-t py-2.5 text-corpo first:border-t-0"
             >
               <BookOpen size={16} strokeWidth={1.7} aria-hidden className="text-muted-foreground" />
               <span className="min-w-0 flex-1 truncate font-bold">{disciplina.nome}</span>

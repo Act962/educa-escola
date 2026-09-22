@@ -91,10 +91,10 @@ export function AppSidebar({
             <AvatarFallback>{initialsOf(schoolName)}</AvatarFallback>
           </Avatar>
           <span className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
-            <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-[0.7px]">
+            <span className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
               Instituição
             </span>
-            <span className="truncate font-extrabold text-[13px]">{schoolName}</span>
+            <span className="truncate font-extrabold text-corpo">{schoolName}</span>
           </span>
         </div>
       </SidebarHeader>

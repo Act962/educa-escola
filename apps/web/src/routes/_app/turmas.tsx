@@ -64,7 +64,7 @@ function Turmas() {
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
           {professor ? "Minhas turmas" : "Turmas da escola"}
         </h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           {professor
             ? "Turmas em que você tem aula atribuída neste ano letivo."
             : "Todas as turmas cadastradas nesta instituição."}
@@ -103,12 +103,12 @@ function Turmas() {
                     className="flex flex-col gap-1 rounded-field bg-muted p-4 hover:bg-accent"
                   >
                     <span className="font-extrabold text-base tracking-[-0.2px]">{turma.nome}</span>
-                    <span className="text-[11px] text-muted-foreground">{turma.detalhe}</span>
+                    <span className="text-meta text-muted-foreground">{turma.detalhe}</span>
                   </Link>
                 ) : (
                   <div className="flex flex-col gap-1 rounded-field bg-muted p-4">
                     <span className="font-extrabold text-base tracking-[-0.2px]">{turma.nome}</span>
-                    <span className="text-[11px] text-muted-foreground">{turma.detalhe}</span>
+                    <span className="text-meta text-muted-foreground">{turma.detalhe}</span>
                   </div>
                 )}
               </li>

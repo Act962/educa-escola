@@ -88,7 +88,10 @@ export function DashboardGestao() {
         </StatCard>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_22rem]">
+      {/* `minmax(0,1fr)` e não `1fr`: em duas colunas, `1fr` ainda respeita o
+          conteúdo mínimo, e a tabela de pendências alargaria a coluna em cima
+          da lateral de 22rem. */}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -202,7 +205,7 @@ export function DashboardGestao() {
               </div>
             )}
 
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-meta text-muted-foreground">
               Um aluno pode aparecer em mais de um critério. A frequência mínima segue a LDB: 75%
               das aulas dadas.
             </p>
@@ -212,22 +215,22 @@ export function DashboardGestao() {
             <CardHeader>
               <CardTitle>O que já está no ar</CardTitle>
             </CardHeader>
-            <ul className="flex flex-col gap-2 text-[13px]">
+            <ul className="flex flex-col gap-2 text-corpo">
               <li className="rounded-field bg-muted p-3">
                 <strong className="font-extrabold">Chamada e diário de aula</strong>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   Registro por aula, com prazo e justificativa fora do prazo.
                 </p>
               </li>
               <li className="rounded-field bg-muted p-3">
                 <strong className="font-extrabold">Notas com rascunho e publicação</strong>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   O aluno só enxerga o que foi publicado, e publicar exige todas as notas lançadas.
                 </p>
               </li>
               <li className="rounded-field bg-muted p-3">
                 <strong className="font-extrabold">Boletim do aluno com a conta aberta</strong>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   Cada avaliação, seu peso e a média resultante.
                 </p>
               </li>

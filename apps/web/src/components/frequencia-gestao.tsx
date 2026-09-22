@@ -158,18 +158,18 @@ export function FrequenciaGestao() {
                     : "grid grid-cols-[4.5rem_1fr_3.5rem] items-center gap-3 rounded-field px-3 py-2.5 odd:bg-muted sm:grid-cols-[5rem_1fr_3.5rem_9rem]"
                 }
               >
-                <span className="font-bold text-[13px]">{turma.classroomName}</span>
+                <span className="font-bold text-corpo">{turma.classroomName}</span>
                 <Barra rate={turma.rate} minimo={minimo} />
                 <span
                   className={
                     turma.rate !== null && turma.rate < minimo
-                      ? "text-right font-extrabold text-[13px] text-danger tabular-nums"
-                      : "text-right font-extrabold text-[13px] tabular-nums"
+                      ? "text-right font-extrabold text-corpo text-danger tabular-nums"
+                      : "text-right font-extrabold text-corpo tabular-nums"
                   }
                 >
                   {percentualCurto(turma.rate)}
                 </span>
-                <span className="hidden text-right text-[11px] text-muted-foreground sm:block">
+                <span className="hidden text-right text-meta text-muted-foreground sm:block">
                   {turma.belowMinimum === 0
                     ? "nenhum abaixo"
                     : `${inteiro(turma.belowMinimum)} ${turma.belowMinimum === 1 ? "aluno" : "alunos"} abaixo`}
@@ -179,7 +179,7 @@ export function FrequenciaGestao() {
           </ul>
         )}
 
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           A marca na barra é o mínimo de {percentualCurto(minimo)} das aulas dadas — LDB, art. 24,
           VI. Atraso conta como presença.
         </p>
@@ -213,13 +213,13 @@ export function FrequenciaGestao() {
                 className="flex items-center gap-3 rounded-field bg-danger-soft px-3 py-2.5"
               >
                 <Avatar className="size-9">
-                  <AvatarFallback className="text-[11px]">
+                  <AvatarFallback className="text-meta">
                     {initialsOf(aluno.studentName)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-[13px]">{aluno.studentName}</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="font-bold text-corpo">{aluno.studentName}</p>
+                  <p className="text-meta text-muted-foreground">
                     {aluno.classroomName ?? "Sem turma"} · {turno(aluno.shift)} ·{" "}
                     <span className="tabular-nums">{aluno.registration}</span>
                   </p>
@@ -228,7 +228,7 @@ export function FrequenciaGestao() {
                   <p className="font-extrabold text-danger text-sm tabular-nums">
                     {percentualCurto(aluno.rate)}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-meta text-muted-foreground">
                     faltam {Math.ceil((minimo - aluno.rate) * 100)} pontos
                   </p>
                 </div>
@@ -254,7 +254,7 @@ export function FrequenciaGestao() {
  */
 function Barra({ rate, minimo }: { rate: number | null; minimo: number }) {
   if (rate === null) {
-    return <span className="text-[11px] text-muted-foreground">sem aula registrada</span>;
+    return <span className="text-meta text-muted-foreground">sem aula registrada</span>;
   }
 
   const abaixo = rate < minimo;

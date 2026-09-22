@@ -194,7 +194,7 @@ function DetalheMatricula() {
         <div>
           <Link
             to="/matriculas"
-            className="flex w-fit items-center gap-1.5 font-bold text-[11px] text-muted-foreground"
+            className="flex w-fit items-center gap-1.5 font-bold text-meta text-muted-foreground"
           >
             <ChevronLeft size={16} strokeWidth={1.7} aria-hidden />
             Matrículas
@@ -206,7 +206,7 @@ function DetalheMatricula() {
               </Avatar>
               <div>
                 <h1 className="font-extrabold text-xl tracking-[-0.4px]">{dados.studentName}</h1>
-                <p className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+                <p className="flex flex-wrap items-center gap-2 text-corpo text-muted-foreground">
                   <span className="tabular-nums">{dados.registration}</span>
                   <span aria-hidden>·</span>
                   <span>{dados.classroomName ?? "Turma a definir"}</span>
@@ -270,7 +270,7 @@ function DetalheMatricula() {
         <section className="flex flex-col gap-3 border-border border-t pt-5">
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Responsáveis</h2>
           {dados.guardians.length === 0 ? (
-            <p className="text-[13px] text-muted-foreground">Nenhum responsável vinculado.</p>
+            <p className="text-corpo text-muted-foreground">Nenhum responsável vinculado.</p>
           ) : (
             dados.guardians.map((guardian) => (
               <div key={guardian.id} className="flex flex-wrap items-center justify-between gap-3">
@@ -288,7 +288,7 @@ function DetalheMatricula() {
         <section className="flex flex-col gap-3 border-border border-t pt-5">
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Consentimentos</h2>
           {dados.consents.length === 0 ? (
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-corpo text-muted-foreground">
               Nada registrado ainda — o aceite acontece quando a família envia a ficha.
             </p>
           ) : (
@@ -299,10 +299,10 @@ function DetalheMatricula() {
                   className="flex items-center justify-between gap-3 rounded-field bg-muted px-4 py-3"
                 >
                   <div>
-                    <div className="font-bold text-[13px]">
+                    <div className="font-bold text-corpo">
                       {FINALIDADES[consent.purpose] ?? consent.purpose}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="text-meta text-muted-foreground">
                       versão {consent.termVersion} · {dataHora(consent.grantedAt)} ·{" "}
                       {consent.actorName}
                     </div>
@@ -399,10 +399,10 @@ function DetalheMatricula() {
               <Linha rotulo="Tentativas">{String(dados.invite.attempts)}</Linha>
             </dl>
           ) : (
-            <p className="text-[13px] text-muted-foreground">Nenhum link emitido.</p>
+            <p className="text-corpo text-muted-foreground">Nenhum link emitido.</p>
           )}
 
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             O endereço só aparece na emissão. Para mandar de novo, reemita — o link anterior deixa
             de valer no mesmo instante.
           </p>
@@ -437,8 +437,8 @@ function DetalheMatricula() {
                   ) : null}
                 </div>
                 <div className="pb-4">
-                  <div className="font-bold text-[13px]">{EVENTOS[evento.type] ?? evento.type}</div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="font-bold text-corpo">{EVENTOS[evento.type] ?? evento.type}</div>
+                  <div className="text-meta text-muted-foreground">
                     {dataHora(evento.occurredAt)}
                     {evento.actor === "responsavel" ? " · responsável" : ""}
                   </div>
@@ -456,10 +456,10 @@ function DetalheMatricula() {
 function Dado({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="font-bold text-[10px] text-muted-foreground uppercase tracking-[0.7px]">
+      <dt className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
         {rotulo}
       </dt>
-      <dd className="font-bold text-[13px]">{valor}</dd>
+      <dd className="font-bold text-corpo">{valor}</dd>
     </div>
   );
 }
@@ -467,8 +467,8 @@ function Dado({ rotulo, valor }: { rotulo: string; valor: string }) {
 function Linha({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <dt className="text-[11px] text-muted-foreground">{rotulo}</dt>
-      <dd className="font-bold text-[12px]">{children}</dd>
+      <dt className="text-meta text-muted-foreground">{rotulo}</dt>
+      <dd className="font-bold text-apoio">{children}</dd>
     </div>
   );
 }
@@ -476,10 +476,10 @@ function Linha({ rotulo, children }: { rotulo: string; children: React.ReactNode
 function LinkEmitido({ url, onFechar }: { url: string; onFechar: () => void }) {
   return (
     <div className="flex flex-col gap-2 rounded-card bg-muted p-4">
-      <span className="font-bold text-[11px] text-secondary-foreground">
+      <span className="font-bold text-meta text-secondary-foreground">
         Endereço do link — copie agora, não aparece de novo
       </span>
-      <code className="break-all text-[12px]">{url}</code>
+      <code className="break-all text-apoio">{url}</code>
       <div className="flex gap-2">
         <Button
           size="sm"
@@ -547,7 +547,7 @@ function PainelConfirmar({
           </SelectContent>
         </Select>
       </div>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-meta text-muted-foreground">
         Ao confirmar, o aluno passa a constar na chamada e na grade de notas dessa turma.
       </p>
       <div className="flex items-center justify-between gap-3">
@@ -630,7 +630,7 @@ function PainelCancelar({
         />
       </div>
       {ativa ? (
-        <p className="text-[11px] text-warning">
+        <p className="text-meta text-warning">
           O aluno sai da chamada a partir dessa data. Notas e faltas já lançadas ficam preservadas.
         </p>
       ) : null}
@@ -666,7 +666,7 @@ function PainelRenovar({
   return (
     <div className="flex flex-col gap-4 rounded-card bg-muted p-5">
       <h3 className="font-extrabold text-base tracking-[-0.2px]">Renovar para {proximoAno}</h3>
-      <p className="text-[13px] text-muted-foreground">
+      <p className="text-corpo text-muted-foreground">
         A ficha vem preenchida com os dados deste ano. A família só confere o que mudou.
       </p>
       <div className="flex flex-col gap-1.5 sm:max-w-xs">
@@ -678,7 +678,7 @@ function PainelRenovar({
           onChange={(event) => setPrazo(event.target.value)}
         />
       </div>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-meta text-muted-foreground">
         A turma não é sugerida pelo resultado do ano: o fechamento de período ainda não existe e a
         turma não guarda série. A escolha fica com a secretaria, na confirmação.
       </p>
@@ -768,13 +768,13 @@ function PainelEditar({
               onChange={(e) => setNascimento(mascararData(e.target.value))}
             />
             {idade !== null ? (
-              <span className="absolute top-1/2 right-3 -translate-y-1/2 font-bold text-[11px] text-muted-foreground">
+              <span className="absolute top-1/2 right-3 -translate-y-1/2 font-bold text-meta text-muted-foreground">
                 {idade} anos
               </span>
             ) : null}
           </div>
           {dataInvalida ? (
-            <p className="text-[11px] text-danger">Esta data não existe no calendário.</p>
+            <p className="text-danger text-meta">Esta data não existe no calendário.</p>
           ) : null}
         </div>
 
@@ -949,7 +949,7 @@ function Alteracoes({ payload }: { payload: unknown }) {
   return (
     <ul className="mt-1.5 flex flex-col gap-0.5">
       {linhas.map(([campo, valores]) => (
-        <li key={campo} className="text-[11px] text-muted-foreground leading-relaxed">
+        <li key={campo} className="text-meta text-muted-foreground leading-relaxed">
           <span className="font-bold">{CAMPOS[campo] ?? campo}:</span>{" "}
           <span className="line-through">{String(valores?.de ?? "—")}</span>{" "}
           <span aria-hidden>→</span>{" "}

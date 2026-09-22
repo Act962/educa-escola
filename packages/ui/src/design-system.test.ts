@@ -64,6 +64,21 @@ function colorLiterals(source: string): string[] {
   return found;
 }
 
+/**
+ * Tamanho de fonte cravado em classe — `text-[13px]`.
+ *
+ * Mesma doença do hex de cor, e com uma consequência a mais: a rampa nasceu
+ * com corpo de 13px e rótulo de 10px, e subir esse piso para quem lê com
+ * dificuldade significava reescrever 331 classes espalhadas. Agora os degraus
+ * são token (`text-corpo`, `text-meta`, `text-rotulo`…) e sobem num arquivo
+ * só — inclusive só no celular, o que uma classe em pixel não sabe fazer.
+ */
+const FONT_LITERAL = /\btext-\[[\d.]+(px|rem|em|pt)\]/g;
+
+function fontSizeLiterals(source: string): string[] {
+  return [...source.matchAll(FONT_LITERAL)].map((m) => m[0]);
+}
+
 describe("design system", () => {
   /**
    * A defesa que o INTEGRA-EDU-UI-KIT.md pede: um lugar só para os valores
@@ -91,6 +106,33 @@ describe("design system", () => {
     expect(colorLiterals('color: "#2E93C9"')).toEqual(["#2E93C9"]);
     expect(colorLiterals("background: rgb(46, 147, 201)")).toEqual(["rgb(46, 147, 201)"]);
     expect(colorLiterals("oklch(0.631 0.121 237.1)")).toEqual(["oklch(0.631 0.121 237.1)"]);
+  });
+
+  it("componente não crava tamanho de fonte — consome a rampa", () => {
+    const offenders = SCANNED.flatMap(sourceFiles)
+      .filter((file) => !IGNORED.some((skip) => file.includes(skip)))
+      .flatMap((file) => {
+        const literals = fontSizeLiterals(readFileSync(file, "utf8"));
+        const name = relative(REPO_ROOT, file).split(sep).join("/");
+        return literals.map((literal) => `${name}: ${literal}`);
+      });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("reprova tamanho de fonte cravado, em qualquer unidade", () => {
+    expect(fontSizeLiterals('className="text-[13px] font-bold"')).toEqual(["text-[13px]"]);
+    expect(fontSizeLiterals('className="file:text-[10px]"')).toEqual(["text-[10px]"]);
+    expect(fontSizeLiterals('className="text-[0.875rem]"')).toEqual(["text-[0.875rem]"]);
+  });
+
+  /**
+   * A regra persegue tamanho, não qualquer colchete depois de `text-`: cor
+   * derivada de token e alinhamento continuam válidos.
+   */
+  it("não confunde cor nem alinhamento com tamanho", () => {
+    expect(fontSizeLiterals("text-[color-mix(in_oklch,var(--muted),white)]")).toEqual([]);
+    expect(fontSizeLiterals("text-balance text-center tracking-[0.7px]")).toEqual([]);
   });
 
   /**

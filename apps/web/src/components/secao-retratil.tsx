@@ -55,7 +55,7 @@ export function SecaoRetratil({
         >
           <CardEyebrow>{titulo}</CardEyebrow>
           {!aberta && resumo ? (
-            <span className="min-w-0 truncate text-[12px] text-muted-foreground">{resumo}</span>
+            <span className="min-w-0 truncate text-apoio text-muted-foreground">{resumo}</span>
           ) : null}
           <ChevronDown
             size={18}
@@ -76,9 +76,7 @@ export function SecaoRetratil({
       */}
       {aberta ? <div id={conteudo}>{children}</div> : null}
 
-      {aberta && descricao ? (
-        <p className="text-[12px] text-muted-foreground">{descricao}</p>
-      ) : null}
+      {aberta && descricao ? <p className="text-apoio text-muted-foreground">{descricao}</p> : null}
     </Card>
   );
 }

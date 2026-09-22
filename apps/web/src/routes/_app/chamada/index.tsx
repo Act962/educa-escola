@@ -31,7 +31,7 @@ function Chamada() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Chamada</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Registro de presença</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           {agenda.data ? longDate(agenda.data.date) : "Carregando…"}
         </p>
       </div>
@@ -55,14 +55,14 @@ function Chamada() {
                   params={{ lessonId: aula.id }}
                   className="flex flex-wrap items-center gap-3 rounded-field bg-danger-soft p-3 hover:bg-danger-soft/70"
                 >
-                  <span className="w-16 font-extrabold text-[13px] text-danger">
+                  <span className="w-16 font-extrabold text-corpo text-danger">
                     {shortDate(aula.date)}
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate font-extrabold text-sm">
                       {aula.classroomName} · {aula.subjectName}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-meta text-muted-foreground">
                       {aula.startsAt}–{aula.endsAt}
                       {aula.room ? ` · ${aula.room}` : ""}
                     </span>
@@ -97,14 +97,14 @@ function Chamada() {
                   className="flex flex-wrap items-center gap-3 rounded-field bg-muted p-3 hover:bg-accent"
                 >
                   <span className="flex w-14 flex-col text-center">
-                    <span className="font-extrabold text-[13px]">{aula.startsAt}</span>
-                    <span className="text-[11px] text-muted-foreground">{aula.endsAt}</span>
+                    <span className="font-extrabold text-corpo">{aula.startsAt}</span>
+                    <span className="text-meta text-muted-foreground">{aula.endsAt}</span>
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate font-extrabold text-sm">
                       {aula.classroomName} · {aula.subjectName}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">{aula.room ?? ""}</span>
+                    <span className="text-meta text-muted-foreground">{aula.room ?? ""}</span>
                   </span>
                   {aula.attendanceRecordedAt ? (
                     <Badge variant="success">Registrada</Badge>

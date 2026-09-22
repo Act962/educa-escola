@@ -49,7 +49,7 @@ function Configuracoes() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Instituição</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Configurações</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Dados da escola, ano letivo, quem tem acesso e as regras em vigor.
         </p>
       </div>
@@ -168,7 +168,7 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
         <div className="min-w-0">
           <CardEyebrow>Instituição</CardEyebrow>
           <p className="truncate font-extrabold text-lg tracking-[-0.3px]">{escola.name}</p>
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-apoio text-muted-foreground">
             No Integra desde {dataDoInstante(escola.criadaEm)}
           </p>
         </div>
@@ -194,11 +194,11 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
                   onBlur={field.handleBlur}
                   onChange={(evento) => field.handleChange(evento.target.value)}
                 />
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   Aparece no topo de toda tela e nos comunicados.
                 </p>
                 {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-[11px] text-danger">
+                  <p key={erro?.message} className="text-danger text-meta">
                     {erro?.message}
                   </p>
                 ))}
@@ -224,11 +224,11 @@ function DadosDaInstituicao({ visao }: { visao: Visao }) {
                     field.handleChange(evento.target.value.replace(/\D/g, "").slice(0, 8))
                   }
                 />
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   Oito dígitos do Censo Escolar. Deixe em branco se a escola ainda não tem.
                 </p>
                 {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-[11px] text-danger">
+                  <p key={erro?.message} className="text-danger text-meta">
                     {erro?.message}
                   </p>
                 ))}
@@ -296,7 +296,7 @@ function AnoLetivo() {
       </div>
       <div className="flex flex-col gap-1">
         <h2 className="font-extrabold text-lg tracking-[-0.3px]">Período de {year}</h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           É o que delimita o calendário: evento fora deste período é recusado, e a contagem de dias
           letivos parte daqui.
         </p>
@@ -421,7 +421,7 @@ function FormularioDoAno({
                 onChange={(iso) => field.handleChange(iso ?? "")}
               />
               {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-[11px] text-danger">
+                <p key={erro?.message} className="text-danger text-meta">
                   {erro?.message}
                 </p>
               ))}
@@ -442,7 +442,7 @@ function FormularioDoAno({
                 onChange={(iso) => field.handleChange(iso ?? "")}
               />
               {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-[11px] text-danger">
+                <p key={erro?.message} className="text-danger text-meta">
                   {erro?.message}
                 </p>
               ))}
@@ -465,7 +465,7 @@ function FormularioDoAno({
                 }
               />
               {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-[11px] text-danger">
+                <p key={erro?.message} className="text-danger text-meta">
                   {erro?.message}
                 </p>
               ))}
@@ -508,7 +508,7 @@ function Acessos({ visao }: { visao: Visao }) {
       </div>
       <div className="flex flex-col gap-1">
         <h2 className="font-extrabold text-lg tracking-[-0.3px]">Quem entra nesta escola</h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Vínculos ativos por papel. Quem cria e remove vínculo é a plataforma, por provisionamento.
         </p>
       </div>
@@ -519,7 +519,7 @@ function Acessos({ visao }: { visao: Visao }) {
         matrícula. Dizer isso na tela custa uma linha; deixar a direção
         desconfiar do número custa a confiança no resto.
       */}
-      <p className="text-[12px] text-muted-foreground">
+      <p className="text-apoio text-muted-foreground">
         Conta de acesso, não matrícula. Aluno sem login continua matriculado, aparece na chamada e
         recebe nota.
       </p>
@@ -527,7 +527,7 @@ function Acessos({ visao }: { visao: Visao }) {
       <div className="grid gap-3 sm:grid-cols-4">
         {ORDEM_DOS_PAPEIS.map((papel) => (
           <div key={papel} className="flex flex-col gap-0.5 rounded-control bg-muted px-4 py-3">
-            <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-[0.7px]">
+            <span className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
               {roleLabel(papel)}
             </span>
             <span className="font-extrabold text-xl tracking-[-0.4px]">
@@ -542,9 +542,9 @@ function Acessos({ visao }: { visao: Visao }) {
         pode mexer em tudo aqui?" é pergunta que hoje só o banco responde.
       */}
       <div className="flex flex-col gap-2">
-        <h3 className="font-bold text-[13px]">Com acesso total</h3>
+        <h3 className="font-bold text-corpo">Com acesso total</h3>
         {visao.administradores.length === 0 ? (
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-apoio text-muted-foreground">
             Nenhum vínculo de direção ou secretaria — o que não deveria acontecer numa escola em
             operação.
           </p>
@@ -560,12 +560,12 @@ function Acessos({ visao }: { visao: Visao }) {
                     <AvatarFallback>{initialsOf(pessoa.name)}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
-                    <p className="truncate font-bold text-[13px]">{pessoa.name}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">{pessoa.email}</p>
+                    <p className="truncate font-bold text-corpo">{pessoa.name}</p>
+                    <p className="truncate text-meta text-muted-foreground">{pessoa.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-meta text-muted-foreground">
                     {/* `toISOString().slice(0, 10)` daria o dia em UTC: um
                         vínculo criado às 21h em Brasília apareceria no dia
                         seguinte. Formatar no fuso de quem lê não tem esse
@@ -605,7 +605,7 @@ function RegrasEmVigor({ visao }: { visao: Visao }) {
       </div>
       <div className="flex flex-col gap-1">
         <h2 className="font-extrabold text-lg tracking-[-0.3px]">O que não se configura</h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Regras que valem para esta escola e não mudam por tela — algumas por serem lei, outras por
           ainda não serem configuráveis. Estão aqui para você não procurar um botão que não há.
         </p>
@@ -615,11 +615,11 @@ function RegrasEmVigor({ visao }: { visao: Visao }) {
         {visao.regras.map((regra) => (
           <li key={regra.chave} className="flex flex-col gap-1 rounded-control bg-muted px-4 py-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="font-bold text-[13px]">{regra.titulo}</span>
-              <span className="font-extrabold text-[13px] text-primary">{regra.valor}</span>
+              <span className="font-bold text-corpo">{regra.titulo}</span>
+              <span className="font-extrabold text-corpo text-primary">{regra.valor}</span>
             </div>
-            <span className="text-[12px] text-muted-foreground">{regra.porque}</span>
-            <span className="font-mono text-[10px] text-muted-foreground">{regra.onde}</span>
+            <span className="text-apoio text-muted-foreground">{regra.porque}</span>
+            <span className="font-mono text-muted-foreground text-rotulo">{regra.onde}</span>
           </li>
         ))}
       </ul>
@@ -631,11 +631,11 @@ function RegrasEmVigor({ visao }: { visao: Visao }) {
 function CampoFixo({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: string }) {
   return (
     <div className="flex flex-col gap-1 rounded-control bg-muted px-4 py-3">
-      <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-[0.7px]">
+      <span className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
         {rotulo}
       </span>
-      <span className="truncate font-bold text-[13px]">{valor}</span>
-      {nota ? <span className="text-[11px] text-muted-foreground">{nota}</span> : null}
+      <span className="truncate font-bold text-corpo">{valor}</span>
+      {nota ? <span className="text-meta text-muted-foreground">{nota}</span> : null}
     </div>
   );
 }

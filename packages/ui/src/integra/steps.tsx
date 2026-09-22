@@ -44,7 +44,7 @@ export function Passos({ atual, total, rotulo, className }: PassosProps) {
           />
         ))}
       </div>
-      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+      <div className="flex items-center justify-between text-meta text-muted-foreground">
         <span>
           Etapa {atual} de {total}
         </span>

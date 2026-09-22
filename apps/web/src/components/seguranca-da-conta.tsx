@@ -110,7 +110,7 @@ function TrocarSenha() {
       </div>
       <div className="flex flex-col gap-1">
         <h2 className="font-extrabold text-lg tracking-[-0.3px]">Trocar a senha</h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Precisa da senha atual. Se você não a tem, a secretaria redefine o acesso.
         </p>
       </div>
@@ -141,7 +141,7 @@ function TrocarSenha() {
                 onChange={(evento) => field.handleChange(evento.target.value)}
               />
               {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-[11px] text-danger">
+                <p key={erro?.message} className="text-danger text-meta">
                   {erro?.message}
                 </p>
               ))}
@@ -164,7 +164,7 @@ function TrocarSenha() {
                   onChange={(evento) => field.handleChange(evento.target.value)}
                 />
                 {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-[11px] text-danger">
+                  <p key={erro?.message} className="text-danger text-meta">
                     {erro?.message}
                   </p>
                 ))}
@@ -186,7 +186,7 @@ function TrocarSenha() {
                   onChange={(evento) => field.handleChange(evento.target.value)}
                 />
                 {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-[11px] text-danger">
+                  <p key={erro?.message} className="text-danger text-meta">
                     {erro?.message}
                   </p>
                 ))}
@@ -197,7 +197,7 @@ function TrocarSenha() {
 
         <form.Field name="encerrarOutras">
           {(field) => (
-            <label className="flex items-start gap-2.5 text-[13px]">
+            <label className="flex items-start gap-2.5 text-corpo">
               <input
                 type="checkbox"
                 className="mt-0.5 size-4 accent-primary"
@@ -211,7 +211,7 @@ function TrocarSenha() {
               */}
               <span>
                 Encerrar as outras sessões
-                <span className="block text-[11px] text-muted-foreground">
+                <span className="block text-meta text-muted-foreground">
                   Quem estiver logado em outro aparelho precisará entrar de novo.
                 </span>
               </span>
@@ -292,7 +292,7 @@ function SessoesAtivas() {
       </div>
       <div className="flex flex-col gap-1">
         <h2 className="font-extrabold text-lg tracking-[-0.3px]">Sessões ativas</h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Onde a sua conta está aberta agora. Não reconhece alguma? Encerre e troque a senha.
         </p>
       </div>
@@ -320,11 +320,11 @@ function SessoesAtivas() {
                 className="flex flex-wrap items-center justify-between gap-3 rounded-control bg-muted px-4 py-3"
               >
                 <div className="min-w-0">
-                  <p className="flex items-center gap-2 font-bold text-[13px]">
+                  <p className="flex items-center gap-2 font-bold text-corpo">
                     {dispositivoDe(sessao.userAgent)}
                     {ehAtual ? <Badge variant="success">Este aparelho</Badge> : null}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-meta text-muted-foreground">
                     {/* IP inteiro, e não mascarado: é a própria pessoa lendo o
                         próprio acesso, e meio endereço não reconhece nada. */}
                     {sessao.ipAddress ? `${sessao.ipAddress} · ` : ""}
@@ -338,7 +338,7 @@ function SessoesAtivas() {
                   da barra lateral, que é onde a pessoa procura.
                 */}
                 {ehAtual ? (
-                  <span className="text-[11px] text-muted-foreground">em uso</span>
+                  <span className="text-meta text-muted-foreground">em uso</span>
                 ) : (
                   <Button
                     // `outline` e não `secondary`: a linha já é `bg-muted`, e

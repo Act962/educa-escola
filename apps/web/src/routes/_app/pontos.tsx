@@ -32,7 +32,7 @@ function MeusPontos() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Pontuação</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Meus pontos</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Presença, constância e evolução das suas notas ao longo de {year}.
         </p>
       </div>

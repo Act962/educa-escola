@@ -140,7 +140,7 @@ function Calendario() {
         <div className="flex flex-col gap-1">
           <CardEyebrow>Instituição</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Calendário de {year}</h1>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-corpo text-muted-foreground">
             Período letivo, feriados e recessos — e quantos dias letivos sobram.
           </p>
         </div>
@@ -346,7 +346,7 @@ function Calendario() {
                 {eventos.map((evento) => (
                   <li
                     key={evento.id}
-                    className="flex flex-wrap items-center gap-3 border-border border-t py-2.5 text-[13px] first:border-t-0"
+                    className="flex flex-wrap items-center gap-3 border-border border-t py-2.5 text-corpo first:border-t-0"
                   >
                     <span className="min-w-40 text-muted-foreground">
                       {longDate(evento.startsOn)}
@@ -465,7 +465,7 @@ function DefinirAno({
   return (
     <div className="flex flex-col gap-4">
       {atual ? null : (
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Sem o período, não há contagem de dias letivos — e um total contado a partir de janeiro
           seria plausível e errado.
         </p>
@@ -624,7 +624,7 @@ function NovoEvento({
         </Button>
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-meta text-muted-foreground">
         {EVENT_TYPE_LABEL[tipo]} entra como “{EFEITO_LABEL[EFEITO_SUGERIDO[tipo]].toLowerCase()}”
         {turmaId
           ? ", e só conta os dias letivos da turma escolhida."
@@ -727,7 +727,7 @@ function CalendarioBrasileiro({
         {sugestoes.map((data) => (
           <li
             key={`${data.startsOn}-${data.title}`}
-            className="flex flex-wrap items-center gap-3 border-border border-t py-2 text-[12px] first:border-t-0"
+            className="flex flex-wrap items-center gap-3 border-border border-t py-2 text-apoio first:border-t-0"
           >
             <span className="min-w-36 text-muted-foreground">
               {longDate(data.startsOn)}
@@ -736,7 +736,7 @@ function CalendarioBrasileiro({
             <span className="min-w-0 flex-1 truncate font-bold">{data.title}</span>
             {/* A origem fica na tela: data sem origem é data que ninguém
                 confere, e metade desta lista vem de lei. */}
-            <span className="hidden text-[11px] text-muted-foreground sm:block">{data.fonte}</span>
+            <span className="hidden text-meta text-muted-foreground sm:block">{data.fonte}</span>
             {data.dayEffect === "nao_letivo" ? (
               <Badge variant="warning">Não letivo</Badge>
             ) : (

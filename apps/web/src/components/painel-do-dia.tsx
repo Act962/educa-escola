@@ -239,7 +239,7 @@ export function PainelDoDia({
                     </div>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="min-w-0 flex-1 font-bold text-[13px]">{evento.title}</span>
+                      <span className="min-w-0 flex-1 font-bold text-corpo">{evento.title}</span>
                       {/* Sem isto, o conselho do 9º C e o feriado nacional
                           seriam duas linhas iguais dentro do mesmo dia. */}
                       {evento.classroomName ? (
@@ -278,7 +278,7 @@ export function PainelDoDia({
                   )}
 
                   {evento.endsOn !== evento.startsOn ? (
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-meta text-muted-foreground">
                       De {longDate(evento.startsOn)} a {longDate(evento.endsOn)}
                     </p>
                   ) : null}
@@ -295,7 +295,7 @@ export function PainelDoDia({
                   {/* A origem é o que o calendário brasileiro deixou: a lei
                       que cria o feriado, ou a nota de quem marcou. */}
                   {evento.description ? (
-                    <p className="text-[11px] text-muted-foreground">{evento.description}</p>
+                    <p className="text-meta text-muted-foreground">{evento.description}</p>
                   ) : null}
                 </li>
               ))}
@@ -304,7 +304,7 @@ export function PainelDoDia({
         </div>
 
         <div className="mt-6 flex flex-col gap-3 border-border border-t pt-5">
-          <p className="font-bold text-[11px] text-muted-foreground uppercase tracking-wide">
+          <p className="font-bold text-meta text-muted-foreground uppercase tracking-wide">
             Marcar neste dia
           </p>
 
@@ -371,7 +371,7 @@ export function PainelDoDia({
             {ocupado ? "Salvando…" : "Marcar"}
           </Button>
 
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             {EVENT_TYPE_LABEL[tipo]} entra como “{EFEITO_LABEL[EFEITO_SUGERIDO[tipo]].toLowerCase()}
             ”.
           </p>

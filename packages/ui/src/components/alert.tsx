@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type * as React from "react";
 
 const alertVariants = cva(
-  "group/alert relative grid w-full gap-1 rounded-card border border-transparent px-6 py-4 text-left text-[13px] has-data-[slot=alert-action]:relative has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-3 *:[svg:not([class*='size-'])]:size-[18px] *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current",
+  "group/alert relative grid w-full gap-1 rounded-card border border-transparent px-6 py-4 text-left text-corpo has-data-[slot=alert-action]:relative has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-3 *:[svg:not([class*='size-'])]:size-[18px] *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current",
   {
     variants: {
       variant: {

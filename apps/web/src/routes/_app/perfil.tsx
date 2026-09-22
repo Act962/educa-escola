@@ -46,7 +46,7 @@ function MeuPerfil() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Conta</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Meu perfil</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Seus dados, seu vínculo com a escola e a segurança do seu acesso.
         </p>
       </div>
@@ -128,7 +128,7 @@ function Identificacao({ perfil }: { perfil: PerfilCarregado }) {
         </Avatar>
         <div className="min-w-0">
           <p className="truncate font-extrabold text-lg tracking-[-0.3px]">{perfil.name}</p>
-          <p className="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+          <p className="flex flex-wrap items-center gap-2 text-apoio text-muted-foreground">
             <Badge variant="info">{roleLabel(perfil.role)}</Badge>
             <span className="truncate">{perfil.schoolName}</span>
           </p>
@@ -154,11 +154,11 @@ function Identificacao({ perfil }: { perfil: PerfilCarregado }) {
                 onBlur={field.handleBlur}
                 onChange={(evento) => field.handleChange(evento.target.value)}
               />
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-meta text-muted-foreground">
                 É como você aparece na chamada, no diário e nos comunicados.
               </p>
               {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-[11px] text-danger">
+                <p key={erro?.message} className="text-danger text-meta">
                   {erro?.message}
                 </p>
               ))}
@@ -216,11 +216,11 @@ function Identificacao({ perfil }: { perfil: PerfilCarregado }) {
 function CampoFixo({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: string }) {
   return (
     <div className="flex flex-col gap-1 rounded-control bg-muted px-4 py-3">
-      <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-[0.7px]">
+      <span className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
         {rotulo}
       </span>
-      <span className="truncate font-bold text-[13px]">{valor}</span>
-      {nota ? <span className="text-[11px] text-muted-foreground">{nota}</span> : null}
+      <span className="truncate font-bold text-corpo">{valor}</span>
+      {nota ? <span className="text-meta text-muted-foreground">{nota}</span> : null}
     </div>
   );
 }
@@ -236,7 +236,7 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
         <h2 className="font-extrabold text-lg tracking-[-0.3px]">
           Você responde por {perfil.schoolName}
         </h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           {perfil.role === "owner"
             ? "Como direção, você enxerga a escola inteira e é quem assina o que gera custo."
             : "Como secretaria, você opera a escola inteira — menos o que só a direção assina."}
@@ -272,7 +272,7 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
         {/* Zero não é erro: professor recém-vinculado ainda não entrou na
             grade, e a tela precisa dizer isso em vez de parecer quebrada. */}
         {vinculo.aulas === 0 ? (
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-apoio text-muted-foreground">
             Você ainda não tem aula na grade de {year}. Quem monta a grade é a coordenação.
           </p>
         ) : null}
@@ -288,7 +288,7 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
       <h2 className="font-extrabold text-lg tracking-[-0.3px]">Sua matrícula</h2>
 
       {vinculo.matricula === null ? (
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Sua conta ainda não está ligada a uma ficha de aluno. Fale com a secretaria — o acesso
           funciona, mas turma e boletim só aparecem depois dessa ligação.
         </p>
@@ -299,7 +299,7 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
             <CampoFixo rotulo="Turma" valor={vinculo.turma ?? "Ainda sem turma"} />
             <CampoFixo rotulo="Turno" valor={vinculo.turno ? turno(vinculo.turno) : "—"} />
             <div className="flex flex-col gap-1 rounded-control bg-muted px-4 py-3">
-              <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-[0.7px]">
+              <span className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
                 Situação
               </span>
               {situacao ? (
@@ -307,7 +307,7 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
                   {situacao.label}
                 </Badge>
               ) : (
-                <span className="font-bold text-[13px]">—</span>
+                <span className="font-bold text-corpo">—</span>
               )}
             </div>
           </div>

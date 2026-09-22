@@ -69,16 +69,42 @@ precisa funcionar sem rede externa, e a métrica de fallback muda o layout.
 Desenhei no olho, então existem `12.5px`, `13.5px`, `15.5px`. Isso não vai para o
 código. A ramp convergida, que preserva a hierarquia sem a bagunça:
 
-| Uso | Tamanho | Peso | Tailwind |
-| --- | --- | --- | --- |
-| Rótulo caixa-alta (`INSTITUIÇÃO`, `ALUNO`) | 10px, tracking 0.7px | 700 | `text-[10px] tracking-[0.7px]` |
-| Metadado, legenda | 11px | 500–600 | `text-[11px]` |
-| Badge, chip, texto auxiliar | 12px | 600–700 | `text-xs` |
-| Corpo, item de navegação | 13px | 500–700 | `text-[13px]` |
-| Título de linha, título de card lateral | 14px | 700–800 | `text-sm` |
-| Título de card | 16px | 800, tracking -0.2px | `text-base` |
-| Título de seção / saudação | 20px | 800, tracking -0.4px | `text-xl` |
-| Título de página | 24px | 800, tracking -0.6px | `text-2xl` |
+**Tamanho não se escreve em classe.** Os degraus são token, e a classe é
+semântica — `text-corpo`, não `text-[13px]`. O motivo é prático: a rampa nasceu
+com corpo de 13px e rótulo de 10px, fiel ao canvas e pequena demais para quem
+lê com dificuldade, que é boa parte de quem usa isto. Subir esse piso com o
+tamanho cravado significaria reescrever 331 classes espalhadas pelas telas e
+torcer para não esquecer nenhuma. `design-system.test.ts` reprova
+`text-[13px]` pelo mesmo motivo que reprova um hex.
+
+| Uso | Desktop | Celular | Peso | Classe |
+| --- | --- | --- | --- | --- |
+| Rótulo caixa-alta (`INSTITUIÇÃO`, `ALUNO`) | 11px | 12px | 700 | `text-rotulo tracking-[0.7px]` |
+| Metadado, legenda | 12px | 13px | 500–600 | `text-meta` |
+| Badge, chip, texto auxiliar | 13px | 14px | 600–700 | `text-apoio` (= `text-xs`) |
+| Corpo, item de navegação, campo | 14px | **16px** | 500–700 | `text-corpo` |
+| Título de linha, título de card lateral | 15px | 16px | 700–800 | `text-linha` (= `text-sm`) |
+| Título de card | 16px | 18px | 800, tracking -0.2px | `text-card` (= `text-base`) |
+| Título de seção / saudação | 20px | 20px | 800, tracking -0.4px | `text-xl` |
+| Título de página | 24px | 24px | 800, tracking -0.6px | `text-2xl` |
+
+Três coisas que não são óbvias nessa tabela:
+
+- **O corte é 768px**, o mesmo em que a barra lateral vira `Sheet`. Um segundo
+  ponto de corte criaria uma faixa com navegação de celular e tipografia de
+  desktop.
+- **`corpo` chega a 16px no celular por causa do iPhone.** Abaixo disso o
+  Safari dá zoom sozinho ao focar um campo, e `Input`, `Textarea` e o gatilho
+  do `Select` usam esse degrau — um campo de 14px faria a tela saltar a cada
+  toque.
+- **No celular `corpo` e `linha` encostam.** A hierarquia ali é peso (800
+  contra 500), não tamanho: esticar a rampa para manter dois tamanhos
+  distintos empurraria o título de linha para 18px e quebraria a lista.
+
+Os degraus vivem em `packages/ui/src/styles/integra-tokens.css` como
+`--ie-text-*`, e a escala do Tailwind (`text-xs`/`text-sm`/`text-base`) aponta
+para eles — é o que faz os primitivos do shadcn acompanharem sem remendo a
+cada `shadcn add`.
 
 Espaçamento: múltiplos de 4. `gap-2` (8) entre itens de lista, `gap-3` (12) dentro
 de linha, `gap-4` (16) entre cards, `p-6` (24) de padding de card, `p-3` (12) em

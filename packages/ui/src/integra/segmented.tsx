@@ -48,12 +48,21 @@ export function SegmentedControl<T extends string>({
   const name = useId();
 
   return (
-    <fieldset className={cn("flex gap-1 rounded-control bg-muted p-1", className)}>
+    /*
+     * `flex-wrap` porque o trilho não cabe num celular quando tem quatro
+     * opções com contador ("Pendentes · 5"). A alternativa seria deixar cada
+     * opção encolher e truncar, e "Pendent…" numa escolha obrigatória é pior
+     * que uma segunda linha: a pessoa precisa ler as opções para escolher.
+     */
+    <fieldset className={cn("flex flex-wrap gap-1 rounded-control bg-muted p-1", className)}>
       <legend className="sr-only">{label}</legend>
       {options.map((option) => (
         <label
           key={option.value}
-          className="relative flex flex-1 cursor-pointer items-center has-disabled:cursor-not-allowed has-disabled:opacity-50 sm:flex-none"
+          // `min-w-0` para `flex-1` poder de fato repartir a largura: sem
+          // isso o rótulo se recusa a ficar menor que o próprio texto e o
+          // trilho empurra a página.
+          className="relative flex min-w-0 flex-1 cursor-pointer items-center has-disabled:cursor-not-allowed has-disabled:opacity-50 sm:flex-none"
         >
           <input
             type="radio"
@@ -66,7 +75,7 @@ export function SegmentedControl<T extends string>({
           />
           <span
             className={cn(
-              "flex min-h-11 w-full items-center justify-center rounded-field px-3 font-bold text-[13px] text-muted-foreground transition-colors sm:min-h-9",
+              "flex min-h-11 w-full items-center justify-center rounded-field px-3 font-bold text-corpo text-muted-foreground transition-colors sm:min-h-9",
               "peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2",
               ACTIVE_TONE[option.tone],
             )}

@@ -83,7 +83,7 @@ function FichaDoProfessor() {
       <div>
         <Link
           to="/professores"
-          className="flex w-fit items-center gap-1.5 font-bold text-[11px] text-muted-foreground"
+          className="flex w-fit items-center gap-1.5 font-bold text-meta text-muted-foreground"
         >
           <ChevronLeft size={16} strokeWidth={1.7} aria-hidden />
           Professores
@@ -96,7 +96,7 @@ function FichaDoProfessor() {
         </Avatar>
         <div className="min-w-0">
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">{docente.name}</h1>
-          <p className="text-[13px] text-muted-foreground">{docente.email}</p>
+          <p className="text-corpo text-muted-foreground">{docente.email}</p>
         </div>
         <Badge variant={situacao.variante} className="ml-auto">
           {situacao.rotulo}
@@ -143,7 +143,7 @@ function FichaDoProfessor() {
             {docente.turmas.map((turma) => (
               <li
                 key={turma.classroomId}
-                className="flex flex-wrap items-center gap-3 border-border border-t py-2.5 text-[13px] first:border-t-0"
+                className="flex flex-wrap items-center gap-3 border-border border-t py-2.5 text-corpo first:border-t-0"
               >
                 <span className="min-w-20 font-bold">{turma.nome}</span>
                 <span className="min-w-0 flex-1 text-muted-foreground">
@@ -162,7 +162,7 @@ function FichaDoProfessor() {
             ? "—"
             : percentualCurto(docente.frequenciaDasTurmas)}
         </p>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           {docente.frequenciaDasTurmas === null
             ? "Sem chamada registrada nas turmas dele neste ano."
             : "Contexto da coordenação, não avaliação do professor: quem falta é o aluno, e a §10.6 do requisito é clara sobre indicador pedagógico não virar ranking de docente."}

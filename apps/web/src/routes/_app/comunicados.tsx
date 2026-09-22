@@ -101,7 +101,7 @@ function Comunicados() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Comunicação</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Comunicados</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           O que a escola avisa, para quem, e quem já leu.
         </p>
       </div>
@@ -213,7 +213,7 @@ function Comunicados() {
 
         {/* O público antes do envio: "vai para 303 pessoas" é aviso;
             "vai para todo mundo" não é. */}
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           {alcance.data === undefined
             ? "Calculando o público…"
             : `Alcança ${inteiro(alcance.data)} pessoa${alcance.data === 1 ? "" : "s"} nesta escola.`}
@@ -255,11 +255,11 @@ function Comunicados() {
             {lista.data?.map((comunicado) => (
               <li
                 key={comunicado.id}
-                className="flex flex-wrap items-center gap-3 border-border border-t py-3 text-[13px] first:border-t-0"
+                className="flex flex-wrap items-center gap-3 border-border border-t py-3 text-corpo first:border-t-0"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">{comunicado.title}</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-meta text-muted-foreground">
                     {AUDIENCE_LABEL[comunicado.audience as Audience]}
                     {comunicado.publico !== null
                       ? ` · ${inteiro(comunicado.publico)} destinatários`
@@ -329,7 +329,7 @@ function Comunicados() {
           </ul>
         )}
 
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           Comunicado publicado não pode ser excluído — ele se retifica, e a versão anterior fica no
           histórico. Apagar o que a escola já leu reescreveria o passado.
         </p>

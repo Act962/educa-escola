@@ -22,7 +22,7 @@ import { Separator } from "@educa-escola/ui/components/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@educa-escola/ui/components/sidebar";
 import { initialsOf } from "@educa-escola/ui/lib/initials";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, LogOut, Search, Settings, UserRound } from "lucide-react";
 import { useState } from "react";
 
@@ -96,11 +96,17 @@ function ContextBar() {
   const { year, term, setTerm } = useSchoolContext();
 
   return (
-    <div className="flex items-center gap-3 rounded-control bg-card py-1 pr-1 pl-4">
-      <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-[0.7px]">
+    <div className="flex min-w-0 items-center gap-2 rounded-control bg-card py-1 pr-1 pl-3 sm:gap-3 sm:pl-4">
+      {/*
+        O rótulo sai no celular, o ano fica. "ANO LETIVO" custa uns 60px de
+        largura para dizer o que "2026" ao lado de "3º bimestre" já diz — e
+        eram justamente esses 60px que faziam a barra medir 386px numa tela de
+        375, empurrando **toda** página para o lado.
+      */}
+      <span className="hidden font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px] sm:inline">
         Ano letivo
       </span>
-      <span className="font-extrabold text-[13px]">{year}</span>
+      <span className="shrink-0 font-extrabold text-corpo">{year}</span>
       <Separator orientation="vertical" className="h-4" />
       {/* `items` faz o gatilho mostrar o rótulo ("3º bimestre") em vez do valor
           cru ("3") — é como o Base UI resolve o texto do selecionado. */}
@@ -125,6 +131,10 @@ function ContextBar() {
 }
 
 function MenuDoUsuario({ me, onSignOut }: { me: CurrentUser; onSignOut: () => void }) {
+  // Mesma regra da barra lateral: quem não tem `organization: ["update"]`
+  // esbarraria em "Esta área é da direção".
+  const podeConfigurar = me.role === "owner" || me.role === "admin";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -136,8 +146,8 @@ function MenuDoUsuario({ me, onSignOut }: { me: CurrentUser; onSignOut: () => vo
               </AvatarFallback>
             </Avatar>
             <span className="hidden flex-col items-start sm:flex">
-              <span className="font-extrabold text-[13px] leading-tight">{me.name}</span>
-              <span className="font-medium text-[11px] text-muted-foreground">
+              <span className="font-extrabold text-corpo leading-tight">{me.name}</span>
+              <span className="font-medium text-meta text-muted-foreground">
                 {roleLabel(me.role)}
               </span>
             </span>
@@ -156,17 +166,22 @@ function MenuDoUsuario({ me, onSignOut }: { me: CurrentUser; onSignOut: () => vo
             contexto que falta. Aqui a identidade nomeia as ações da conta. */}
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex flex-col gap-0.5">
-            <span className="font-extrabold text-[13px]">{me.name}</span>
-            <span className="font-medium text-[11px] text-muted-foreground">{me.email}</span>
+            <span className="font-extrabold text-corpo">{me.name}</span>
+            <span className="font-medium text-meta text-muted-foreground">{me.email}</span>
           </DropdownMenuLabel>
-          <DropdownMenuItem disabled>
+          {/* Os dois já existem como tela. Ficaram desabilitados aqui por
+              esquecimento quando a barra lateral foi ligada — e é neste menu
+              que a pessoa procura a própria conta, não no rodapé. */}
+          <DropdownMenuItem render={<Link to="/perfil" />}>
             <UserRound size={16} strokeWidth={1.7} aria-hidden />
             Meu perfil
           </DropdownMenuItem>
-          <DropdownMenuItem disabled>
-            <Settings size={16} strokeWidth={1.7} aria-hidden />
-            Configurações
-          </DropdownMenuItem>
+          {podeConfigurar ? (
+            <DropdownMenuItem render={<Link to="/configuracoes" />}>
+              <Settings size={16} strokeWidth={1.7} aria-hidden />
+              Configurações
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onSignOut}>
@@ -211,7 +226,10 @@ export function AppShell({ me, pendingCalls, unreadNotices, children }: AppShell
         <header className="flex flex-wrap items-center gap-3">
           <SidebarTrigger variant="outline" size="icon" className="shrink-0" />
           <BuscaDeAlunos role={me.role} />
-          <div className="ml-auto flex items-center gap-3">
+          {/* `min-w-0` para o grupo poder encolher em vez de empurrar a
+              página: sem ele o `flex` respeita o conteúdo e o estouro vira
+              barra de rolagem horizontal no celular. */}
+          <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
             <ContextBar />
             <MenuDoUsuario me={me} onSignOut={sair} />
           </div>
