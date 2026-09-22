@@ -14,7 +14,8 @@
     "provision": "jiti src/provision-cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "seed:demo": "jiti src/seed-demo-cli.ts"
+    "seed:demo": "jiti src/seed-demo-cli.ts",
+    "seed:producao": "jiti src/seed-producao-cli.ts"
   },
   "dependencies": {
     "@educa-escola/db": "workspace:*",

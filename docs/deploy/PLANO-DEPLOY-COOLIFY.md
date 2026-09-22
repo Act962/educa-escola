@@ -154,11 +154,15 @@ empresa) antes do primeiro cadastro de foto.
    dois como segredos `COOLIFY_WEBHOOK` e `COOLIFY_TOKEN` no GitHub
    (*Settings → Secrets and variables → Actions*).
 7. Deploy. Conferir logs e `/api/health`.
-8. Provisionar a primeira escola pelo terminal do container no Coolify:
+8. Preparar a primeira escola pelo terminal do container no Coolify — um acesso
+   por papel, disciplinas da base e uma turma, com as senhas geradas e exibidas
+   uma única vez:
    ```bash
-   cd /app/packages/auth && node_modules/.bin/jiti src/provision-cli.ts \
-     --name "..." --slug ... --owner-name "..." --owner-email ... --owner-password "..."
+   cd /app/packages/auth && node_modules/.bin/jiti src/seed-producao-cli.ts \
+     --name "..." --slug ... --dominio ... --turma "6º A"
    ```
+   O comando nunca apaga e é idempotente pelo `--slug`. Só a escola e a direção,
+   sem o resto, continua sendo o `provision-cli.ts`.
 9. Smoke test: login da direção, criar turma, abrir a portaria num tablet
    por HTTPS e confirmar que a câmera abre. Procurar no log o aviso
    "could not determine a client IP" — não pode aparecer (§4.5).
