@@ -43,6 +43,13 @@
       "when": 1790067210103,
       "tag": "0005_orbita",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790067453915,
+      "tag": "0006_pontuacao",
+      "breakpoints": true
     }
   ]
 }

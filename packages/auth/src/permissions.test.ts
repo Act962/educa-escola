@@ -102,6 +102,9 @@ describe("apps do Órbita", () => {
 
   it("aluno não vê a aba de apps", () => {
     expect(can("student", { app: ["read"] })).toBe(false);
+  });
+});
+
 describe("pontuação e placar", () => {
   it("todo papel vê os próprios pontos", () => {
     for (const role of APP_ROLES) {
