@@ -371,18 +371,19 @@ function Captura({
       lado,
     );
 
-    setPrevia(canvas.toDataURL("image/jpeg", 0.85));
-
     /*
-     * Os códigos saem do **mesmo quadro** da foto, e antes de a câmera parar.
-     * Extrair depois, de uma imagem já comprimida, daria um descritor pior que
-     * o do rosto que estava ali — e descritor pior é aluno não reconhecido no
-     * portão.
+     * Os códigos saem do **canvas**, que é o mesmo quadro que virou a foto.
+     *
+     * A primeira versão extraía do `<video>` depois de `setPrevia`, e mostrar
+     * a prévia desmonta o vídeo: o elemento solto fica com `videoWidth` zero e
+     * a leitura desistia na guarda. A tela dizia "não foi possível ler o
+     * rosto" numa foto nítida, de frente e bem iluminada. O canvas não depende
+     * de nada continuar montado.
      */
-    if (!rostoDisponivel()) return;
     setLendoRosto(true);
+    setPrevia(canvas.toDataURL("image/jpeg", 0.85));
     try {
-      setCodigos(await extratorDeRosto.extrair(video));
+      setCodigos(rostoDisponivel() ? await extratorDeRosto.extrair(canvas) : null);
     } finally {
       setLendoRosto(false);
     }

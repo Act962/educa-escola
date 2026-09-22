@@ -30,6 +30,18 @@ const CAMINHO_DOS_PESOS = "/modelos-de-rosto";
  */
 const CONFIANCA_MINIMA = 0.6;
 
+/**
+ * O que se pode ler: o vídeo ao vivo ou um quadro já congelado.
+ *
+ * O canvas existe aqui por um defeito que custou caro. A captura da foto
+ * extraía do `<video>` **depois** de mostrar a prévia — e mostrar a prévia
+ * desmonta o vídeo. O elemento solto fica com `videoWidth` zero, a leitura
+ * desistia na guarda, e a tela dizia "não foi possível ler o rosto" numa foto
+ * nítida, de frente e bem iluminada. Ler do canvas é ler exatamente o quadro
+ * que virou a foto, sem depender de nada continuar na tela.
+ */
+export type Quadro = HTMLVideoElement | HTMLCanvasElement;
+
 export interface ExtratorDeRosto {
   readonly nome: string;
   readonly disponivel: boolean;
@@ -44,14 +56,14 @@ export interface ExtratorDeRosto {
    * quase o tempo todo — é a diferença entre o tablet esquentando à toa e o
    * tablet esperando quieto.
    */
-  temRosto(quadro: HTMLVideoElement): Promise<boolean>;
+  temRosto(quadro: Quadro): Promise<boolean>;
   /**
    * Os códigos do rosto que estiver no quadro, ou `null` se não houver rosto.
    *
    * `null` é resposta legítima e frequente: a maior parte dos quadros de uma
    * portaria não tem ninguém na frente da câmera.
    */
-  extrair(quadro: HTMLVideoElement): Promise<number[] | null>;
+  extrair(quadro: Quadro): Promise<number[] | null>;
 }
 
 /**
@@ -101,10 +113,11 @@ async function carregar(): Promise<FaceApi | null> {
 }
 
 /**
- * Vídeo sem quadro ainda: `readyState` baixo devolveria tensor vazio e a
- * biblioteca estouraria dentro do laço da câmera.
+ * Vídeo sem quadro ainda devolveria tensor vazio, e a biblioteca estouraria
+ * dentro do laço da câmera. Canvas já é um quadro: basta ter tamanho.
  */
-function quadroPronto(quadro: HTMLVideoElement): boolean {
+export function quadroPronto(quadro: Quadro): boolean {
+  if (quadro instanceof HTMLCanvasElement) return quadro.width > 0 && quadro.height > 0;
   return quadro.readyState >= 2 && quadro.videoWidth > 0;
 }
 
