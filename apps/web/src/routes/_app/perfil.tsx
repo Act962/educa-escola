@@ -258,7 +258,7 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
       <Card className="flex flex-col gap-4">
         <CardEyebrow>Vínculo</CardEyebrow>
         <h2 className="font-extrabold text-lg tracking-[-0.3px]">Sua carga em {year}</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
           <StatCard icon={LayoutGrid} label="Turmas" hint="com aula na grade">
             {inteiro(vinculo.turmas)}
           </StatCard>

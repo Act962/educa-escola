@@ -115,7 +115,18 @@ function ContextBar() {
         value={String(term)}
         onValueChange={(value) => setTerm(Number(value) as Term)}
       >
-        <SelectTrigger aria-label="Bimestre" className="border-none bg-transparent text-info">
+        {/*
+          `size="sm"` para o cabeçalho ficar todo na mesma altura. O gatilho
+          padrão tem 44px e, somado aos 4px de respiro da barra, deixava a
+          barra de contexto com 52 contra os 44 do botão da sidebar, da busca
+          e do menu da conta — quatro controles lado a lado, um mais alto que
+          os outros. Com 36 aqui, os quatro fecham em 44.
+        */}
+        <SelectTrigger
+          size="sm"
+          aria-label="Bimestre"
+          className="border-none bg-transparent text-info"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -139,7 +150,12 @@ function MenuDoUsuario({ me, onSignOut }: { me: CurrentUser; onSignOut: () => vo
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="outline" className="gap-3 px-3">
+          // `h-11` fecha a altura em 44. O tamanho padrão do botão traz
+          // `py-2`, e o avatar de 32px somado a ele dava 50 — o único
+          // controle do cabeçalho fora da linha dos outros três. Altura fixa
+          // em vez de `py-0` porque o respiro continua útil quando o nome
+          // aparece, a partir de `sm`.
+          <Button variant="outline" className="h-11 gap-3 px-3">
             <Avatar size="sm">
               <AvatarFallback className="bg-secondary text-secondary-foreground">
                 {initialsOf(me.name)}

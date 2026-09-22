@@ -77,7 +77,7 @@ function Professores() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <StatCard icon={Users} label="No corpo docente" hint={`vínculo ativo em ${year}`}>
           {resumo ? inteiro(resumo.total) : "—"}
         </StatCard>
