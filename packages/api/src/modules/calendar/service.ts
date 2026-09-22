@@ -1,5 +1,6 @@
 import { NotFoundError, ValidationError } from "../../errors";
 import { type ContagemDeDiasLetivos, contarDiasLetivos } from "./dias-letivos";
+import { calendarioBrasileiro } from "./feriados";
 import type { CalendarRepository } from "./repository";
 import type { CreateEventInput, DefineYearInput } from "./schema";
 
@@ -69,6 +70,68 @@ export function createCalendarService(repo: CalendarRepository) {
       }
 
       return repo.createEvent({ ...input, endsOn, createdByUserId: userId });
+    },
+
+    /**
+     * O calendário brasileiro do ano, marcando o que já está no sistema.
+     *
+     * Mostra **antes de importar** o que vai entrar e o que vai ficar de fora:
+     * confirmar uma importação de quarenta linhas às cegas é o tipo de clique
+     * de que a pessoa se arrepende.
+     */
+    async sugestoes(academicYear: number) {
+      const [ano, existentes] = await Promise.all([
+        repo.findYear(academicYear),
+        repo.listEvents(academicYear),
+      ]);
+
+      const jaNoSistema = new Set(existentes.map((e) => `${e.startsOn}|${e.title}`));
+
+      return calendarioBrasileiro(academicYear).map((data) => ({
+        ...data,
+        jaExiste: jaNoSistema.has(`${data.startsOn}|${data.title}`),
+        // Fora do período letivo não entra: 1º de janeiro e o Natal caem
+        // fora de quase todo ano letivo, e um evento que não conta para nada
+        // é linha que a escola vê e não usa.
+        foraDoPeriodo: ano ? data.startsOn < ano.startsOn || data.endsOn > ano.endsOn : true,
+      }));
+    },
+
+    /**
+     * Importa o calendário brasileiro do ano.
+     *
+     * Idempotente por data e título: rodar de novo depois de acrescentar um
+     * feriado municipal à mão não duplica nada. Pula silenciosamente o que
+     * está fora do período letivo, e devolve a conta — para a tela dizer "10
+     * entraram, 3 ficaram de fora" em vez de só "pronto".
+     */
+    async importar(academicYear: number, userId: string) {
+      const ano = await repo.findYear(academicYear);
+      if (!ano) {
+        throw new ValidationError("Defina o período do ano letivo antes de importar o calendário.");
+      }
+
+      const sugestoes = await this.sugestoes(academicYear);
+      const aCriar = sugestoes.filter((s) => !s.jaExiste && !s.foraDoPeriodo);
+
+      for (const data of aCriar) {
+        await repo.createEvent({
+          academicYear,
+          type: data.type,
+          dayEffect: data.dayEffect,
+          title: data.title,
+          description: data.fonte,
+          startsOn: data.startsOn,
+          endsOn: data.endsOn,
+          createdByUserId: userId,
+        });
+      }
+
+      return {
+        criados: aCriar.length,
+        jaExistiam: sugestoes.filter((s) => s.jaExiste).length,
+        foraDoPeriodo: sugestoes.filter((s) => !s.jaExiste && s.foraDoPeriodo).length,
+      };
     },
 
     async removeEvent(id: string) {

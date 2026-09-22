@@ -24,7 +24,7 @@ import { StatCard } from "@educa-escola/ui/integra/stat-card";
 import { EmptyState, ErrorState, ListSkeleton } from "@educa-escola/ui/integra/states";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarCheck, CalendarX, Plus, TriangleAlert, X } from "lucide-react";
+import { CalendarCheck, CalendarX, Download, Plus, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
 import { CampoDeData } from "@/components/campo-de-data";
 import { useSchoolContext } from "@/lib/school-context";
@@ -59,6 +59,9 @@ function Calendario() {
   const definir = useMutation(trpc.calendar.defineYear.mutationOptions({ onSuccess: recarregar }));
   const criar = useMutation(trpc.calendar.createEvent.mutationOptions({ onSuccess: recarregar }));
   const remover = useMutation(trpc.calendar.removeEvent.mutationOptions({ onSuccess: recarregar }));
+
+  const sugestoes = useQuery(trpc.calendar.sugestoes.queryOptions({ academicYear: year }));
+  const importar = useMutation(trpc.calendar.importar.mutationOptions({ onSuccess: recarregar }));
 
   const contagem = ano.data?.contagem;
 
@@ -124,6 +127,16 @@ function Calendario() {
             salvando={definir.isPending}
             erro={definir.isError ? definir.error.message : null}
           />
+
+          {ano.data?.ano ? (
+            <CalendarioBrasileiro
+              sugestoes={sugestoes.data ?? []}
+              aoImportar={() => importar.mutate({ academicYear: year })}
+              importando={importar.isPending}
+              resultado={importar.data ?? null}
+              erro={importar.isError ? importar.error.message : null}
+            />
+          ) : null}
 
           {ano.data?.ano ? (
             <NovoEvento
@@ -364,6 +377,109 @@ function NovoEvento({
           <AlertDescription>{erro}</AlertDescription>
         </Alert>
       ) : null}
+    </Card>
+  );
+}
+
+/**
+ * O calendário brasileiro do ano, para importar de uma vez.
+ *
+ * A lista aparece **antes** do clique: confirmar a importação de quarenta
+ * linhas às cegas é o tipo de coisa de que a pessoa se arrepende. O que já
+ * está no sistema e o que cai fora do ano letivo vêm marcados, para o número
+ * do botão ser o número que vai entrar de verdade.
+ */
+function CalendarioBrasileiro({
+  sugestoes,
+  aoImportar,
+  importando,
+  resultado,
+  erro,
+}: {
+  sugestoes: {
+    title: string;
+    startsOn: string;
+    endsOn: string;
+    dayEffect: string;
+    fonte: string;
+    jaExiste: boolean;
+    foraDoPeriodo: boolean;
+  }[];
+  aoImportar: () => void;
+  importando: boolean;
+  resultado: { criados: number; jaExistiam: number; foraDoPeriodo: number } | null;
+  erro: string | null;
+}) {
+  const novas = sugestoes.filter((s) => !s.jaExiste && !s.foraDoPeriodo);
+
+  return (
+    <Card className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <CardEyebrow>Calendário brasileiro</CardEyebrow>
+        <span className="text-[11px] text-muted-foreground">
+          feriados nacionais, pontos facultativos e datas da cultura e da história
+        </span>
+        <Button
+          variant="secondary"
+          className="ml-auto"
+          onClick={aoImportar}
+          disabled={importando || novas.length === 0}
+        >
+          <Download size={18} strokeWidth={1.8} aria-hidden />
+          {importando
+            ? "Importando…"
+            : novas.length === 0
+              ? "Tudo já está no calendário"
+              : `Trazer ${novas.length} datas`}
+        </Button>
+      </div>
+
+      {resultado ? (
+        <Alert variant="success">
+          <AlertTitle>{resultado.criados} datas acrescentadas</AlertTitle>
+          <AlertDescription>
+            {resultado.jaExistiam > 0 ? `${resultado.jaExistiam} já estavam no calendário. ` : ""}
+            {resultado.foraDoPeriodo > 0
+              ? `${resultado.foraDoPeriodo} ficaram de fora por caírem fora do ano letivo — 1º de janeiro e Natal costumam cair aí.`
+              : ""}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {erro ? (
+        <Alert variant="danger">
+          <AlertTitle>Não foi possível importar</AlertTitle>
+          <AlertDescription>{erro}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <ul className="flex flex-col">
+        {sugestoes.map((data) => (
+          <li
+            key={`${data.startsOn}-${data.title}`}
+            className="flex flex-wrap items-center gap-3 border-border border-t py-2 text-[12px] first:border-t-0"
+          >
+            <span className="min-w-36 text-muted-foreground">
+              {longDate(data.startsOn)}
+              {data.endsOn !== data.startsOn ? ` a ${longDate(data.endsOn)}` : null}
+            </span>
+            <span className="min-w-0 flex-1 truncate font-bold">{data.title}</span>
+            {/* A origem fica na tela: data sem origem é data que ninguém
+                confere, e metade desta lista vem de lei. */}
+            <span className="hidden text-[11px] text-muted-foreground sm:block">{data.fonte}</span>
+            {data.dayEffect === "nao_letivo" ? (
+              <Badge variant="warning">Não letivo</Badge>
+            ) : (
+              <Badge variant="secondary">Tem aula</Badge>
+            )}
+            {data.jaExiste ? (
+              <Badge variant="success">Já está</Badge>
+            ) : data.foraDoPeriodo ? (
+              <Badge variant="secondary">Fora do ano letivo</Badge>
+            ) : null}
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }

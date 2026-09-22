@@ -24,6 +24,17 @@ export const calendarRouter = router({
     .input(createEventInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).createEvent(input, ctx.membership.userId)),
 
+  /** O calendário brasileiro do ano, com o que já está no sistema marcado. */
+  sugestoes: permitted({ calendar: ["read"] })
+    .input(calendarYearInput)
+    .query(({ ctx, input }) => serviceFor(ctx).sugestoes(input.academicYear)),
+
+  importar: permitted({ calendar: ["manage"] })
+    .input(calendarYearInput)
+    .mutation(({ ctx, input }) =>
+      serviceFor(ctx).importar(input.academicYear, ctx.membership.userId),
+    ),
+
   removeEvent: permitted({ calendar: ["manage"] })
     .input(eventId)
     .mutation(({ ctx, input }) => serviceFor(ctx).removeEvent(input.id)),
