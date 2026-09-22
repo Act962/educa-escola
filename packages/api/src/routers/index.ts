@@ -1,4 +1,5 @@
 import { protectedProcedure, publicProcedure, router, schoolProcedure } from "../index";
+import { academicRouter } from "../modules/academic/router";
 import { assessmentRouter } from "../modules/assessment/router";
 import { classroomRouter } from "../modules/classroom/router";
 import { enrollmentRouter } from "../modules/enrollment/router";
@@ -37,6 +38,8 @@ export const appRouter = router({
     schoolId: ctx.membership.schoolId,
     schoolName: ctx.membership.schoolName,
   })),
+  /** Catálogo de disciplinas e grade curricular. */
+  academic: academicRouter,
   classroom: classroomRouter,
   enrollment: enrollmentRouter,
   /** Fluxo do responsável, sem sessão. Ver o comentário no router. */

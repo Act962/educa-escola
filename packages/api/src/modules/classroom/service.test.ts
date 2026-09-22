@@ -21,6 +21,10 @@ function fakeRepository(seed: Row[] = []): ClassroomRepository {
     schoolId: "escola-1",
     name: data.name,
     academicYear: data.academicYear,
+    // A turma ganhou série e segmento, e os dois nascem nulos: `create` ainda
+    // não os recebe. Quem preenche é a tela de Acadêmico.
+    stage: null,
+    gradeLevel: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
