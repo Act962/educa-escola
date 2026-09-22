@@ -9,6 +9,15 @@ export interface PhotoServiceDeps {
   /** Base64 da chave. Ausente = cadastro de foto recusado, nunca em claro. */
   encryptionKey: string | undefined;
   actor: { userId: string };
+  /**
+   * Apaga o molde facial junto com a foto.
+   *
+   * Obrigatório, e não opcional, porque meia revogação é pior que nenhuma: se
+   * a imagem sumisse e o molde ficasse, a portaria continuaria reconhecendo a
+   * criança cuja família pediu para parar. Exigir aqui faz o compilador
+   * reclamar de quem montar o serviço sem ligar as duas coisas.
+   */
+  apagarMoldeFacial: (studentId: string) => Promise<void>;
 }
 
 /**
@@ -21,9 +30,10 @@ export interface PhotoServiceDeps {
  *    facial na entrada.
  * 2. **Cada leitura da foto vira evento.** A §13.3 pede registro de leitura em
  *    documento sensível, e foto de criança é isso.
- * 3. **Revogar apaga.** Some a foto; permanece o registro de que houve
- *    consentimento e de que ele foi revogado — é o que prova que a escola agiu
- *    certo.
+ * 3. **Revogar apaga.** Some a foto **e o molde facial**; permanece o registro
+ *    de que houve consentimento e de que ele foi revogado — é o que prova que
+ *    a escola agiu certo. Apagar só a imagem deixaria a portaria reconhecendo
+ *    quem pediu para não ser mais reconhecido.
  */
 export function createPhotoService(
   photos: PhotoRepository,
@@ -137,6 +147,8 @@ export function createPhotoService(
       const now = deps.now();
 
       const removida = await photos.remove(input.studentId);
+      // A biometria some inteira ou não some: imagem e molde no mesmo gesto.
+      await deps.apagarMoldeFacial(input.studentId);
       if (consent && !consent.revokedAt) await photos.revokeConsent(consent.id, now);
 
       if (matricula) {

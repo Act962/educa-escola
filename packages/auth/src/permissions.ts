@@ -72,6 +72,16 @@ export const statement = {
    * porque a escola precisa poder abrir para o aluno sem mexer em papel.
    */
   assistant: ["manage"],
+  /**
+   * Portaria. `operate` é deixar o quiosque aberto no tablet e registrar
+   * passagem; `enroll_face` é cadastrar o molde biométrico do aluno.
+   *
+   * São ações separadas porque têm pesos diferentes: operar a portaria é rotina
+   * de recepção, cadastrar biometria de menor é ato que exige consentimento
+   * conferido e não se desfaz sozinho. `read` é a lista de quem entrou — o
+   * professor a enxerga, porque é ela que responde "o aluno chegou?" na aula.
+   */
+  gate: ["read", "operate", "enroll_face"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -102,6 +112,7 @@ export const owner = ac.newRole({
   // escolas — com o aval do João, não por herança de papel.
   ranking: ["read", "opt_in"],
   assistant: ["manage"],
+  gate: ["read", "operate", "enroll_face"],
 });
 
 /** Secretaria / administrativo: opera a escola inteira, menos excluí-la. */
@@ -113,6 +124,8 @@ export const admin = ac.newRole({
   ranking: ["read"],
   /** A secretaria configura o Astro; ela é quem opera o dia a dia da escola. */
   assistant: ["manage"],
+  /** A recepção é a secretaria: ela abre o quiosque e cadastra o molde. */
+  gate: ["read", "operate", "enroll_face"],
 });
 
 /**
@@ -144,6 +157,11 @@ export const teacher = ac.newRole({
   referral: [],
   /** Usa o Astro se a escola liberar; a credencial é da direção. */
   assistant: [],
+  /**
+   * Lê quem entrou, e só. É o que responde "o aluno chegou?" antes da chamada
+   * — mas quem marca presença continua sendo ele, olhando a sala.
+   */
+  gate: ["read"],
   /**
    * Vazio: a lista de docentes carrega pendência de colega, que é dado de
    * pessoal. O professor vê o que ele mesmo deve no próprio painel.
@@ -188,6 +206,11 @@ export const student = ac.newRole({
    */
   referral: [],
   assistant: [],
+  /**
+   * Vazio: a lista de quem entrou na escola hoje é frequência nominal de
+   * colega. O aluno não precisa dela, e a portaria não é tela dele.
+   */
+  gate: [],
 });
 
 export const roles = { owner, admin, teacher, student };

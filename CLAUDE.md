@@ -243,6 +243,7 @@ O mesmo teste exige que todo módulo tenha `repository.ts`, `service.ts` e
 | `lesson` | Aula, chamada, diário e prazo de registro |
 | `assessment` | Avaliação, grade de notas, média ponderada e publicação |
 | `overview` | Números dos três painéis. Só consulta agregada, nunca lista |
+| `gate` | Portaria: quem passou no portão, quando e por qual meio. **Não é chamada** |
 
 A fila de pendências da direção é **uma lista só**: quem deve chamada e quem
 deve apenas nota saem juntos de `overview.gestao`, ordenados pelo tamanho da
@@ -319,7 +320,35 @@ reconhecimento facial na entrada); **cada leitura vira evento `foto_aberta`**
 (§13.3 pede registro de leitura em documento sensível); e **revogar apaga**,
 mantendo só o registro de que houve consentimento e de que ele foi revogado.
 
-**O molde facial não mora aqui.** Ele é proprietário do algoritmo que o gerou e
+**A portaria é um fato à parte da chamada.** `school_entry` guarda a passagem
+no portão — aluno, horário, direção e método (`rosto`, `carteirinha`,
+`manual`). O professor vê "entrou às 7h12" ao lado do nome e continua sendo
+quem marca presença: entrar na escola não é estar na aula, e matar aula é
+justamente entrar e não subir. Preenchimento automático faria a catraca mentir
+sobre frequência, que é o dado que decide reprovação por falta.
+
+**O molde facial passou a morar aqui — por decisão do usuário, não por
+arquitetura.** `student_face_template` guarda o descritor do rosto, cifrado com
+a mesma chave da foto. Descritor **não** é anonimização: pela LGPD continua
+sendo dado biométrico, e o texto do termo de consentimento ainda não cobre esta
+finalidade — isso é pendência jurídica registrada, não detalhe de código. Três
+regras seguram o resto: sem consentimento de `biometria` não grava; revogar a
+foto apaga o molde no mesmo gesto (`apagarMoldeFacial` é dependência
+obrigatória do service da foto, para o compilador cobrar quem esquecer); e a
+carteirinha com QR é o caminho que **nunca falha** — todo erro do rosto termina
+pedindo o QR, nunca barrando criança na porta.
+
+A comparação vive em `modules/gate/reconhecimento.ts`, sem banco nem tela,
+porque é a única parte do sistema que pode identificar uma criança como outra.
+Além do limiar há uma **margem mínima**: dois alunos quase à mesma distância
+devolvem "ambíguo", não o menor por centésimos — irmãos parecidos existem, e
+liberar a criança errada não se desfaz.
+
+**Qual biblioteca extrai o descritor é `DECISÃO-JOÃO`**
+(`apps/web/src/lib/extrator-de-rosto.ts`). Até ela existir, a portaria sobe e
+atende inteira pela carteirinha.
+
+**O molde facial do fornecedor não mora aqui.** Ele é proprietário do algoritmo que o gerou e
 não é portátil entre fornecedores, então guardá-lo seria custodiar biometria de
 menor sem ganhar nada. A foto é o que permite recadastrar em outra catraca sem
 trazer criança de volta. Quem não autoriza a face entra pela carteirinha com o

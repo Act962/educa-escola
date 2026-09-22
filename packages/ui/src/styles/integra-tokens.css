@@ -58,6 +58,21 @@
   --ie-info: var(--ie-primary-ink);
   --ie-info-soft: var(--ie-primary-soft);
 
+  /* ---- Quiosque da portaria ---- */
+  /*
+   * A única superfície escura do produto, e não é preferência de estilo: o
+   * tablet do portão fica ligado o dia inteiro num corredor, muitas vezes com
+   * sol batendo. Fundo claro ali vira espelho e ofusca quem chega, e o verde
+   * de liberado precisa saltar de longe, para a fila andar sem ninguém parar
+   * para ler.
+   *
+   * Não é o tema escuro do design — esse ainda não existe. É uma superfície
+   * própria, usada só pela portaria.
+   */
+  --ie-kiosk: oklch(0.22 0.022 248);
+  --ie-kiosk-soft: oklch(0.28 0.024 248);
+  --ie-kiosk-foreground: oklch(0.96 0.006 248);
+
   /* ---- Tokens shadcn redefinidos sobre a paleta ---- */
   --background: var(--ie-canvas);
   --foreground: var(--ie-ink);
@@ -200,6 +215,9 @@
   --color-danger-soft: var(--ie-danger-soft);
   --color-info: var(--ie-info);
   --color-info-soft: var(--ie-info-soft);
+  --color-kiosk: var(--ie-kiosk);
+  --color-kiosk-soft: var(--ie-kiosk-soft);
+  --color-kiosk-foreground: var(--ie-kiosk-foreground);
 
   /* A única sombra da identidade, e só para sobreposição real — cartão
    * flutuante, diálogo, popover. O token existia desde o começo e nunca tinha

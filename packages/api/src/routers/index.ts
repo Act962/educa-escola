@@ -7,6 +7,7 @@ import { classroomRouter } from "../modules/classroom/router";
 import { communicationRouter } from "../modules/communication/router";
 import { enrollmentRouter } from "../modules/enrollment/router";
 import { enrollmentLinkRouter } from "../modules/enrollment-link/router";
+import { gateRouter } from "../modules/gate/router";
 import { leaderboardRouter } from "../modules/leaderboard/router";
 import { lessonRouter } from "../modules/lesson/router";
 import { orbitaRouter } from "../modules/orbita/router";
@@ -76,6 +77,7 @@ export const appRouter = router({
   settings: settingsRouter,
   /** O Astro. A credencial do modelo nunca volta para a tela. */
   assistant: assistantRouter,
+  gate: gateRouter,
   /**
    * Programa de indicações. A visão da gestão é nominal e fica atrás de
    * `referral: read`; a de quem divulga resolve por identidade.
