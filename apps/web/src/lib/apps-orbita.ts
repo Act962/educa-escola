@@ -10,7 +10,6 @@ import {
   type LucideIcon,
   MessageCircle,
   Send,
-  Sparkles,
   TrendingUp,
   Workflow,
 } from "lucide-react";
@@ -139,15 +138,20 @@ export const APPS_ORBITA: AppOrbita[] = [
     categoria: "marketing",
     icon: TrendingUp,
   },
-  {
-    key: "astro",
-    nome: "Astro",
-    resumo: "Assistente de IA",
-    descricao: "Pergunta sobre os números da escola, em linguagem comum.",
-    categoria: "operacao",
-    icon: Sparkles,
-  },
 ];
+
+/**
+ * `astro` fica de fora desta lista de propósito.
+ *
+ * Ele era o décimo terceiro card da aba Apps, e virou tela nativa: a pergunta
+ * vai para o nosso servidor, que monta os fatos do papel de quem perguntou e
+ * conversa com o modelo que a escola configurou em Configurações. Deixá-lo no
+ * catálogo ofereceria instalar — com custo em Stars — algo que já está aqui.
+ *
+ * A chave continua em `APP_KEYS`, no servidor: escola que instalou o app do
+ * Órbita antes desta mudança tem uma linha em `orbita_app_install` apontando
+ * para ela, e tirar a chave da união deixaria essa linha sem tipo.
+ */
 
 /** Busca por chave. Devolve `null` para app que o servidor conheça e a tela não. */
 export function appOrbitaDe(key: string): AppOrbita | null {

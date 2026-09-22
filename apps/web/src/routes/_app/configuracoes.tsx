@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { CampoDeData } from "@/components/campo-de-data";
+import { ConfiguracaoDoAstro } from "@/components/configuracao-do-astro";
 import { authClient } from "@/lib/auth-client";
 import { dataDoInstante, inteiro } from "@/lib/format";
 import { roleLabel } from "@/lib/navigation";
@@ -79,6 +80,7 @@ function Configuracoes() {
         <>
           <DadosDaInstituicao visao={visao.data} />
           <AnoLetivo />
+          <ConfiguracaoDoAstro />
           <Acessos visao={visao.data} />
           <RegrasEmVigor visao={visao.data} />
         </>

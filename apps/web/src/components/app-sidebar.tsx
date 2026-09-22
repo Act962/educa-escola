@@ -21,6 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { LogOut, Settings, UserRound } from "lucide-react";
 
+import { PainelDeUsoDoAstro } from "@/components/painel-de-uso-do-astro";
 import { appOrbitaDe } from "@/lib/apps-orbita";
 import { navigationFor } from "@/lib/navigation";
 import { useTRPC } from "@/utils/trpc";
@@ -168,7 +169,14 @@ export function AppSidebar({
         ) : null}
       </SidebarContent>
 
-      <SidebarFooter className="mt-auto p-0">
+      <SidebarFooter className="mt-auto gap-3 p-0">
+        {/*
+          Antes do separador de propósito: o consumo é informação da escola, e
+          o que vem depois do traço é a conta de quem está logado — perfil,
+          configurações, sair. Misturar os dois faria o gasto do Astro parecer
+          item de menu.
+        */}
+        <PainelDeUsoDoAstro podeVer={podeConfigurar} />
         <SidebarSeparator className="mx-0" />
         <SidebarMenu>
           <SidebarMenuItem>

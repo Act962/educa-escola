@@ -85,6 +85,27 @@
       "when": 1790083859605,
       "tag": "0011_indicacoes",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790086481533,
+      "tag": "0012_astro-nativo",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790087511246,
+      "tag": "0013_organizacao-do-modelo",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790090064864,
+      "tag": "0014_brief_thor",
+      "breakpoints": true
     }
   ]
 }

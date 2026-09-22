@@ -1,0 +1,1 @@
+ALTER TABLE "assistant_settings" ADD COLUMN "organization_id" text;

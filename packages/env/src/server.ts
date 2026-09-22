@@ -27,6 +27,21 @@ export const env = createEnv({
      * instrução, em vez de mandar a pessoa para uma URL inventada.
      */
     ORBITA_BASE_URL: z.url().optional(),
+    /**
+     * Chave que cifra a credencial do modelo do Astro, 32 bytes em base64.
+     *
+     * DECISÃO-JOÃO: chave própria, e não a de mídia.
+     * Quebra se: reusar `MEDIA_ENCRYPTION_KEY` amarra as duas coisas — girar a
+     *   chave por causa de um incidente na foto obrigaria a recadastrar a
+     *   credencial do modelo, e vice-versa. São segredos de naturezas e de
+     *   ciclos diferentes.
+     * Fiz assim: variável própria, opcional, declarada aqui, no `.env.example`
+     *   e no `turbo.json`. Sem ela o app sobe e a tela recusa **gravar** a
+     *   credencial, com a instrução de como gerar — nunca grava em claro.
+     * Alternativas: reusar a de mídia · um cofre externo (Vault, AWS Secrets
+     *   Manager), que é o certo quando houver mais de um segredo por escola.
+     */
+    ASSISTANT_ENCRYPTION_KEY: z.string().min(1).optional(),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

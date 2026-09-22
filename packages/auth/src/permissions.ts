@@ -65,6 +65,13 @@ export const statement = {
    * dois — a tela dele resolve por identidade, como "Meu perfil".
    */
   referral: ["read", "manage"],
+  /**
+   * O Astro. `manage` é a credencial do modelo, que é chave de gasto — quem
+   * assina é quem responde pela escola. Não existe ação de "usar": quem pode
+   * perguntar é decidido pela configuração da própria escola, não pelo RBAC,
+   * porque a escola precisa poder abrir para o aluno sem mexer em papel.
+   */
+  assistant: ["manage"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -94,6 +101,7 @@ export const owner = ac.newRole({
   // arquitetura inteira existe para impedir, e entra na PR do placar entre
   // escolas — com o aval do João, não por herança de papel.
   ranking: ["read", "opt_in"],
+  assistant: ["manage"],
 });
 
 /** Secretaria / administrativo: opera a escola inteira, menos excluí-la. */
@@ -103,6 +111,8 @@ export const admin = ac.newRole({
   app: ["read"],
   /** Secretaria enxerga o placar; aderir a placar externo é da direção. */
   ranking: ["read"],
+  /** A secretaria configura o Astro; ela é quem opera o dia a dia da escola. */
+  assistant: ["manage"],
 });
 
 /**
@@ -132,6 +142,8 @@ export const teacher = ac.newRole({
   communication: ["read"],
   /** Professor não entra no programa: ele não tem mensalidade para descontar. */
   referral: [],
+  /** Usa o Astro se a escola liberar; a credencial é da direção. */
+  assistant: [],
   /**
    * Vazio: a lista de docentes carrega pendência de colega, que é dado de
    * pessoal. O professor vê o que ele mesmo deve no próprio painel.
@@ -175,6 +187,7 @@ export const student = ac.newRole({
    * identidade, como "Meu perfil", e devolve só o que é dele.
    */
   referral: [],
+  assistant: [],
 });
 
 export const roles = { owner, admin, teacher, student };

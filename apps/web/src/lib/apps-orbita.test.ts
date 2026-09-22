@@ -4,18 +4,32 @@ import { describe, expect, it } from "vitest";
 import { APPS_ORBITA, appOrbitaDe } from "./apps-orbita";
 
 /**
- * A lista da tela e a do servidor têm de coincidir.
+ * A lista da tela e a do servidor têm de coincidir, menos as exceções abaixo.
  *
  * O tipo já impede acrescentar aqui uma chave que o servidor não conhece. O
  * contrário — chave no servidor sem card na tela — passa pelo compilador e
  * viraria um app que existe, cobra e ninguém enxerga. Daí este teste.
+ *
+ * `astro` é a exceção, e fica nomeada para não virar esquecimento: ele era o
+ * décimo terceiro card e virou tela nativa. A chave continua no servidor
+ * porque escola que instalou o app antes desta mudança tem linha em
+ * `orbita_app_install` apontando para ela — mas card na aba Apps ofereceria
+ * instalar, com custo em Stars, algo que já está aqui.
  */
-describe("catálogo de apps do Órbita", () => {
-  it("cobre exatamente as chaves que o servidor conhece", () => {
-    const naTela = APPS_ORBITA.map((app) => app.key).sort();
-    const noServidor = [...APP_KEYS].sort();
+const NATIVOS = ["astro"];
 
-    expect(naTela).toEqual(noServidor);
+describe("catálogo de apps do Órbita", () => {
+  it("cobre todas as chaves do servidor, menos as que viraram tela nativa", () => {
+    const naTela = APPS_ORBITA.map((app) => app.key).sort();
+    const esperadas = [...APP_KEYS].filter((chave) => !NATIVOS.includes(chave)).sort();
+
+    expect(naTela).toEqual(esperadas);
+  });
+
+  it("nenhum app nativo aparece no catálogo", () => {
+    for (const nativo of NATIVOS) {
+      expect(appOrbitaDe(nativo)).toBeNull();
+    }
   });
 
   it("não repete chave", () => {
