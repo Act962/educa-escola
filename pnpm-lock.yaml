@@ -108,6 +108,9 @@ importers:
       '@educa-escola/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@educa-escola/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@educa-escola/env':
         specifier: workspace:*
         version: link:../../packages/env
