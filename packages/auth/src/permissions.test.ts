@@ -184,6 +184,31 @@ describe("calendário", () => {
   });
 });
 
+describe("configurações da instituição", () => {
+  /**
+   * A tela de Configurações não tem recurso próprio no RBAC: ela se apoia em
+   * `organization: ["update"]`, que já existia. Este teste é o que torna essa
+   * escolha explícita — se um dia alguém der `organization` ao professor por
+   * outro motivo, a tela de configurações abre junto, e a falha aparece aqui
+   * em vez de em produção.
+   */
+  it("só direção e secretaria configuram a escola", () => {
+    for (const role of APP_ROLES) {
+      const esperado = role === "owner" || role === "admin";
+      expect(can(role, { organization: ["update"] })).toBe(esperado);
+    }
+  });
+
+  /**
+   * A leitura das configurações usa a mesma permissão da escrita, porque a
+   * tela lista nome e e-mail de quem tem acesso total — mapa de quem atacar.
+   */
+  it("quem não configura também não lê a lista de quem tem acesso total", () => {
+    expect(can("teacher", { organization: ["update"] })).toBe(false);
+    expect(can("student", { organization: ["update"] })).toBe(false);
+  });
+});
+
 describe("comunicados", () => {
   it("todo papel recebe comunicado", () => {
     for (const role of APP_ROLES) {

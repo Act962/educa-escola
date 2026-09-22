@@ -148,13 +148,13 @@ function NovaMatricula() {
       <div>
         <Link
           to="/matriculas"
-          className="flex w-fit items-center gap-1.5 font-bold text-[11px] text-muted-foreground"
+          className="flex w-fit items-center gap-1.5 font-bold text-meta text-muted-foreground"
         >
           <ChevronLeft size={16} strokeWidth={1.7} aria-hidden />
           Matrículas
         </Link>
         <h1 className="mt-1 font-extrabold text-2xl tracking-[-0.6px]">Nova matrícula</h1>
-        <p className="text-[13px] text-muted-foreground">Ano letivo de {ANO_LETIVO}</p>
+        <p className="text-corpo text-muted-foreground">Ano letivo de {ANO_LETIVO}</p>
       </div>
 
       <Passos
@@ -186,7 +186,7 @@ function NovaMatricula() {
                 value={proximaMatricula.data ?? "…"}
                 className="font-bold text-muted-foreground tabular-nums"
               />
-              <span id="matricula-hint" className="text-[11px] text-muted-foreground">
+              <span id="matricula-hint" className="text-meta text-muted-foreground">
                 Gerado em sequência pelo sistema, no momento em que a matrícula é criada.
               </span>
             </div>
@@ -314,7 +314,7 @@ function NovaMatricula() {
                         ))}
                     </SelectContent>
                   </Select>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-meta text-muted-foreground">
                     É dela que sai a série, usada para agrupar as matrículas.
                   </span>
                 </div>
@@ -379,12 +379,12 @@ function LinkCriado({ id, url, detalhe }: { id: string; url: string; detalhe: st
         </span>
         <CardEyebrow>Matrícula criada</CardEyebrow>
         <h1 className="font-extrabold text-xl tracking-[-0.4px]">Link de confirmação pronto</h1>
-        <p className="max-w-sm text-[13px] text-muted-foreground">{detalhe}</p>
+        <p className="max-w-sm text-corpo text-muted-foreground">{detalhe}</p>
       </div>
 
       <div className="flex flex-col gap-2 rounded-card bg-muted p-4">
-        <span className="font-bold text-[11px] text-secondary-foreground">Endereço do link</span>
-        <code className="break-all text-[12px] text-foreground">{url}</code>
+        <span className="font-bold text-meta text-secondary-foreground">Endereço do link</span>
+        <code className="break-all text-apoio text-foreground">{url}</code>
         <Button
           variant="secondary"
           className="mt-1 w-fit"
@@ -417,7 +417,7 @@ function LinkCriado({ id, url, detalhe }: { id: string; url: string; detalhe: st
         </Button>
       </div>
 
-      <p className="text-[11px] text-muted-foreground">Criado em {dataHora(new Date())}.</p>
+      <p className="text-meta text-muted-foreground">Criado em {dataHora(new Date())}.</p>
     </Card>
   );
 }
@@ -450,9 +450,9 @@ function Campo({
         }
         {...props}
       />
-      {hint ? <span className="text-[11px] text-muted-foreground">{hint}</span> : null}
+      {hint ? <span className="text-meta text-muted-foreground">{hint}</span> : null}
       {field.state.meta.errors.map((error: { message?: string } | undefined) => (
-        <p key={error?.message} className="text-[11px] text-danger">
+        <p key={error?.message} className="text-danger text-meta">
           {error?.message}
         </p>
       ))}
@@ -496,8 +496,8 @@ function CampoData({ field, label, hint }: { field: AnyFieldApi; label: string; 
           <span
             className={
               idade < 0 || idade > 120
-                ? "absolute top-1/2 right-3 -translate-y-1/2 font-bold text-[11px] text-danger"
-                : "absolute top-1/2 right-3 -translate-y-1/2 font-bold text-[11px] text-muted-foreground"
+                ? "absolute top-1/2 right-3 -translate-y-1/2 font-bold text-danger text-meta"
+                : "absolute top-1/2 right-3 -translate-y-1/2 font-bold text-meta text-muted-foreground"
             }
           >
             {idade} anos
@@ -505,12 +505,12 @@ function CampoData({ field, label, hint }: { field: AnyFieldApi; label: string; 
         ) : null}
       </div>
       {completo && !iso ? (
-        <p className="text-[11px] text-danger">Esta data não existe no calendário.</p>
+        <p className="text-danger text-meta">Esta data não existe no calendário.</p>
       ) : hint ? (
-        <span className="text-[11px] text-muted-foreground">{hint}</span>
+        <span className="text-meta text-muted-foreground">{hint}</span>
       ) : null}
       {field.state.meta.errors.map((error: { message?: string } | undefined) => (
-        <p key={error?.message} className="text-[11px] text-danger">
+        <p key={error?.message} className="text-danger text-meta">
           {error?.message}
         </p>
       ))}

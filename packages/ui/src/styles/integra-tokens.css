@@ -103,10 +103,91 @@
   /* ---- Elevação: o mockup é plano. Separação vem do fundo azul. ---- */
   --ie-shadow-none: none;
   --ie-shadow-overlay: 0 12px 32px -12px oklch(0.25 0.03 247 / 0.18);
+
+  /* ---- Rampa tipográfica ----------------------------------------------
+   *
+   * Oito degraus, os mesmos do mockup aprovado — o que mudou foi o piso.
+   * A rampa original desenhava corpo de 13px, metadado de 11px e rótulo de
+   * 10px: fiel ao canvas, e pequena demais para quem lê com dificuldade, que
+   * é boa parte de quem usa isto (secretaria, famílias, professores no fim
+   * do dia).
+   *
+   * Aqui os degraus viram token justamente para existir **um** lugar onde
+   * subir o piso. Antes disso o tamanho estava cravado em 331 classes
+   * `text-[13px]` espalhadas pelas telas, e mudar a leitura do produto
+   * significaria reescrever 331 linhas e torcer para não esquecer nenhuma.
+   *
+   * Hierarquia por peso, não só por tamanho: no celular `corpo` e `linha`
+   * encostam em 16px de propósito. O que separa o título da linha do texto
+   * dela ali é o peso 800 contra 500 — esticar a rampa para manter dois
+   * tamanhos distintos empurraria o título para 18px e quebraria a lista.
+   */
+  --ie-text-rotulo: 0.6875rem; /* 11px — rótulo caixa-alta  */
+  --ie-text-meta: 0.75rem; /* 12px — metadado, legenda */
+  --ie-text-apoio: 0.8125rem; /* 13px — badge, chip       */
+  --ie-text-corpo: 0.875rem; /* 14px — corpo, navegação  */
+  --ie-text-linha: 0.9375rem; /* 15px — título de linha   */
+  --ie-text-card: 1rem; /* 16px — título de card    */
+
+  --ie-leading-rotulo: 1.4;
+  --ie-leading-meta: 1.45;
+  --ie-leading-apoio: 1.45;
+  --ie-leading-corpo: 1.55;
+  --ie-leading-linha: 1.4;
+  --ie-leading-card: 1.3;
+}
+
+/* No celular a rampa inteira sobe um degrau.
+ *
+ * Não é só conforto. `corpo` chega a 16px porque é o tamanho abaixo do qual
+ * o Safari do iPhone **dá zoom sozinho** ao focar um campo — e como `Input`,
+ * `Textarea` e o gatilho do `Select` usam este token, um campo de 14px faria
+ * a tela saltar a cada toque, que é o defeito que mais faz alguém desistir
+ * de preencher no celular.
+ *
+ * `48rem` é o mesmo ponto em que a barra lateral vira `Sheet` (`useIsMobile`
+ * usa 768px). Um segundo valor de corte aqui criaria uma faixa de larguras
+ * com a navegação de celular e a tipografia de desktop. */
+@media (width < 48rem) {
+  :root {
+    --ie-text-rotulo: 0.75rem; /* 12px */
+    --ie-text-meta: 0.8125rem; /* 13px */
+    --ie-text-apoio: 0.875rem; /* 14px */
+    --ie-text-corpo: 1rem; /* 16px */
+    --ie-text-linha: 1rem; /* 16px */
+    --ie-text-card: 1.125rem; /* 18px */
+  }
 }
 
 @theme inline {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Os degraus como utilitário: `text-corpo`, `text-meta`… O `inline` é o que
+   * faz a classe emitir `font-size: var(--ie-text-corpo)` em vez de congelar
+   * o valor — sem ele, a regra de celular acima não alcançaria nada. */
+  --text-rotulo: var(--ie-text-rotulo);
+  --text-rotulo--line-height: var(--ie-leading-rotulo);
+  --text-meta: var(--ie-text-meta);
+  --text-meta--line-height: var(--ie-leading-meta);
+  --text-apoio: var(--ie-text-apoio);
+  --text-apoio--line-height: var(--ie-leading-apoio);
+  --text-corpo: var(--ie-text-corpo);
+  --text-corpo--line-height: var(--ie-leading-corpo);
+  --text-linha: var(--ie-text-linha);
+  --text-linha--line-height: var(--ie-leading-linha);
+  --text-card: var(--ie-text-card);
+  --text-card--line-height: var(--ie-leading-card);
+
+  /* A escala do Tailwind aponta para os mesmos degraus. É o que faz os
+   * primitivos do shadcn — que escrevem `text-xs`/`text-sm`/`text-base` por
+   * conta própria e voltam a escrever a cada `shadcn add` — acompanharem a
+   * rampa sem precisar de remendo em cada arquivo. */
+  --text-xs: var(--ie-text-apoio);
+  --text-xs--line-height: var(--ie-leading-apoio);
+  --text-sm: var(--ie-text-linha);
+  --text-sm--line-height: var(--ie-leading-linha);
+  --text-base: var(--ie-text-card);
+  --text-base--line-height: var(--ie-leading-card);
   --radius-card: var(--ie-radius-card);
   --radius-shell: var(--ie-radius-shell);
   --radius-control: var(--ie-radius-control);

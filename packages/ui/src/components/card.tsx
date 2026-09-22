@@ -22,7 +22,13 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) rounded-card bg-card p-(--card-spacing) text-card-foreground [--card-spacing:--spacing(6)] data-[size=sm]:[--card-spacing:--spacing(4)]",
+        // `min-w-0` é o que impede o card de ser esticado por dentro. Como
+        // item de flex ou de grid ele nasce com `min-width: auto`, então uma
+        // tabela com `min-w-[34rem]` lá no fundo passava a ditar a largura do
+        // card — e, por ele, a da página: no celular o painel da direção
+        // arrastava 233px para o lado. Com isto, quem rola é a tabela, que é
+        // o que o `overflow-x-auto` dela sempre quis fazer.
+        "group/card flex min-w-0 flex-col gap-(--card-spacing) rounded-card bg-card p-(--card-spacing) text-card-foreground [--card-spacing:--spacing(6)] data-[size=sm]:[--card-spacing:--spacing(4)]",
         className,
       )}
       {...props}
@@ -58,7 +64,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-[13px] text-muted-foreground", className)}
+      className={cn("text-corpo text-muted-foreground", className)}
       {...props}
     />
   );
@@ -94,7 +100,7 @@ function CardEyebrow({ className, ...props }: React.ComponentProps<"span">) {
     <span
       data-slot="card-eyebrow"
       className={cn(
-        "font-bold text-[10px] text-muted-foreground uppercase tracking-[0.7px]",
+        "font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]",
         className,
       )}
       {...props}

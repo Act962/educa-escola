@@ -48,7 +48,7 @@ function Frequencia() {
         <div className="flex flex-col gap-1">
           <CardEyebrow>Direção</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Frequência</h1>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-corpo text-muted-foreground">
             Sobre as chamadas já registradas · mínimo legal de 75%
           </p>
         </div>
@@ -73,7 +73,7 @@ function MinhaFrequencia() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Frequência</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Minha frequência</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           {ficha.data?.classroomName ?? "Sem turma"} · matrícula {ficha.data?.registration ?? "—"}
         </p>
       </div>
@@ -91,7 +91,7 @@ function MinhaFrequencia() {
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
             <StatCard
               icon={ClipboardCheck}
               label="Frequência acumulada"
@@ -122,7 +122,7 @@ function MinhaFrequencia() {
               </ProgressValue>
             </Progress>
 
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-corpo text-muted-foreground">
               {frequencia.belowMinimum
                 ? "Sua frequência está abaixo dos 75% exigidos pela LDB (art. 24, VI). Procure a coordenação para entender as opções de reposição."
                 : "Sua frequência está acima do mínimo exigido pela LDB (art. 24, VI): 75% das aulas dadas."}{" "}

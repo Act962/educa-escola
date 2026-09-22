@@ -36,7 +36,7 @@ export function BarComparison({ rows, series, max = 10, className }: BarComparis
       <ul className="flex flex-col gap-4">
         {rows.map((row) => (
           <li key={row.label} className="grid grid-cols-[7rem_1fr_3rem] items-center gap-3">
-            <span className="truncate font-bold text-[13px]">{row.label}</span>
+            <span className="truncate font-bold text-corpo">{row.label}</span>
             {/* As barras são reforço visual. O conteúdo textual abaixo é o que
                 o leitor de tela anuncia — comprimento de div não se lê. */}
             <span className="flex flex-col gap-1.5" aria-hidden>
@@ -63,7 +63,7 @@ export function BarComparison({ rows, series, max = 10, className }: BarComparis
 
       <div className="grid grid-cols-[7rem_1fr_3rem] gap-3">
         <span />
-        <span className="flex justify-between font-bold text-[11px] text-muted-foreground">
+        <span className="flex justify-between font-bold text-meta text-muted-foreground">
           {TICKS.map((tick) => (
             <span key={tick}>{tick}</span>
           ))}
@@ -76,7 +76,7 @@ export function BarComparison({ rows, series, max = 10, className }: BarComparis
 
 export function ChartLegend({ series }: { series: [string, string] }) {
   return (
-    <span className="flex items-center gap-4 text-[11px] text-muted-foreground">
+    <span className="flex items-center gap-4 text-meta text-muted-foreground">
       <span className="flex items-center gap-1.5">
         <span className="size-2.5 rounded-full bg-chart-1" aria-hidden />
         {series[0]}

@@ -8,6 +8,8 @@ const evento = (over: Partial<EventoDoCalendario> & { id: string }): EventoDoCal
   dayEffect: "nenhum",
   startsOn: "2026-09-07",
   endsOn: "2026-09-07",
+  classroomId: null,
+  classroomName: null,
   ...over,
 });
 

@@ -131,7 +131,7 @@ function Alunos() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Alunos</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Alunos</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           {alunos.data ? `${inteiro(alunos.data.total)} matriculados` : "Carregando…"}
         </p>
       </div>
@@ -237,7 +237,7 @@ function Alunos() {
                         </Avatar>
                         <span className="flex flex-col">
                           <span className="font-extrabold">{aluno.name}</span>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-meta text-muted-foreground">
                             {aluno.registration}
                           </span>
                         </span>
@@ -275,7 +275,7 @@ function Alunos() {
 
         {total > 0 ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[13px] text-muted-foreground tabular-nums">
+            <p className="text-corpo text-muted-foreground tabular-nums">
               {primeiro}–{ultimo} de {inteiro(total)} alunos
             </p>
             <div className="flex items-center gap-2">
@@ -288,7 +288,7 @@ function Alunos() {
                 <ChevronLeft size={16} strokeWidth={1.7} aria-hidden />
                 Anterior
               </Button>
-              <span className="text-[13px] text-muted-foreground tabular-nums">
+              <span className="text-corpo text-muted-foreground tabular-nums">
                 {page + 1} / {paginas}
               </span>
               <Button

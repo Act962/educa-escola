@@ -52,7 +52,7 @@ export function DashboardAluno({ me }: { me: CurrentUser }) {
             <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
               {saudacao()}, {primeiroNome(me.name)}
             </h1>
-            <p className="max-w-xl text-[13px] text-muted-foreground">
+            <p className="max-w-xl text-corpo text-muted-foreground">
               {ficha.data
                 ? `Você está no ${ficha.data.classroomName ?? "aguardando turma"}, matrícula ${ficha.data.registration}.`
                 : "Carregando sua matrícula…"}{" "}
@@ -152,10 +152,10 @@ export function DashboardAluno({ me }: { me: CurrentUser }) {
                       </AvatarFallback>
                     </Avatar>
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate font-extrabold text-[13px]">
+                      <span className="truncate font-extrabold text-corpo">
                         {linha.subjectName}
                       </span>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-meta text-muted-foreground">
                         {linha.assessmentName} · peso {linha.weight}
                         {linha.appliedOn ? ` · ${shortDate(linha.appliedOn)}` : ""}
                       </span>
@@ -204,7 +204,7 @@ function AulasDoDia() {
 
   return (
     <>
-      <p className="-mt-2 text-[11px] text-muted-foreground">
+      <p className="-mt-2 text-meta text-muted-foreground">
         {agenda.data?.date ? longDate(agenda.data.date) : null}
       </p>
       <ul className="flex flex-col gap-2">
@@ -217,12 +217,12 @@ function AulasDoDia() {
             )}
           >
             <span className="flex w-12 flex-col text-center">
-              <span className="font-extrabold text-[13px]">{aula.startsAt}</span>
-              <span className="text-[11px] text-muted-foreground">{aula.endsAt}</span>
+              <span className="font-extrabold text-corpo">{aula.startsAt}</span>
+              <span className="text-meta text-muted-foreground">{aula.endsAt}</span>
             </span>
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate font-extrabold text-[13px]">{aula.subjectName}</span>
-              <span className="truncate text-[11px] text-muted-foreground">
+              <span className="truncate font-extrabold text-corpo">{aula.subjectName}</span>
+              <span className="truncate text-meta text-muted-foreground">
                 Prof. {aula.teacherName}
                 {aula.room ? ` · ${aula.room}` : ""}
               </span>

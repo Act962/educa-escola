@@ -48,7 +48,7 @@ function PlacarEntreEscolas() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Pontuação</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Placar entre escolas</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Comparação com outras instituições em {year}, se a escola quiser participar.
         </p>
       </div>
@@ -80,7 +80,7 @@ function PlacarEntreEscolas() {
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
             <StatCard icon={ClipboardCheck} label="Chamada no prazo" hint="de 0 a 100">
               {inteiro(situacao.indicadores.chamadaNoPrazo)}
             </StatCard>
@@ -95,7 +95,7 @@ function PlacarEntreEscolas() {
             </StatCard>
           </div>
 
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             São taxas, não totais: uma escola de 2.000 alunos e uma de 200 com o mesmo desempenho
             tiram a mesma nota. Somar pontos de pessoas faria o placar medir matrícula.
           </p>
@@ -105,7 +105,7 @@ function PlacarEntreEscolas() {
 
             {situacao.aderiu ? (
               <>
-                <p className="text-[13px]">
+                <p className="text-corpo">
                   A escola aparece no placar como{" "}
                   <strong className="font-bold">{situacao.displayName}</strong>.
                 </p>
@@ -130,7 +130,7 @@ function PlacarEntreEscolas() {
                     placeholder="Dom Pedro II"
                     maxLength={60}
                   />
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-meta text-muted-foreground">
                     Um nome curto: é o rótulo de uma linha. Não precisa ser a razão social.
                   </p>
                 </div>

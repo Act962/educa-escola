@@ -161,13 +161,13 @@ function FolhaDeChamada() {
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
             Chamada — {lesson.classroomName} · {lesson.subjectName}
           </h1>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-corpo text-muted-foreground">
             {lesson.startsAt}–{lesson.endsAt} · {longDate(lesson.date)}
             {lesson.room ? ` · ${lesson.room}` : ""}
           </p>
         </div>
 
-        <Badge variant="warning" className="gap-2 px-4 py-2.5 text-[13px]">
+        <Badge variant="warning" className="gap-2 px-4 py-2.5 text-corpo">
           <Clock strokeWidth={1.7} aria-hidden />
           Prazo para registrar: {deadline.slice(-5)} de {shortDate(lesson.date)}
         </Badge>
@@ -227,7 +227,7 @@ function FolhaDeChamada() {
                     </Avatar>
                     <span className="flex min-w-0 flex-col">
                       <span className="truncate font-extrabold text-sm">{linha.name}</span>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-meta text-muted-foreground">
                         Matrícula {linha.registration} ·{" "}
                         {linha.absencesInTerm === 0
                           ? "sem faltas"
@@ -259,21 +259,21 @@ function FolhaDeChamada() {
                 <p className="font-extrabold text-2xl text-success tabular-nums">
                   {contagem.presente}
                 </p>
-                <p className="font-bold text-[11px] text-success">Presentes</p>
+                <p className="font-bold text-meta text-success">Presentes</p>
               </div>
               <div className="rounded-field bg-danger-soft p-3 text-center">
                 <p className="font-extrabold text-2xl text-danger tabular-nums">{contagem.falta}</p>
-                <p className="font-bold text-[11px] text-danger">Faltas</p>
+                <p className="font-bold text-danger text-meta">Faltas</p>
               </div>
               <div className="rounded-field bg-warning-soft p-3 text-center">
                 <p className="font-extrabold text-2xl text-warning tabular-nums">
                   {contagem.atraso}
                 </p>
-                <p className="font-bold text-[11px] text-warning">Atrasos</p>
+                <p className="font-bold text-meta text-warning">Atrasos</p>
               </div>
             </div>
 
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-corpo text-muted-foreground">
               Frequência da aula:{" "}
               <strong className="text-foreground">{percentual(frequencia)}</strong> —{" "}
               {contagem.presente + contagem.atraso} de {totalAlunos}. Atrasos contam como presença.
@@ -340,7 +340,7 @@ function FolhaDeChamada() {
               </p>
             ) : null}
 
-            <p className="text-center text-[11px] text-muted-foreground">
+            <p className="text-center text-meta text-muted-foreground">
               Você pode editar até o fim do dia da aula. Depois disso, a alteração exige
               justificativa.
             </p>

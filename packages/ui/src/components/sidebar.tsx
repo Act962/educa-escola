@@ -397,7 +397,7 @@ function SidebarGroupLabel({
     props: mergeProps<"div">(
       {
         className: cn(
-          "flex h-6 shrink-0 items-center px-3 font-bold text-[10px] text-muted-foreground uppercase tracking-[0.7px] outline-hidden transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-6 group-data-[collapsible=icon]:opacity-0 [&>svg]:size-4 [&>svg]:shrink-0",
+          "flex h-6 shrink-0 items-center px-3 font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px] outline-hidden transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-6 group-data-[collapsible=icon]:opacity-0 [&>svg]:size-4 [&>svg]:shrink-0",
           className,
         ),
       },
@@ -469,7 +469,7 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-control px-3 text-left font-semibold text-[13px] outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 active:bg-sidebar-accent disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 data-active:bg-sidebar-primary data-active:font-bold data-active:text-sidebar-primary-foreground data-open:hover:bg-sidebar-accent group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0! [&>span:last-child]:truncate group-data-[collapsible=icon]:[&>span:last-child]:hidden [&_svg]:size-[18px] [&_svg]:shrink-0",
+  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-control px-3 text-left font-semibold text-corpo outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 active:bg-sidebar-accent disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 data-active:bg-sidebar-primary data-active:font-bold data-active:text-sidebar-primary-foreground data-open:hover:bg-sidebar-accent group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0! [&>span:last-child]:truncate group-data-[collapsible=icon]:[&>span:last-child]:hidden [&_svg]:size-[18px] [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -580,7 +580,7 @@ function SidebarMenuBadge({ className, ...props }: React.ComponentProps<"div">) 
       data-slot="sidebar-menu-badge"
       data-sidebar="menu-badge"
       className={cn(
-        "pointer-events-none absolute right-2 flex h-5 min-w-5 select-none items-center justify-center rounded-full bg-danger-soft px-1.5 font-bold text-[11px] text-danger tabular-nums peer-hover/menu-button:text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1 peer-data-active/menu-button:text-sidebar-accent-foreground",
+        "pointer-events-none absolute right-2 flex h-5 min-w-5 select-none items-center justify-center rounded-full bg-danger-soft px-1.5 font-bold text-danger text-meta tabular-nums peer-hover/menu-button:text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1 peer-data-active/menu-button:text-sidebar-accent-foreground",
         className,
       )}
       {...props}

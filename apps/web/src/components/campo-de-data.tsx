@@ -84,7 +84,7 @@ export function CampoDeData({
         />
         {idade !== null ? (
           <span
-            className={`absolute top-1/2 right-3 -translate-y-1/2 font-bold text-[11px] ${
+            className={`absolute top-1/2 right-3 -translate-y-1/2 font-bold text-meta ${
               idade < 0 || idade > 120 ? "text-danger" : "text-muted-foreground"
             }`}
           >
@@ -96,13 +96,13 @@ export function CampoDeData({
       {/* A data impossível é avisada na hora, não no envio: 31/02 digitado
           agora e recusado três campos depois faz a pessoa procurar o erro. */}
       {completo && !iso ? (
-        <p className="text-[11px] text-danger">Esta data não existe no calendário.</p>
+        <p className="text-danger text-meta">Esta data não existe no calendário.</p>
       ) : foraDoIntervalo ? (
-        <p className="text-[11px] text-danger">
+        <p className="text-danger text-meta">
           Use uma data entre {isoParaData(min ?? "")} e {isoParaData(max ?? "")}.
         </p>
       ) : hint ? (
-        <span className="text-[11px] text-muted-foreground">{hint}</span>
+        <span className="text-meta text-muted-foreground">{hint}</span>
       ) : null}
     </div>
   );

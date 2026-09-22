@@ -11,8 +11,10 @@ import { lessonRouter } from "../modules/lesson/router";
 import { orbitaRouter } from "../modules/orbita/router";
 import { overviewRouter } from "../modules/overview/router";
 import { photoRouter } from "../modules/photo/router";
+import { profileRouter } from "../modules/profile/router";
 import { reportRouter } from "../modules/report/router";
 import { scoreRouter } from "../modules/score/router";
+import { settingsRouter } from "../modules/settings/router";
 import { studentRouter } from "../modules/student/router";
 import { teacherRouter } from "../modules/teacher/router";
 
@@ -63,6 +65,13 @@ export const appRouter = router({
   /** Apps do ecossistema Órbita. O dado deles mora lá; aqui, o vínculo. */
   orbita: orbitaRouter,
   score: scoreRouter,
+  /**
+   * "Meu perfil": só leitura, e só de quem pede. As escritas de identidade
+   * (nome, senha, sessões) são do Better Auth e a tela as chama direto.
+   */
+  profile: profileRouter,
+  /** Configurações da instituição. Fechado atrás de `organization: update`. */
+  settings: settingsRouter,
 });
 
 export type AppRouter = typeof appRouter;

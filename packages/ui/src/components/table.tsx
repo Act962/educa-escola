@@ -13,10 +13,17 @@ import type * as React from "react";
  */
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    /*
+     * `min-w-0` não é enfeite: sem ele o `overflow-x-auto` nunca entra em
+     * ação. Filho de flex ou de grid nasce com `min-width: auto`, então o
+     * contêiner se recusa a ficar menor que a tabela, cresce junto com ela e
+     * quem rola de lado é a **página** — no celular, toda tela com tabela
+     * passava a arrastar na horizontal.
+     */
+    <div data-slot="table-container" className="relative w-full min-w-0 overflow-x-auto">
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom border-collapse text-[13px]", className)}
+        className={cn("w-full caption-bottom border-collapse text-corpo", className)}
         {...props}
       />
     </div>
@@ -59,7 +66,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "whitespace-nowrap px-3 pb-2 text-left align-middle font-bold text-[10px] text-muted-foreground uppercase tracking-[0.7px]",
+        "whitespace-nowrap px-3 pb-2 text-left align-middle font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]",
         className,
       )}
       {...props}
@@ -77,7 +84,7 @@ function TableCaption({ className, ...props }: React.ComponentProps<"caption">) 
   return (
     <caption
       data-slot="table-caption"
-      className={cn("mt-4 text-[11px] text-muted-foreground", className)}
+      className={cn("mt-4 text-meta text-muted-foreground", className)}
       {...props}
     />
   );

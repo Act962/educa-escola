@@ -198,7 +198,7 @@ function AppEmbutido() {
       <div>
         <Link
           to="/apps"
-          className="flex w-fit items-center gap-1.5 font-bold text-[11px] text-muted-foreground"
+          className="flex w-fit items-center gap-1.5 font-bold text-meta text-muted-foreground"
         >
           <ChevronLeft size={16} strokeWidth={1.7} aria-hidden />
           Apps
@@ -210,7 +210,7 @@ function AppEmbutido() {
           <div className="flex items-center gap-3">
             <Icone size={18} strokeWidth={1.7} aria-hidden />
             <h1 className="font-extrabold text-sm">{app.nome}</h1>
-            <span className="text-[11px] text-muted-foreground">{app.resumo}</span>
+            <span className="text-meta text-muted-foreground">{app.resumo}</span>
             {/* Dizer de onde vem o conteúdo: no dia em que quebrar, é o que
                 faz a pessoa procurar o suporte certo. */}
             <Badge variant="secondary">Órbita</Badge>
@@ -218,7 +218,7 @@ function AppEmbutido() {
           <Button
             variant="secondary"
             size="sm"
-            className="min-h-8 px-3 text-[11px]"
+            className="min-h-8 px-3 text-meta"
             onClick={emNovaAba}
           >
             <ExternalLink size={14} strokeWidth={1.8} aria-hidden />
@@ -333,7 +333,7 @@ function AppEmbutido() {
           proxy reverso servindo o Órbita sob o domínio do Integra · abrir
           sempre em aba nova para os apps que não embutirem.
       */}
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-meta text-muted-foreground">
         O conteúdo desta aba é do Órbita. Dados, histórico e suporte deste app ficam lá — o Integra
         só o mostra por dentro. Se a área acima ficar em branco, este app não abre embutido: use
         “Abrir em nova aba”.

@@ -111,7 +111,7 @@ function Apps() {
         <div>
           <CardEyebrow>Ecossistema Órbita</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Apps</h1>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-corpo text-muted-foreground">
             {dados.installedCount === 0
               ? `${APPS_ORBITA.length} apps disponíveis para a escola`
               : `${inteiro(dados.installedCount)} instalados · ${inteiro(APPS_ORBITA.length - dados.installedCount)} disponíveis`}
@@ -151,7 +151,7 @@ function Apps() {
         ))}
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-meta text-muted-foreground">
         Os valores vêm do catálogo do Órbita e podem mudar lá sem alteração aqui. O que a escola
         pagou fica gravado no momento da instalação — o histórico precisa dizer o preço do dia, não
         o de hoje.
@@ -166,8 +166,8 @@ function Saldo({ balance }: { balance: Panorama["balance"] }) {
       <div className="flex items-center gap-3 rounded-card bg-card px-5 py-4">
         <Star size={18} strokeWidth={1.7} className="text-muted-foreground" aria-hidden />
         <div>
-          <div className="font-bold text-[13px]">Saldo indisponível</div>
-          <div className="text-[11px] text-muted-foreground">Conecte a escola ao Órbita</div>
+          <div className="font-bold text-corpo">Saldo indisponível</div>
+          <div className="text-meta text-muted-foreground">Conecte a escola ao Órbita</div>
         </div>
       </div>
     );
@@ -217,7 +217,7 @@ function Conectar() {
         </span>
         <div className="flex-1">
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Conecte a escola ao Órbita</h2>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <p className="mt-1 text-corpo text-muted-foreground">
             Os apps rodam na conta da escola no Órbita, e é dela que as Stars saem. A conexão é
             feita uma vez, pela direção.
           </p>
@@ -252,7 +252,7 @@ function Conectar() {
         Alternativas: provisionamento por chamada, no ato · login único, em que
           conectar é autorizar e o id vem do próprio fluxo.
       */}
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-meta text-muted-foreground">
         Por enquanto o identificador é informado à mão. O provisionamento automático depende de uma
         porta do lado do Órbita que ainda não existe.
       </p>
@@ -301,14 +301,14 @@ function CardApp({
         </span>
         <div className="min-w-0">
           <h3 className="font-extrabold text-sm leading-tight">{app.nome}</h3>
-          <p className="text-[11px] text-muted-foreground">{app.resumo}</p>
+          <p className="text-meta text-muted-foreground">{app.resumo}</p>
         </div>
       </div>
 
-      <p className="flex-1 text-[11.5px] text-muted-foreground leading-relaxed">{app.descricao}</p>
+      <p className="flex-1 text-meta text-muted-foreground leading-relaxed">{app.descricao}</p>
 
       {falhou && estado?.lastError ? (
-        <p className="text-[11px] text-danger">{estado.lastError}</p>
+        <p className="text-danger text-meta">{estado.lastError}</p>
       ) : null}
 
       {instalado || instalando ? (
@@ -317,13 +317,13 @@ function CardApp({
             {instalando ? "Instalando…" : "Instalado"}
           </Badge>
           {instalando ? (
-            <Button size="sm" disabled className="min-h-8 px-3 text-[11px]">
+            <Button size="sm" disabled className="min-h-8 px-3 text-meta">
               Aguarde
             </Button>
           ) : (
             <Button
               size="sm"
-              className="min-h-8 px-3 text-[11px]"
+              className="min-h-8 px-3 text-meta"
               // O alvo é uma navegação, então o elemento é um link de
               // verdade. `nativeButton={false}` diz isso ao Base UI: sem
               // ele o primitivo espera um <button> e reclama em tempo de
@@ -356,7 +356,7 @@ function CardApp({
           <Button
             size="sm"
             variant={falhou ? "warning" : "secondary"}
-            className="min-h-8 px-3 text-[11px]"
+            className="min-h-8 px-3 text-meta"
             disabled={!conectada || !estado || !estado.affordable}
             onClick={() => estado && onInstalar(estado)}
           >
@@ -370,7 +370,7 @@ function CardApp({
 
 function Custo({ estado }: { estado: AppState | undefined }) {
   if (!estado?.cost) {
-    return <span className="text-[11px] text-muted-foreground">Preço indisponível</span>;
+    return <span className="text-meta text-muted-foreground">Preço indisponível</span>;
   }
 
   const { setupCost, monthlyCost, unitLabel } = estado.cost;
@@ -378,12 +378,12 @@ function Custo({ estado }: { estado: AppState | undefined }) {
 
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="font-bold text-[11px] text-secondary-foreground">
+      <span className="font-bold text-meta text-secondary-foreground">
         <span className="text-warning">★</span>{" "}
         {setupCost === 0 ? "sem ativação" : `${setupCost} na ativação`} · {recorrente}
       </span>
       {!estado.affordable ? (
-        <span className="font-bold text-[11px] text-danger">Saldo não cobre a ativação</span>
+        <span className="font-bold text-danger text-meta">Saldo não cobre a ativação</span>
       ) : null}
     </div>
   );
@@ -428,7 +428,7 @@ function Confirmacao({
       <div>
         <CardEyebrow>Instalar</CardEyebrow>
         <h2 className="font-extrabold text-base tracking-[-0.2px]">{app?.nome ?? estado.appKey}</h2>
-        <p className="text-[13px] text-muted-foreground">{app?.descricao}</p>
+        <p className="text-corpo text-muted-foreground">{app?.descricao}</p>
       </div>
 
       <dl className="flex flex-col gap-0 rounded-card bg-muted px-4">
@@ -475,7 +475,7 @@ function Confirmacao({
 function Linha({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 border-border border-b py-3 last:border-b-0">
-      <dt className="text-[11px] text-muted-foreground">{rotulo}</dt>
+      <dt className="text-meta text-muted-foreground">{rotulo}</dt>
       <dd className="font-extrabold text-sm tabular-nums">{children}</dd>
     </div>
   );

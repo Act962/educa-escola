@@ -41,7 +41,7 @@ function AppLayout() {
   if (me.isLoading) {
     return (
       <div className="grid min-h-svh place-items-center bg-background">
-        <p className="text-[13px] text-muted-foreground">Carregando sua escola…</p>
+        <p className="text-corpo text-muted-foreground">Carregando sua escola…</p>
       </div>
     );
   }

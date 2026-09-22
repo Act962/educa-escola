@@ -45,7 +45,7 @@ function Relatorios() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Instituição</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Relatórios de {year}</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-corpo text-muted-foreground">
           Indicadores-chave da escola e exportação para a secretaria.
         </p>
       </div>
@@ -81,14 +81,14 @@ function Relatorios() {
                 key={indicador.chave}
                 className="flex flex-wrap items-baseline gap-3 border-border border-t py-3 first:border-t-0"
               >
-                <span className="min-w-52 font-bold text-[13px]">{indicador.rotulo}</span>
+                <span className="min-w-52 font-bold text-corpo">{indicador.rotulo}</span>
                 <span className="font-extrabold text-xl">
                   {indicador.formato === "percentual"
                     ? percentual(indicador.valor)
                     : inteiro(indicador.valor ?? 0)}
                 </span>
                 {/* A fórmula fica na tela: número sem fórmula é fé. */}
-                <span className="text-[11px] text-muted-foreground">{indicador.formula}</span>
+                <span className="text-meta text-muted-foreground">{indicador.formula}</span>
               </li>
             ))}
           </ul>
@@ -98,7 +98,7 @@ function Relatorios() {
       {pendentes.length > 0 ? (
         <Card className="flex flex-col gap-3">
           <CardEyebrow>O que ainda não dá para medir</CardEyebrow>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-corpo text-muted-foreground">
             Estes indicadores estão no requisito (§15.4) e dependem de coisa que ainda não existe.
             Aparecem aqui em vez de sumirem — e em vez de virarem zero, que seria mentira.
           </p>
@@ -110,10 +110,10 @@ function Relatorios() {
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <Info size={14} strokeWidth={1.8} aria-hidden className="text-muted-foreground" />
-                  <span className="font-bold text-[13px]">{indicador.rotulo}</span>
+                  <span className="font-bold text-corpo">{indicador.rotulo}</span>
                   <Badge variant="secondary">sem dado</Badge>
                 </div>
-                <p className="text-[11px] text-muted-foreground">{indicador.indisponivel}</p>
+                <p className="text-meta text-muted-foreground">{indicador.indisponivel}</p>
               </li>
             ))}
           </ul>
@@ -133,8 +133,8 @@ function Relatorios() {
                 className="flex flex-wrap items-center gap-3 border-border border-t py-3 first:border-t-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-[13px]">{relatorio.titulo}</p>
-                  <p className="text-[11px] text-muted-foreground">{relatorio.descricao}</p>
+                  <p className="font-bold text-corpo">{relatorio.titulo}</p>
+                  <p className="text-meta text-muted-foreground">{relatorio.descricao}</p>
                 </div>
                 <Button
                   variant="secondary"
@@ -157,7 +157,7 @@ function Relatorios() {
           </Alert>
         ) : null}
 
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           O arquivo sai com ponto e vírgula e acentuação para o Excel em português. Quem abre é a
           secretaria, não um script.
         </p>

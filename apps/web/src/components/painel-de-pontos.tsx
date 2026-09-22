@@ -54,7 +54,7 @@ export function ResumoDePontos({
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline gap-3">
         <span className="font-extrabold text-4xl tracking-[-1px]">{inteiro(dados.pontos)}</span>
-        <span className="text-[13px] text-muted-foreground">pontos em {ano}</span>
+        <span className="text-corpo text-muted-foreground">pontos em {ano}</span>
         <Badge variant="info" className="ml-auto">
           <Sparkles size={14} strokeWidth={1.8} aria-hidden />
           {dados.nivel.nome}
@@ -102,7 +102,7 @@ export function ExtratoDePontos({ dados }: { dados: PontosDoSujeito }) {
         {dados.extrato.map((linha) => (
           <li
             key={linha.id}
-            className="flex items-center justify-between gap-4 border-border border-t py-2.5 text-[13px] first:border-t-0"
+            className="flex items-center justify-between gap-4 border-border border-t py-2.5 text-corpo first:border-t-0"
           >
             <span className="min-w-0">
               {linha.label}

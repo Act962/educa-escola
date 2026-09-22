@@ -3,6 +3,7 @@ import {
   EFEITO_SUGERIDO,
   EVENT_TYPE_LABEL,
   EVENT_TYPES,
+  type EventScope,
   type EventType,
 } from "@educa-escola/api/modules/calendar/schema";
 import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components/alert";
@@ -28,6 +29,7 @@ import { EmptyState } from "@educa-escola/ui/integra/states";
 import { Check, Pencil, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { alvoDe, CampoDeAlvo, type Turma } from "@/components/campo-de-alvo";
 import { CampoDeData } from "@/components/campo-de-data";
 
 export interface EventoDoDia {
@@ -38,6 +40,9 @@ export interface EventoDoDia {
   dayEffect: string;
   startsOn: string;
   endsOn: string;
+  /** `null` quando o evento é da escola inteira. */
+  classroomId: string | null;
+  classroomName: string | null;
 }
 
 const EFEITO_LABEL = {
@@ -58,6 +63,8 @@ export function PainelDoDia({
   dia,
   intencao,
   eventos,
+  turmas,
+  turmaPadrao,
   aberto,
   aoFechar,
   aoCriar,
@@ -70,6 +77,9 @@ export function PainelDoDia({
   dia: string | null;
   intencao: "ver" | "criar";
   eventos: EventoDoDia[];
+  turmas: Turma[];
+  /** Turma já escolhida no filtro da tela. `null` é a escola inteira. */
+  turmaPadrao: string | null;
   aberto: boolean;
   aoFechar: () => void;
   aoCriar: (dados: {
@@ -78,6 +88,8 @@ export function PainelDoDia({
     title: string;
     startsOn: string;
     endsOn?: string;
+    scope: EventScope;
+    classroomId?: string;
   }) => void;
   aoApagar: (id: string) => void;
   aoEditar: (dados: {
@@ -87,6 +99,8 @@ export function PainelDoDia({
     title: string;
     startsOn: string;
     endsOn?: string;
+    scope: EventScope;
+    classroomId?: string;
   }) => void;
   ocupado: boolean;
   erro: string | null;
@@ -94,22 +108,27 @@ export function PainelDoDia({
   const [tipo, setTipo] = useState<EventType>("evento");
   const [titulo, setTitulo] = useState("");
   const [fim, setFim] = useState("");
+  const [turmaId, setTurmaId] = useState<string | null>(turmaPadrao);
   const campoTitulo = useRef<HTMLInputElement>(null);
   const [editando, setEditando] = useState<{
     id: string;
     title: string;
     type: EventType;
     endsOn: string;
+    turmaId: string | null;
   } | null>(null);
 
   // Cada dia começa com o formulário limpo: reaproveitar o que sobrou do dia
-  // anterior faria a pessoa criar "Reunião de pais" na data errada.
+  // anterior faria a pessoa criar "Reunião de pais" na data errada. O alvo é a
+  // exceção: ele volta ao filtro da tela, que é o contexto em que a pessoa
+  // está olhando — não ao padrão do componente.
   useEffect(() => {
     setTitulo("");
     setFim("");
     setTipo("evento");
+    setTurmaId(turmaPadrao);
     setEditando(null);
-  }, [dia]);
+  }, [dia, turmaPadrao]);
 
   const tipos = EVENT_TYPES.map((t) => ({ label: EVENT_TYPE_LABEL[t], value: t }));
 
@@ -175,6 +194,14 @@ export function PainelDoDia({
                           ))}
                         </SelectContent>
                       </Select>
+                      {turmas.length > 0 ? (
+                        <CampoDeAlvo
+                          id={`alvo-${evento.id}`}
+                          turmas={turmas}
+                          valor={editando.turmaId}
+                          aoMudar={(id) => setEditando({ ...editando, turmaId: id })}
+                        />
+                      ) : null}
                       <CampoDeData
                         id={`fim-${evento.id}`}
                         label="Termina em"
@@ -196,6 +223,7 @@ export function PainelDoDia({
                               title: editando.title,
                               startsOn: evento.startsOn,
                               endsOn: editando.endsOn || undefined,
+                              ...alvoDe(editando.turmaId),
                             });
                             setEditando(null);
                           }}
@@ -211,7 +239,12 @@ export function PainelDoDia({
                     </div>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="min-w-0 flex-1 font-bold text-[13px]">{evento.title}</span>
+                      <span className="min-w-0 flex-1 font-bold text-corpo">{evento.title}</span>
+                      {/* Sem isto, o conselho do 9º C e o feriado nacional
+                          seriam duas linhas iguais dentro do mesmo dia. */}
+                      {evento.classroomName ? (
+                        <Badge variant="info">{evento.classroomName}</Badge>
+                      ) : null}
                       <Badge variant="secondary">
                         {EVENT_TYPE_LABEL[evento.type as EventType] ?? evento.type}
                       </Badge>
@@ -225,6 +258,7 @@ export function PainelDoDia({
                             title: evento.title,
                             type: evento.type as EventType,
                             endsOn: evento.endsOn === evento.startsOn ? "" : evento.endsOn,
+                            turmaId: evento.classroomId,
                           })
                         }
                         disabled={ocupado}
@@ -244,7 +278,7 @@ export function PainelDoDia({
                   )}
 
                   {evento.endsOn !== evento.startsOn ? (
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-meta text-muted-foreground">
                       De {longDate(evento.startsOn)} a {longDate(evento.endsOn)}
                     </p>
                   ) : null}
@@ -261,7 +295,7 @@ export function PainelDoDia({
                   {/* A origem é o que o calendário brasileiro deixou: a lei
                       que cria o feriado, ou a nota de quem marcou. */}
                   {evento.description ? (
-                    <p className="text-[11px] text-muted-foreground">{evento.description}</p>
+                    <p className="text-meta text-muted-foreground">{evento.description}</p>
                   ) : null}
                 </li>
               ))}
@@ -270,7 +304,7 @@ export function PainelDoDia({
         </div>
 
         <div className="mt-6 flex flex-col gap-3 border-border border-t pt-5">
-          <p className="font-bold text-[11px] text-muted-foreground uppercase tracking-wide">
+          <p className="font-bold text-meta text-muted-foreground uppercase tracking-wide">
             Marcar neste dia
           </p>
 
@@ -306,6 +340,10 @@ export function PainelDoDia({
             </Select>
           </div>
 
+          {turmas.length > 0 ? (
+            <CampoDeAlvo id="alvo-do-dia" turmas={turmas} valor={turmaId} aoMudar={setTurmaId} />
+          ) : null}
+
           <CampoDeData
             id="fim-do-dia"
             label="Termina em (opcional)"
@@ -324,6 +362,7 @@ export function PainelDoDia({
                 title: titulo,
                 startsOn: dia,
                 endsOn: fim || undefined,
+                ...alvoDe(turmaId),
               })
             }
             disabled={ocupado || titulo.trim().length < 2 || !dia}
@@ -332,7 +371,7 @@ export function PainelDoDia({
             {ocupado ? "Salvando…" : "Marcar"}
           </Button>
 
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             {EVENT_TYPE_LABEL[tipo]} entra como “{EFEITO_LABEL[EFEITO_SUGERIDO[tipo]].toLowerCase()}
             ”.
           </p>

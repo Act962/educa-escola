@@ -165,7 +165,7 @@ function Conferencia({
         <div>
           <CardEyebrow>Matrícula {ano || ""}</CardEyebrow>
           <h1 className="mt-1 font-extrabold text-lg tracking-[-0.3px]">Confirme para continuar</h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <p className="mt-1 text-corpo text-muted-foreground">
             Para proteger os dados do aluno, informe a data de nascimento dele.
           </p>
         </div>
@@ -188,7 +188,7 @@ function Conferencia({
               value={birthDate}
               onChange={(event) => setBirthDate(event.target.value)}
             />
-            {erro ? <p className="text-[11px] text-danger">{erro}</p> : null}
+            {erro ? <p className="text-danger text-meta">{erro}</p> : null}
           </div>
 
           <Button type="submit" size="lg" disabled={conferir.isPending || !birthDate}>
@@ -196,7 +196,7 @@ function Conferencia({
           </Button>
         </form>
 
-        <p className="text-center text-[11px] text-muted-foreground">
+        <p className="text-center text-meta text-muted-foreground">
           Não sabe informar? Fale com a secretaria da escola.
         </p>
       </Card>
@@ -246,7 +246,7 @@ function Formulario({
 
         <div>
           <h1 className="font-extrabold text-lg tracking-[-0.3px]">{ficha.student.name}</h1>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-corpo text-muted-foreground">
             Matrícula {ficha.academicYear} · corrija o que estiver desatualizado.
           </p>
         </div>
@@ -371,18 +371,18 @@ function Formulario({
               onChange={(e) => setAceitoPor(e.target.value)}
               required
             />
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-meta text-muted-foreground">
               Fica registrado junto com o aceite.
             </span>
           </div>
 
-          {erro ? <p className="text-[11px] text-danger">{erro}</p> : null}
+          {erro ? <p className="text-danger text-meta">{erro}</p> : null}
 
           <Button type="submit" size="lg" disabled={enviar.isPending || !termos}>
             {enviar.isPending ? "Enviando…" : "Confirmar meus dados"}
           </Button>
           {!termos ? (
-            <p className="text-center text-[11px] text-muted-foreground">
+            <p className="text-center text-meta text-muted-foreground">
               É preciso aceitar os termos da matrícula para enviar.
             </p>
           ) : null}
@@ -413,9 +413,9 @@ function Comprovante({
         <div className="rounded-card bg-muted p-4 text-center">
           <CardEyebrow>Protocolo</CardEyebrow>
           <p className="mt-1 font-extrabold text-lg tabular-nums tracking-[0.5px]">{protocolo}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">{dataHora(quando)}</p>
+          <p className="mt-1 text-meta text-muted-foreground">{dataHora(quando)}</p>
         </div>
-        <p className="text-center text-[11px] text-muted-foreground">
+        <p className="text-center text-meta text-muted-foreground">
           Guarde este número. Ele identifica seu envio se precisar falar com a escola.
         </p>
       </Card>
@@ -505,7 +505,7 @@ function Estado({
         {icone}
       </span>
       <h1 className="font-extrabold text-base">{titulo}</h1>
-      <p className="max-w-xs text-[12px] text-muted-foreground leading-relaxed">{descricao}</p>
+      <p className="max-w-xs text-apoio text-muted-foreground leading-relaxed">{descricao}</p>
     </div>
   );
 }
@@ -532,8 +532,8 @@ function Consentimento({
         className="mt-0.5"
       />
       <Label htmlFor={id} className="flex flex-col items-start gap-0.5 font-normal">
-        <span className="font-bold text-[12px]">{titulo}</span>
-        <span className="text-[11px] text-muted-foreground">{detalhe}</span>
+        <span className="font-bold text-apoio">{titulo}</span>
+        <span className="text-meta text-muted-foreground">{detalhe}</span>
       </Label>
     </div>
   );
@@ -549,7 +549,7 @@ function Casca({ children, escola }: { children: React.ReactNode; escola?: strin
           <span className="font-extrabold text-base tracking-[-0.3px]">
             Integra<span className="text-primary">Edu</span>
           </span>
-          {escola ? <span className="text-[11px] text-muted-foreground">{escola}</span> : null}
+          {escola ? <span className="text-meta text-muted-foreground">{escola}</span> : null}
         </div>
         {children}
       </div>

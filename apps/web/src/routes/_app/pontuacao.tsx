@@ -53,7 +53,7 @@ function Pontuacao() {
         <div className="flex flex-col gap-1">
           <CardEyebrow>Pontuação</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Placar de {year}</h1>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-corpo text-muted-foreground">
             Presença e evolução dos alunos; registro no prazo dos professores.
           </p>
         </div>
@@ -166,7 +166,7 @@ function Pontuacao() {
             </TableBody>
           </Table>
         )}
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           Apoio pedagógico, não avaliação de desempenho: todos os pontos são por registrar no prazo,
           e nenhum olha para a nota ou a frequência da turma.
         </p>

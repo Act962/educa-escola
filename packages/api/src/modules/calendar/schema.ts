@@ -15,6 +15,24 @@ export const EVENT_TYPES = [
 export const DAY_EFFECTS = ["nenhum", "nao_letivo", "letivo_extra"] as const;
 export const SCOPES = ["institucional", "segmento", "turma"] as const;
 
+/**
+ * Os escopos que a tela oferece hoje: a escola inteira, ou uma turma.
+ *
+ * `segmento` existe na coluna (§9.1) e fica de fora de propósito. Ele
+ * dependeria de `classroom.stage`, que é nulável e está vazio na maior parte
+ * das turmas — um evento "de segmento" simplesmente não alcançaria as turmas
+ * sem série preenchida, e ninguém veria o buraco. Quando a turma tiver
+ * segmento de verdade, é uma opção a mais neste array.
+ */
+export const EVENT_SCOPES = ["institucional", "turma"] as const;
+
+export type EventScope = (typeof EVENT_SCOPES)[number];
+
+export const EVENT_SCOPE_LABEL: Record<EventScope, string> = {
+  institucional: "Toda a escola",
+  turma: "Uma turma",
+};
+
 export type EventType = (typeof EVENT_TYPES)[number];
 export type DayEffect = (typeof DAY_EFFECTS)[number];
 
@@ -55,6 +73,19 @@ export const academicYear = z.number().int().min(2000).max(2100);
 
 export const calendarYearInput = z.object({ academicYear });
 
+/**
+ * A visão do ano, opcionalmente recortada por turma.
+ *
+ * Separada de `calendarYearInput` de propósito: `sugestoes` e `importar` usam
+ * aquela, e o calendário brasileiro não tem turma — deixar o campo visível ali
+ * seria oferecer um filtro que a procedure ignora.
+ */
+export const calendarViewInput = z.object({
+  academicYear,
+  /** `undefined` mostra o ano inteiro; um id recorta para a turma. */
+  classroomId: z.string().min(1).optional(),
+});
+
 export const defineYearInput = z
   .object({
     academicYear,
@@ -67,6 +98,26 @@ export const defineYearInput = z
     path: ["endsOn"],
   });
 
+/**
+ * A quem o evento pertence.
+ *
+ * As duas colunas andam juntas ou o dado fica sem sentido: evento de turma sem
+ * `classroomId` não alcança ninguém, e evento institucional *com* turma mente
+ * sobre o próprio alcance — some da tela quando a secretaria filtra por outra
+ * turma, embora valha para a escola toda. Por isso a checagem é do par, e não
+ * de cada campo.
+ */
+const alvoDoEvento = {
+  scope: z.enum(EVENT_SCOPES).default("institucional"),
+  classroomId: z.string().min(1).nullable().optional(),
+};
+
+function alvoCoerente(v: { scope: EventScope; classroomId?: string | null }) {
+  return v.scope === "turma" ? Boolean(v.classroomId) : !v.classroomId;
+}
+
+const MENSAGEM_DO_ALVO = "Escolha a turma do evento, ou marque-o para a escola inteira.";
+
 export const createEventInput = z
   .object({
     academicYear,
@@ -76,11 +127,13 @@ export const createEventInput = z
     description: z.string().trim().max(500).optional(),
     startsOn: dataCivil,
     endsOn: dataCivil.optional(),
+    ...alvoDoEvento,
   })
   .refine((v) => !v.endsOn || v.startsOn <= v.endsOn, {
     message: "O fim do evento não pode ser antes do início",
     path: ["endsOn"],
-  });
+  })
+  .refine(alvoCoerente, { message: MENSAGEM_DO_ALVO, path: ["classroomId"] });
 
 export const eventId = z.object({ id: z.string().min(1) });
 
@@ -99,13 +152,16 @@ export const updateEventInput = z
     description: z.string().trim().max(500).nullable().optional(),
     startsOn: dataCivil,
     endsOn: dataCivil.optional(),
+    ...alvoDoEvento,
   })
   .refine((v) => !v.endsOn || v.startsOn <= v.endsOn, {
     message: "O fim do evento não pode ser antes do início",
     path: ["endsOn"],
-  });
+  })
+  .refine(alvoCoerente, { message: MENSAGEM_DO_ALVO, path: ["classroomId"] });
 
 export type UpdateEventInput = z.infer<typeof updateEventInput>;
 
 export type DefineYearInput = z.infer<typeof defineYearInput>;
 export type CreateEventInput = z.infer<typeof createEventInput>;
+export type CalendarViewInput = z.infer<typeof calendarViewInput>;

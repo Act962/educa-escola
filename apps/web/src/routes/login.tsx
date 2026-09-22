@@ -57,7 +57,7 @@ function Login() {
           <span className="font-extrabold text-xl tracking-[-0.4px]">
             Integra<span className="text-primary">Edu</span>
           </span>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-corpo text-muted-foreground">
             Entre com o acesso fornecido pela sua escola.
           </p>
         </div>
@@ -84,7 +84,7 @@ function Login() {
                   onChange={(event) => field.handleChange(event.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-[11px] text-danger">
+                  <p key={error?.message} className="text-danger text-meta">
                     {error?.message}
                   </p>
                 ))}
@@ -106,7 +106,7 @@ function Login() {
                   onChange={(event) => field.handleChange(event.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-[11px] text-danger">
+                  <p key={error?.message} className="text-danger text-meta">
                     {error?.message}
                   </p>
                 ))}
@@ -125,7 +125,7 @@ function Login() {
           </form.Subscribe>
         </form>
 
-        <p className="text-center text-[11px] text-muted-foreground">
+        <p className="text-center text-meta text-muted-foreground">
           Não há auto-cadastro: o acesso é criado pela secretaria da instituição.
         </p>
       </Card>

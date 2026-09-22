@@ -175,6 +175,19 @@ export function dataHora(value: Date | string | null | undefined): string {
   return `${dia} às ${hora.replace(":", "h")}`;
 }
 
+/**
+ * Instante -> "21/09/2025", no fuso de quem lê.
+ *
+ * Existe separado de `dataHora` porque aquele omite o ano de propósito — serve
+ * a evento recente, onde "21/09 às 14h32" basta. Em data de cadastro o ano é
+ * justamente a informação: "na escola desde 21/09" não diz nada.
+ */
+export function dataDoInstante(value: Date | string | null | undefined): string {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  return date.toLocaleDateString("pt-BR");
+}
+
 /** "vence hoje", "em 4 dias", "vencido" — o que a fila precisa dizer. */
 export function prazo(value: Date | string | null | undefined, agora = new Date()): string {
   if (!value) return "—";

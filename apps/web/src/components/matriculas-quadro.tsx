@@ -164,19 +164,19 @@ export function MatriculasQuadro({ filtros }: { filtros: Filtros }) {
           >
             <header className="flex items-center justify-between px-1">
               <h3 className="font-extrabold text-xs">{coluna.titulo}</h3>
-              <span className="rounded-full bg-card px-2.5 py-0.5 font-extrabold text-[11px] text-muted-foreground">
+              <span className="rounded-full bg-card px-2.5 py-0.5 font-extrabold text-meta text-muted-foreground">
                 {daColuna.length}
               </span>
             </header>
 
             {arrastando ? (
-              <p className="rounded-field border border-border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
+              <p className="rounded-field border border-border border-dashed px-3 py-2 text-meta text-muted-foreground">
                 Quem move um cartão até aqui é a família, pelo link.
               </p>
             ) : null}
 
             {daColuna.length === 0 ? (
-              <p className="px-1 py-3 text-[11px] text-muted-foreground">Nada aqui.</p>
+              <p className="px-1 py-3 text-meta text-muted-foreground">Nada aqui.</p>
             ) : (
               daColuna.map((item) => (
                 <Cartao
@@ -230,28 +230,28 @@ export function MatriculasQuadro({ filtros }: { filtros: Filtros }) {
       >
         <header className="flex items-center justify-between px-1">
           <h3 className="font-extrabold text-xs">Confirmadas</h3>
-          <span className="rounded-full bg-card px-2.5 py-0.5 font-extrabold text-[11px] text-muted-foreground">
+          <span className="rounded-full bg-card px-2.5 py-0.5 font-extrabold text-meta text-muted-foreground">
             {inteiro(totalConfirmadas)}
           </span>
         </header>
 
         {arrastando ? (
-          <p className="rounded-field border-2 border-primary border-dashed px-3 py-2 text-center font-bold text-[11px] text-info">
+          <p className="rounded-field border-2 border-primary border-dashed px-3 py-2 text-center font-bold text-info text-meta">
             Solte para confirmar {arrastando.studentName.split(" ")[0]}
           </p>
         ) : null}
 
         {semFicha ? (
           <div className="flex flex-col gap-2 rounded-field bg-warning-soft p-3">
-            <p className="font-bold text-[12px]">{semFicha.studentName} ainda não enviou a ficha</p>
-            <p className="text-[11px] text-warning leading-relaxed">
+            <p className="font-bold text-apoio">{semFicha.studentName} ainda não enviou a ficha</p>
+            <p className="text-meta text-warning leading-relaxed">
               Confirmar agora coloca o aluno na turma sem o retorno da família, e sem os
               consentimentos.
             </p>
             <div className="flex gap-2">
               <Button
                 size="sm"
-                className="min-h-7 px-2.5 text-[11px]"
+                className="min-h-7 px-2.5 text-meta"
                 disabled={confirmar.isPending}
                 onClick={() => confirmar.mutate({ id: semFicha.id })}
               >
@@ -260,7 +260,7 @@ export function MatriculasQuadro({ filtros }: { filtros: Filtros }) {
               <Button
                 size="sm"
                 variant="ghost"
-                className="min-h-7 px-2.5 text-[11px]"
+                className="min-h-7 px-2.5 text-meta"
                 onClick={() => setSemFicha(null)}
               >
                 Cancelar
@@ -270,13 +270,13 @@ export function MatriculasQuadro({ filtros }: { filtros: Filtros }) {
         ) : null}
 
         {confirmadas.length === 0 ? (
-          <p className="px-1 py-3 text-[11px] text-muted-foreground">Nada aqui.</p>
+          <p className="px-1 py-3 text-meta text-muted-foreground">Nada aqui.</p>
         ) : (
           confirmadas.map((item) => <Cartao key={item.id} item={item} confirmada />)
         )}
 
         {totalConfirmadas > confirmadas.length ? (
-          <p className="px-1 py-1 text-center text-[11px] text-muted-foreground">
+          <p className="px-1 py-1 text-center text-meta text-muted-foreground">
             {/* Carregar 286 cartões seria um quadro que ninguém lê. */}+{" "}
             {inteiro(totalConfirmadas - confirmadas.length)} confirmadas · veja na lista
           </p>
@@ -331,11 +331,11 @@ function Cartao({
     >
       <div className="flex items-start gap-2.5">
         <Avatar className="size-8">
-          <AvatarFallback className="text-[10px]">{initialsOf(item.studentName)}</AvatarFallback>
+          <AvatarFallback className="text-rotulo">{initialsOf(item.studentName)}</AvatarFallback>
         </Avatar>
         <div className="min-w-0">
-          <p className="font-bold text-[13px] leading-tight">{item.studentName}</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="font-bold text-corpo leading-tight">{item.studentName}</p>
+          <p className="text-meta text-muted-foreground">
             <span className="tabular-nums">{item.registration}</span>
             {item.classroomName ? ` · ${item.classroomName}` : " · turma a definir"}
             {item.classCode ? ` · ${item.classCode}` : ""}
@@ -344,9 +344,7 @@ function Cartao({
       </div>
 
       <p
-        className={
-          urgente ? "font-bold text-[11px] text-danger" : "text-[11px] text-muted-foreground"
-        }
+        className={urgente ? "font-bold text-danger text-meta" : "text-meta text-muted-foreground"}
       >
         {confirmada
           ? `Confirmada em ${dataHora(item.confirmedAt)}`
@@ -364,7 +362,7 @@ function Cartao({
         <Button
           size="sm"
           variant={item.linkStatus === "ficha_entregue" && !confirmada ? "default" : "secondary"}
-          className="min-h-7 px-2.5 text-[11px]"
+          className="min-h-7 px-2.5 text-meta"
           render={<Link to="/matriculas/$enrollmentId" params={{ enrollmentId: item.id }} />}
         >
           {item.linkStatus === "ficha_entregue" && !confirmada ? "Confirmar" : "Abrir"}

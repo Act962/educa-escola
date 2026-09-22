@@ -38,7 +38,7 @@ function Mural() {
       <div className="flex flex-col gap-1">
         <CardEyebrow>Comunicação</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Comunicados</h1>
-        <p className="text-[13px] text-muted-foreground">O que a escola avisou em {year}.</p>
+        <p className="text-corpo text-muted-foreground">O que a escola avisou em {year}.</p>
       </div>
 
       {mural.isLoading ? (
@@ -72,10 +72,10 @@ function Mural() {
               {/* Não lido é o estado que pede ação; lido não precisa de selo
                   nenhum, senão a tela vira um tabuleiro de etiquetas. */}
               {comunicado.readAt === null ? <Badge variant="info">Novo</Badge> : null}
-              <span className="ml-auto text-[11px] text-muted-foreground">{comunicado.autor}</span>
+              <span className="ml-auto text-meta text-muted-foreground">{comunicado.autor}</span>
             </div>
 
-            <p className="whitespace-pre-wrap text-[13px]">{comunicado.body}</p>
+            <p className="whitespace-pre-wrap text-corpo">{comunicado.body}</p>
 
             {comunicado.requiresAck && comunicado.acknowledgedAt === null ? (
               <div>

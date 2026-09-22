@@ -3,7 +3,7 @@ import { cn } from "@educa-escola/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import type { LucideIcon } from "lucide-react";
 
-const iconBox = cva("flex size-[34px] items-center justify-center rounded-control", {
+const iconBox = cva("flex size-8 items-center justify-center rounded-control sm:size-[34px]", {
   variants: {
     tone: {
       info: "bg-info-soft text-info",
@@ -49,14 +49,28 @@ interface StatCardProps extends VariantProps<typeof iconBox> {
  */
 export function StatCard({ icon: Icon, children, label, hint, tone, className }: StatCardProps) {
   return (
-    <Card className={cn("gap-3", className)}>
+    /*
+     * Mais apertado que o card padrão, e de propósito.
+     *
+     * São quatro números lado a lado: com os 24px de respiro do card comum,
+     * um indicador passava de 170px de altura e o painel da direção virava
+     * duas telas de rolagem no celular para mostrar quatro números. Aqui o
+     * respiro é 16px no celular e 20px daqui para cima — o conteúdo é curto,
+     * e o que separa um card do outro continua sendo o azul do fundo.
+     */
+    <Card
+      className={cn(
+        "gap-2 [--card-spacing:--spacing(4)] sm:gap-3 sm:[--card-spacing:--spacing(5)]",
+        className,
+      )}
+    >
       <span className={cn(iconBox({ tone }))}>
         <Icon size={18} strokeWidth={1.7} aria-hidden />
       </span>
       <div className="flex flex-col gap-0.5">
         <span className={cn(value({ tone }))}>{children}</span>
-        <span className="text-[13px] text-muted-foreground">{label}</span>
-        {hint ? <span className="text-[11px] text-muted-foreground">{hint}</span> : null}
+        <span className="text-corpo text-muted-foreground">{label}</span>
+        {hint ? <span className="text-meta text-muted-foreground">{hint}</span> : null}
       </div>
     </Card>
   );

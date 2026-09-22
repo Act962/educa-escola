@@ -4,6 +4,7 @@ import { permitted, router } from "../../index";
 import type { TenantContext } from "../../trpc/tenant";
 import { createCalendarRepository } from "./repository";
 import {
+  calendarViewInput,
   calendarYearInput,
   createEventInput,
   defineYearInput,
@@ -19,8 +20,8 @@ function serviceFor(ctx: { db: DbHandle; tenant: TenantContext }) {
 export const calendarRouter = router({
   /** Todo mundo lê o calendário: é o que diz quando tem aula. */
   year: permitted({ calendar: ["read"] })
-    .input(calendarYearInput)
-    .query(({ ctx, input }) => serviceFor(ctx).year(input.academicYear)),
+    .input(calendarViewInput)
+    .query(({ ctx, input }) => serviceFor(ctx).year(input.academicYear, input.classroomId)),
 
   defineYear: permitted({ calendar: ["manage"] })
     .input(defineYearInput)
