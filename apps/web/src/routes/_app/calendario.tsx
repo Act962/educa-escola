@@ -5,6 +5,7 @@ import {
   EFEITO_SUGERIDO,
   EVENT_TYPE_LABEL,
   EVENT_TYPES,
+  type EventScope,
   type EventType,
 } from "@educa-escola/api/modules/calendar/schema";
 import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components/alert";
@@ -28,8 +29,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CalendarCheck, CalendarX, Download, Plus, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
 import { CalendarioMes } from "@/components/calendario-mes";
+import { alvoDe, CampoDeAlvo, type Turma } from "@/components/campo-de-alvo";
 import { CampoDeData } from "@/components/campo-de-data";
 import { PainelDoDia } from "@/components/painel-do-dia";
+import { SecaoRetratil, useSecoesRetrateis } from "@/components/secao-retratil";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -42,6 +45,19 @@ const EFEITO_LABEL = {
   nao_letivo: "Dia não letivo",
   letivo_extra: "Dia letivo extra",
 } as const;
+
+/** Valor do filtro quando nada está recortado. O `Select` não aceita vazio. */
+const TODAS_AS_TURMAS = "todas";
+
+/**
+ * Como a página abre na primeira visita.
+ *
+ * O calendário brasileiro entra recolhido porque são quarenta linhas que a
+ * escola resolve uma vez em fevereiro; "novo evento" também, porque criar pelo
+ * dia da grade virou o caminho principal. O que fica aberto é o que se
+ * consulta: o período e a lista do ano.
+ */
+const SECOES_PADRAO = { periodo: true, brasileiro: false, novo: false, eventos: true };
 
 /**
  * Calendário escolar e a contagem de dias letivos.
@@ -56,7 +72,23 @@ function Calendario() {
   const queryClient = useQueryClient();
   const { year } = useSchoolContext();
 
-  const ano = useQuery(trpc.calendar.year.queryOptions({ academicYear: year }));
+  const [turmaFiltrada, setTurmaFiltrada] = useState<string>(TODAS_AS_TURMAS);
+  const recorte = turmaFiltrada === TODAS_AS_TURMAS ? undefined : turmaFiltrada;
+
+  /**
+   * Só as turmas deste ano letivo.
+   *
+   * `classroom.list` devolve todos os anos. Oferecer a turma de 2025 num
+   * evento de 2026 daria um evento que nenhuma turma em aula enxerga.
+   */
+  const turmas = useQuery(trpc.classroom.list.queryOptions());
+  const turmasDoAno: Turma[] = (turmas.data ?? [])
+    .filter((turma) => turma.academicYear === year)
+    .map((turma) => ({ id: turma.id, name: turma.name }));
+
+  const ano = useQuery(
+    trpc.calendar.year.queryOptions({ academicYear: year, classroomId: recorte }),
+  );
   const recarregar = () => queryClient.invalidateQueries({ queryKey: [["calendar"]] });
 
   const definir = useMutation(trpc.calendar.defineYear.mutationOptions({ onSuccess: recarregar }));
@@ -79,16 +111,76 @@ function Calendario() {
     intencao: "ver" | "criar";
   } | null>(null);
 
+  const { abertas, alternar, irPara } = useSecoesRetrateis(
+    "integra:calendario:secoes",
+    SECOES_PADRAO,
+  );
+
   const contagem = ano.data?.contagem;
+  const contagemDaTurma = ano.data?.contagemDaTurma;
+  const periodoDefinido = ano.data?.ano ?? null;
+  const eventos = ano.data?.eventos ?? [];
+  const nomeDaTurma = turmasDoAno.find((t) => t.id === recorte)?.name ?? null;
+
+  /** Só as seções que existem agora: sem período letivo, metade não aparece. */
+  const atalhos = [
+    { id: "periodo", titulo: "Período letivo" },
+    ...(periodoDefinido
+      ? [
+          { id: "brasileiro", titulo: "Calendário brasileiro" },
+          { id: "novo", titulo: "Novo evento" },
+        ]
+      : []),
+    { id: "eventos", titulo: "Eventos do ano" },
+  ];
 
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <CardEyebrow>Instituição</CardEyebrow>
-        <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Calendário de {year}</h1>
-        <p className="text-[13px] text-muted-foreground">
-          Período letivo, feriados e recessos — e quantos dias letivos sobram.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <CardEyebrow>Instituição</CardEyebrow>
+          <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Calendário de {year}</h1>
+          <p className="text-[13px] text-muted-foreground">
+            Período letivo, feriados e recessos — e quantos dias letivos sobram.
+          </p>
+        </div>
+
+        {/*
+          A barra de seções. Clicar abre a seção e rola até ela: numa página
+          que recolhe, um atalho que só rolasse levaria a pessoa até um card
+          fechado, e ela leria a viagem como um link quebrado.
+        */}
+        <div className="flex flex-wrap items-center gap-2">
+          {atalhos.map((secao) => (
+            <Button
+              key={secao.id}
+              variant="secondary"
+              size="sm"
+              aria-pressed={abertas[secao.id] ?? false}
+              onClick={() => irPara(secao.id)}
+            >
+              {secao.titulo}
+            </Button>
+          ))}
+          <SegmentedControl
+            label="Como ver o calendário"
+            options={[
+              // `tone` é obrigatório no controle: ele existe para presença,
+              // onde cada opção tem cor semântica. Aqui as duas são neutras —
+              // trocar de visão não é estado.
+              { value: "lista", label: "Lista", tone: "secondary" },
+              { value: "calendario", label: "Calendário", tone: "secondary" },
+            ]}
+            value={visao}
+            onChange={(valor) => {
+              setVisao(valor as "lista" | "calendario");
+              // Trocar a visão de uma seção recolhida seria mexer no que não
+              // se vê. Abrir junto é o que torna o controle honesto aqui em
+              // cima, longe da lista que ele governa.
+              irPara("eventos");
+            }}
+          />
+        </div>
       </div>
 
       {ano.isLoading ? (
@@ -123,6 +215,26 @@ function Calendario() {
                 </StatCard>
               </div>
 
+              {/*
+                Os três cartões são sempre da escola: é o número que a
+                secretaria de educação cobra. O da turma vem ao lado, e não no
+                lugar, porque a direção precisa dos dois — e porque um cartão
+                que muda de significado conforme um filtro lá embaixo é o tipo
+                de número que alguém copia para um ofício sem perceber.
+              */}
+              {contagemDaTurma && nomeDaTurma ? (
+                <Alert variant={contagemDaTurma.cumpreOMinimo ? "info" : "warning"}>
+                  <AlertTitle>
+                    {nomeDaTurma} tem {contagemDaTurma.letivos} dias letivos
+                  </AlertTitle>
+                  <AlertDescription>
+                    {contagemDaTurma.letivos === contagem.letivos
+                      ? "Mesma contagem da escola: esta turma não tem dia próprio fora do calendário institucional."
+                      : `${contagem.letivos - contagemDaTurma.letivos} a menos que a escola, por eventos marcados só para ela. Os cartões acima continuam sendo o número da instituição.`}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
               {contagem.cumpreOMinimo ? null : (
                 <Alert variant="danger">
                   <TriangleAlert size={18} strokeWidth={1.8} aria-hidden />
@@ -136,68 +248,102 @@ function Calendario() {
             </>
           ) : null}
 
-          <DefinirAno
-            atual={ano.data?.ano ?? null}
-            ano={year}
-            aoSalvar={(dados) => definir.mutate({ academicYear: year, ...dados })}
-            salvando={definir.isPending}
-            erro={definir.isError ? definir.error.message : null}
-          />
-
-          {ano.data?.ano ? (
-            <CalendarioBrasileiro
-              sugestoes={sugestoes.data ?? []}
-              aoImportar={() => importar.mutate({ academicYear: year })}
-              importando={importar.isPending}
-              resultado={importar.data ?? null}
-              erro={importar.isError ? importar.error.message : null}
-            />
-          ) : null}
-
-          {ano.data?.ano ? (
-            <NovoEvento
+          <SecaoRetratil
+            id="periodo"
+            titulo={periodoDefinido ? "Período letivo" : "Defina o período letivo"}
+            resumo={
+              periodoDefinido
+                ? `${longDate(periodoDefinido.startsOn)} a ${longDate(periodoDefinido.endsOn)}`
+                : "ainda não definido"
+            }
+            aberta={abertas.periodo ?? true}
+            aoAlternar={() => alternar("periodo")}
+          >
+            <DefinirAno
+              atual={periodoDefinido}
               ano={year}
-              periodo={ano.data.ano}
-              aoCriar={(dados) => criar.mutate({ academicYear: year, ...dados })}
-              criando={criar.isPending}
-              erro={criar.isError ? criar.error.message : null}
+              aoSalvar={(dados) => definir.mutate({ academicYear: year, ...dados })}
+              salvando={definir.isPending}
+              erro={definir.isError ? definir.error.message : null}
             />
+          </SecaoRetratil>
+
+          {periodoDefinido ? (
+            <SecaoRetratil
+              id="brasileiro"
+              titulo="Calendário brasileiro"
+              resumo="feriados nacionais, pontos facultativos e datas da cultura e da história"
+              aberta={abertas.brasileiro ?? false}
+              aoAlternar={() => alternar("brasileiro")}
+              acao={
+                <BotaoDeImportar
+                  sugestoes={sugestoes.data ?? []}
+                  aoImportar={() => importar.mutate({ academicYear: year })}
+                  importando={importar.isPending}
+                />
+              }
+            >
+              <CalendarioBrasileiro
+                sugestoes={sugestoes.data ?? []}
+                resultado={importar.data ?? null}
+                erro={importar.isError ? importar.error.message : null}
+              />
+            </SecaoRetratil>
           ) : null}
 
-          <Card className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <CardEyebrow>Eventos do ano</CardEyebrow>
-              <div className="ml-auto">
-                <SegmentedControl
-                  label="Como ver o calendário"
-                  options={[
-                    // `tone` é obrigatório no controle: ele existe para
-                    // presença, onde cada opção tem cor semântica. Aqui as
-                    // duas são neutras — trocar de visão não é estado.
-                    { value: "lista", label: "Lista", tone: "secondary" },
-                    { value: "calendario", label: "Calendário", tone: "secondary" },
-                  ]}
-                  value={visao}
-                  onChange={(valor) => setVisao(valor as "lista" | "calendario")}
-                />
-              </div>
-            </div>
+          {periodoDefinido ? (
+            <SecaoRetratil
+              id="novo"
+              titulo="Novo evento"
+              resumo="reunião, conselho, prazo — da escola inteira ou de uma turma"
+              aberta={abertas.novo ?? false}
+              aoAlternar={() => alternar("novo")}
+            >
+              <NovoEvento
+                ano={year}
+                periodo={periodoDefinido}
+                turmas={turmasDoAno}
+                aoCriar={(dados) => criar.mutate({ academicYear: year, ...dados })}
+                criando={criar.isPending}
+                erro={criar.isError ? criar.error.message : null}
+              />
+            </SecaoRetratil>
+          ) : null}
 
+          <SecaoRetratil
+            id="eventos"
+            titulo="Eventos do ano"
+            resumo={`${eventos.length} ${eventos.length === 1 ? "registro" : "registros"}${
+              nomeDaTurma ? ` — ${nomeDaTurma} e a escola` : ""
+            }`}
+            aberta={abertas.eventos ?? true}
+            aoAlternar={() => alternar("eventos")}
+            acao={
+              <FiltroDeTurma
+                turmas={turmasDoAno}
+                valor={turmaFiltrada}
+                aoMudar={setTurmaFiltrada}
+              />
+            }
+          >
             {visao === "calendario" ? (
               <CalendarioMes
-                eventos={ano.data?.eventos ?? []}
+                eventos={eventos}
                 ano={year}
-                periodo={ano.data?.ano ?? null}
+                periodo={periodoDefinido}
+                turmaEmFoco={recorte ?? null}
                 aoAbrirDia={(dia, intencao) => setDiaAberto({ dia, intencao })}
               />
-            ) : ano.data?.eventos.length === 0 ? (
+            ) : eventos.length === 0 ? (
               <EmptyState
-                title="Nenhum evento no calendário"
+                title={
+                  nomeDaTurma ? `Nada marcado para ${nomeDaTurma}` : "Nenhum evento no calendário"
+                }
                 description="Feriados e recessos são o que tira dia letivo da conta acima."
               />
             ) : (
               <ul className="flex flex-col">
-                {ano.data?.eventos.map((evento) => (
+                {eventos.map((evento) => (
                   <li
                     key={evento.id}
                     className="flex flex-wrap items-center gap-3 border-border border-t py-2.5 text-[13px] first:border-t-0"
@@ -207,6 +353,11 @@ function Calendario() {
                       {evento.endsOn !== evento.startsOn ? ` a ${longDate(evento.endsOn)}` : null}
                     </span>
                     <span className="min-w-0 flex-1 truncate font-bold">{evento.title}</span>
+                    {/* Sem esta etiqueta, um conselho do 9º C e um feriado
+                        nacional seriam duas linhas idênticas na lista. */}
+                    {evento.classroomName ? (
+                      <Badge variant="info">{evento.classroomName}</Badge>
+                    ) : null}
                     <Badge variant="secondary">{EVENT_TYPE_LABEL[evento.type]}</Badge>
                     {evento.dayEffect !== "nenhum" ? (
                       <Badge variant={evento.dayEffect === "nao_letivo" ? "warning" : "success"}>
@@ -226,7 +377,7 @@ function Calendario() {
                 ))}
               </ul>
             )}
-          </Card>
+          </SecaoRetratil>
         </>
       )}
 
@@ -235,7 +386,11 @@ function Calendario() {
         intencao={diaAberto?.intencao ?? "ver"}
         aberto={diaAberto !== null}
         aoFechar={() => setDiaAberto(null)}
-        eventos={(ano.data?.eventos ?? []).filter(
+        turmas={turmasDoAno}
+        /* Criar a partir do dia herda o filtro: quem está olhando o 9º C e
+           clica numa célula quer marcar para o 9º C, não para a escola. */
+        turmaPadrao={recorte ?? null}
+        eventos={eventos.filter(
           (evento) =>
             diaAberto !== null &&
             evento.startsOn <= diaAberto.dia &&
@@ -248,6 +403,45 @@ function Calendario() {
         erro={criar.isError ? criar.error.message : editar.isError ? editar.error.message : null}
       />
     </>
+  );
+}
+
+/**
+ * O recorte por turma.
+ *
+ * "Todas as turmas" e não "nenhuma": sem filtro a tela mostra a escola
+ * inteira, o que inclui o que é de cada turma. É a diferença entre não
+ * recortar e recortar para o vazio.
+ */
+function FiltroDeTurma({
+  turmas,
+  valor,
+  aoMudar,
+}: {
+  turmas: Turma[];
+  valor: string;
+  aoMudar: (valor: string) => void;
+}) {
+  const opcoes = [
+    { label: "Todas as turmas", value: TODAS_AS_TURMAS },
+    ...turmas.map((turma) => ({ label: turma.name, value: turma.id })),
+  ];
+
+  if (turmas.length === 0) return null;
+
+  return (
+    <Select value={valor} onValueChange={(v) => aoMudar(v ?? TODAS_AS_TURMAS)} items={opcoes}>
+      <SelectTrigger aria-label="Filtrar por turma" className="w-48">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {opcoes.map((opcao) => (
+          <SelectItem key={opcao.value} value={opcao.value}>
+            {opcao.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -269,9 +463,7 @@ function DefinirAno({
   const [minimo, setMinimo] = useState(String(atual?.minimumSchoolDays ?? 200));
 
   return (
-    <Card className="flex flex-col gap-4">
-      <CardEyebrow>{atual ? "Período letivo" : "Defina o período letivo"}</CardEyebrow>
-
+    <div className="flex flex-col gap-4">
       {atual ? null : (
         <p className="text-[13px] text-muted-foreground">
           Sem o período, não há contagem de dias letivos — e um total contado a partir de janeiro
@@ -323,25 +515,29 @@ function DefinirAno({
           <AlertDescription>{erro}</AlertDescription>
         </Alert>
       ) : null}
-    </Card>
+    </div>
   );
 }
 
 function NovoEvento({
   ano,
   periodo,
+  turmas,
   aoCriar,
   criando,
   erro,
 }: {
   ano: number;
   periodo: { startsOn: string; endsOn: string } | null;
+  turmas: Turma[];
   aoCriar: (dados: {
     type: EventType;
     dayEffect: "nenhum" | "nao_letivo" | "letivo_extra";
     title: string;
     startsOn: string;
     endsOn?: string;
+    scope: EventScope;
+    classroomId?: string;
   }) => void;
   criando: boolean;
   erro: string | null;
@@ -350,13 +546,12 @@ function NovoEvento({
   const [titulo, setTitulo] = useState("");
   const [inicio, setInicio] = useState(`${ano}-09-07`);
   const [fim, setFim] = useState("");
+  const [turmaId, setTurmaId] = useState<string | null>(null);
 
   const tipos = EVENT_TYPES.map((t) => ({ label: EVENT_TYPE_LABEL[t], value: t }));
 
   return (
-    <Card className="flex flex-col gap-4">
-      <CardEyebrow>Novo evento</CardEyebrow>
-
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex min-w-44 flex-col gap-2">
           <Label htmlFor="tipo-do-evento">Tipo</Label>
@@ -387,6 +582,9 @@ function NovoEvento({
             maxLength={120}
           />
         </div>
+        {turmas.length > 0 ? (
+          <CampoDeAlvo id="alvo-do-evento" turmas={turmas} valor={turmaId} aoMudar={setTurmaId} />
+        ) : null}
         {/* O intervalo vem do ano letivo: a pessoa vê que 05/01 está fora
             antes de clicar, em vez de descobrir pela recusa do servidor. */}
         <CampoDeData
@@ -416,6 +614,7 @@ function NovoEvento({
               title: titulo,
               startsOn: inicio,
               endsOn: fim || undefined,
+              ...alvoDe(turmaId),
             })
           }
           disabled={criando || titulo.trim().length < 2}
@@ -426,7 +625,10 @@ function NovoEvento({
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        {EVENT_TYPE_LABEL[tipo]} entra como “{EFEITO_LABEL[EFEITO_SUGERIDO[tipo]].toLowerCase()}”.
+        {EVENT_TYPE_LABEL[tipo]} entra como “{EFEITO_LABEL[EFEITO_SUGERIDO[tipo]].toLowerCase()}”
+        {turmaId
+          ? ", e só conta os dias letivos da turma escolhida."
+          : ", valendo para a escola inteira."}
       </p>
 
       {erro ? (
@@ -435,7 +637,51 @@ function NovoEvento({
           <AlertDescription>{erro}</AlertDescription>
         </Alert>
       ) : null}
-    </Card>
+    </div>
+  );
+}
+
+type Sugestao = {
+  title: string;
+  startsOn: string;
+  endsOn: string;
+  dayEffect: string;
+  fonte: string;
+  jaExiste: boolean;
+  foraDoPeriodo: boolean;
+};
+
+/** O que realmente entraria numa importação agora. */
+const aImportar = (sugestoes: Sugestao[]) =>
+  sugestoes.filter((s) => !s.jaExiste && !s.foraDoPeriodo);
+
+/**
+ * Fica no cabeçalho da seção, e não dentro dela.
+ *
+ * É o único botão da página que a pessoa procura **sem** querer ler a lista:
+ * com a seção recolhida, "Trazer 12 datas" continua a um clique, e o número
+ * continua dizendo quanto vai entrar.
+ */
+function BotaoDeImportar({
+  sugestoes,
+  aoImportar,
+  importando,
+}: {
+  sugestoes: Sugestao[];
+  aoImportar: () => void;
+  importando: boolean;
+}) {
+  const novas = aImportar(sugestoes);
+
+  return (
+    <Button variant="secondary" onClick={aoImportar} disabled={importando || novas.length === 0}>
+      <Download size={18} strokeWidth={1.8} aria-hidden />
+      {importando
+        ? "Importando…"
+        : novas.length === 0
+          ? "Tudo já está no calendário"
+          : `Trazer ${novas.length} datas`}
+    </Button>
   );
 }
 
@@ -449,49 +695,15 @@ function NovoEvento({
  */
 function CalendarioBrasileiro({
   sugestoes,
-  aoImportar,
-  importando,
   resultado,
   erro,
 }: {
-  sugestoes: {
-    title: string;
-    startsOn: string;
-    endsOn: string;
-    dayEffect: string;
-    fonte: string;
-    jaExiste: boolean;
-    foraDoPeriodo: boolean;
-  }[];
-  aoImportar: () => void;
-  importando: boolean;
+  sugestoes: Sugestao[];
   resultado: { criados: number; jaExistiam: number; foraDoPeriodo: number } | null;
   erro: string | null;
 }) {
-  const novas = sugestoes.filter((s) => !s.jaExiste && !s.foraDoPeriodo);
-
   return (
-    <Card className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-baseline gap-3">
-        <CardEyebrow>Calendário brasileiro</CardEyebrow>
-        <span className="text-[11px] text-muted-foreground">
-          feriados nacionais, pontos facultativos e datas da cultura e da história
-        </span>
-        <Button
-          variant="secondary"
-          className="ml-auto"
-          onClick={aoImportar}
-          disabled={importando || novas.length === 0}
-        >
-          <Download size={18} strokeWidth={1.8} aria-hidden />
-          {importando
-            ? "Importando…"
-            : novas.length === 0
-              ? "Tudo já está no calendário"
-              : `Trazer ${novas.length} datas`}
-        </Button>
-      </div>
-
+    <div className="flex flex-col gap-4">
       {resultado ? (
         <Alert variant="success">
           <AlertTitle>{resultado.criados} datas acrescentadas</AlertTitle>
@@ -538,6 +750,6 @@ function CalendarioBrasileiro({
           </li>
         ))}
       </ul>
-    </Card>
+    </div>
   );
 }

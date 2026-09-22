@@ -2,16 +2,59 @@ import { NotFoundError, ValidationError } from "../../errors";
 import { type ContagemDeDiasLetivos, contarDiasLetivos } from "./dias-letivos";
 import { calendarioBrasileiro } from "./feriados";
 import type { CalendarRepository } from "./repository";
-import type { CreateEventInput, DefineYearInput, UpdateEventInput } from "./schema";
+import type { CreateEventInput, DefineYearInput, EventScope, UpdateEventInput } from "./schema";
+
+type Evento = Awaited<ReturnType<CalendarRepository["listEvents"]>>[number];
 
 export interface VisaoDoAno {
   /** `null` quando o ano letivo ainda não foi definido. */
   ano: { startsOn: string; endsOn: string; minimumSchoolDays: number } | null;
+  /** A contagem da **escola**: só o que vale para todo mundo. */
   contagem: ContagemDeDiasLetivos | null;
-  eventos: Awaited<ReturnType<CalendarRepository["listEvents"]>>;
+  /**
+   * A contagem da turma filtrada: institucional mais o que é só dela.
+   *
+   * `null` sem filtro. Fica ao lado da contagem da escola em vez de
+   * substituí-la, porque são dois números que a direção precisa ver juntos —
+   * o oficial, que a secretaria de educação cobra, e o real daquela turma.
+   */
+  contagemDaTurma: ContagemDeDiasLetivos | null;
+  eventos: Evento[];
 }
 
+/**
+ * Só evento institucional conta dia letivo da escola.
+ *
+ * **É a regra que faz o filtro por turma valer alguma coisa.** Um conselho de
+ * classe do 9º C marcado como não letivo tira aula do 9º C, não da escola: se
+ * entrasse na conta geral, a escola apareceria devendo dias letivos que só uma
+ * turma deve, e a direção iria repor aula para todo mundo.
+ */
+const institucionais = (eventos: Evento[]) => eventos.filter((e) => e.scope === "institucional");
+
 export function createCalendarService(repo: CalendarRepository) {
+  /**
+   * Resolve o alvo do evento e recusa turma que não é desta escola.
+   *
+   * O Zod já garante que escopo e turma são coerentes entre si; o que ele não
+   * tem como saber é se a turma existe *aqui*. Sem esta consulta, um id de
+   * turma de outra escola entraria — a chave estrangeira aceitaria, porque a
+   * turma existe — e o evento sumiria de toda tela, filtrando por uma turma
+   * que ninguém desta escola consegue escolher.
+   */
+  async function alvoDe(input: {
+    scope: EventScope;
+    classroomId?: string | null;
+  }): Promise<{ scope: EventScope; classroomId: string | null }> {
+    if (input.scope !== "turma") return { scope: "institucional", classroomId: null };
+
+    const id = input.classroomId ?? "";
+    const turma = await repo.findClassroom(id);
+    if (!turma) throw new ValidationError("A turma escolhida não existe nesta escola.");
+
+    return { scope: "turma", classroomId: turma.id };
+  }
+
   return {
     /**
      * O ano letivo inteiro: período, eventos e a contagem de dias letivos.
@@ -21,13 +64,19 @@ export function createCalendarService(repo: CalendarRepository) {
      * obrigação legal é pior que número nenhum — a tela pede a definição em
      * vez de mostrar um total que ninguém pode usar.
      */
-    async year(academicYear: number): Promise<VisaoDoAno> {
+    async year(academicYear: number, classroomId?: string): Promise<VisaoDoAno> {
       const [ano, eventos] = await Promise.all([
         repo.findYear(academicYear),
-        repo.listEvents(academicYear),
+        repo.listEvents(academicYear, classroomId),
       ]);
 
-      if (!ano) return { ano: null, contagem: null, eventos };
+      if (!ano) return { ano: null, contagem: null, contagemDaTurma: null, eventos };
+
+      const periodo = {
+        startsOn: ano.startsOn,
+        endsOn: ano.endsOn,
+        minimo: ano.minimumSchoolDays,
+      };
 
       return {
         ano: {
@@ -35,12 +84,10 @@ export function createCalendarService(repo: CalendarRepository) {
           endsOn: ano.endsOn,
           minimumSchoolDays: ano.minimumSchoolDays,
         },
-        contagem: contarDiasLetivos({
-          startsOn: ano.startsOn,
-          endsOn: ano.endsOn,
-          minimo: ano.minimumSchoolDays,
-          eventos,
-        }),
+        contagem: contarDiasLetivos({ ...periodo, eventos: institucionais(eventos) }),
+        // `eventos` já vem recortado pelo repositório: institucional mais o
+        // que é da turma. Por isso a conta da turma é sobre a lista inteira.
+        contagemDaTurma: classroomId ? contarDiasLetivos({ ...periodo, eventos }) : null,
         eventos,
       };
     },
@@ -69,7 +116,9 @@ export function createCalendarService(repo: CalendarRepository) {
         );
       }
 
-      return repo.createEvent({ ...input, endsOn, createdByUserId: userId });
+      const alvo = await alvoDe(input);
+
+      return repo.createEvent({ ...input, ...alvo, endsOn, createdByUserId: userId });
     },
 
     /**
@@ -123,6 +172,9 @@ export function createCalendarService(repo: CalendarRepository) {
           description: data.fonte,
           startsOn: data.startsOn,
           endsOn: data.endsOn,
+          // Feriado nacional é da escola inteira, por definição.
+          scope: "institucional",
+          classroomId: null,
           createdByUserId: userId,
         });
       }
@@ -157,8 +209,10 @@ export function createCalendarService(repo: CalendarRepository) {
         );
       }
 
+      const alvo = await alvoDe(input);
+
       const { id, ...resto } = input;
-      const atualizado = await repo.updateEvent(id, { ...resto, endsOn });
+      const atualizado = await repo.updateEvent(id, { ...resto, ...alvo, endsOn });
       if (!atualizado) throw new NotFoundError("Evento não encontrado");
       return atualizado;
     },

@@ -1,14 +1,35 @@
-import { academicCalendar, calendarEvent } from "@educa-escola/db/schema";
+import { academicCalendar, calendarEvent, classroom } from "@educa-escola/db/schema";
 import type { DbHandle } from "@educa-escola/db/types";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull, or } from "drizzle-orm";
 
 import type { TenantContext } from "../../trpc/tenant";
-import type { CreateEventInput, DefineYearInput } from "./schema";
+import type { CreateEventInput, DefineYearInput, EventScope } from "./schema";
 
 /** Único lugar do módulo que monta query. Recebe `(db, tenant)`. */
 export function createCalendarRepository(db: DbHandle, tenant: TenantContext) {
   const noCalendario = eq(academicCalendar.schoolId, tenant.schoolId);
   const noEvento = eq(calendarEvent.schoolId, tenant.schoolId);
+
+  /**
+   * Colunas explícitas, e não `select()`.
+   *
+   * Com o `leftJoin` da turma, `select()` devolveria `{ calendar_event: …,
+   * classroom: … }` e toda a tela teria de aprender essa forma. Nomear as
+   * colunas mantém o evento plano, com o nome da turma junto.
+   */
+  const colunasDoEvento = {
+    id: calendarEvent.id,
+    academicYear: calendarEvent.academicYear,
+    scope: calendarEvent.scope,
+    classroomId: calendarEvent.classroomId,
+    classroomName: classroom.name,
+    type: calendarEvent.type,
+    dayEffect: calendarEvent.dayEffect,
+    title: calendarEvent.title,
+    description: calendarEvent.description,
+    startsOn: calendarEvent.startsOn,
+    endsOn: calendarEvent.endsOn,
+  };
 
   return {
     async findYear(academicYear: number) {
@@ -42,15 +63,51 @@ export function createCalendarRepository(db: DbHandle, tenant: TenantContext) {
       return row as NonNullable<typeof row>;
     },
 
-    async listEvents(academicYear: number) {
+    /**
+     * Os eventos do ano, opcionalmente recortados por turma.
+     *
+     * Com `classroomId`, a consulta devolve os eventos da turma **e** os da
+     * escola inteira: o feriado de 7 de setembro vale para o 9º C, e um filtro
+     * que o escondesse faria a coordenação achar que aquela turma tem aula.
+     * Sem `classroomId`, devolve tudo — inclusive o que é de outras turmas,
+     * porque a visão sem filtro é a da escola como um todo.
+     */
+    async listEvents(academicYear: number, classroomId?: string) {
+      const daTurma = classroomId
+        ? or(isNull(calendarEvent.classroomId), eq(calendarEvent.classroomId, classroomId))
+        : undefined;
+
       return db
-        .select()
+        .select(colunasDoEvento)
         .from(calendarEvent)
-        .where(and(noEvento, eq(calendarEvent.academicYear, academicYear)))
+        .leftJoin(classroom, eq(classroom.id, calendarEvent.classroomId))
+        .where(and(noEvento, eq(calendarEvent.academicYear, academicYear), daTurma))
         .orderBy(asc(calendarEvent.startsOn), asc(calendarEvent.title));
     },
 
-    async createEvent(data: CreateEventInput & { endsOn: string; createdByUserId: string }) {
+    /**
+     * A turma, se for desta escola.
+     *
+     * É o que impede um evento daqui de apontar para a turma de outra escola:
+     * a chave estrangeira aceitaria, porque a turma existe — só não é nossa.
+     */
+    async findClassroom(id: string) {
+      const [row] = await db
+        .select({ id: classroom.id, name: classroom.name })
+        .from(classroom)
+        .where(and(eq(classroom.schoolId, tenant.schoolId), eq(classroom.id, id)))
+        .limit(1);
+      return row ?? null;
+    },
+
+    async createEvent(
+      data: CreateEventInput & {
+        endsOn: string;
+        scope: EventScope;
+        classroomId: string | null;
+        createdByUserId: string;
+      },
+    ) {
       const [row] = await db
         .insert(calendarEvent)
         .values({ ...data, schoolId: tenant.schoolId })
@@ -77,6 +134,8 @@ export function createCalendarRepository(db: DbHandle, tenant: TenantContext) {
         description?: string | null;
         startsOn: string;
         endsOn: string;
+        scope: EventScope;
+        classroomId: string | null;
       },
     ) {
       const [row] = await db

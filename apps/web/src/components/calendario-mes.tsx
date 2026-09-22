@@ -32,6 +32,9 @@ export interface EventoDoCalendario {
   dayEffect: string;
   startsOn: string;
   endsOn: string;
+  /** `null` quando o evento é da escola inteira. */
+  classroomId: string | null;
+  classroomName: string | null;
 }
 
 /** Primeiro dia do mês de uma data civil, em ISO. */
@@ -101,11 +104,21 @@ export function CalendarioMes({
   ano,
   periodo,
   aoAbrirDia,
+  turmaEmFoco = null,
 }: {
   eventos: EventoDoCalendario[];
   ano: number;
   /** Fora do período letivo a célula fica apagada. */
   periodo: { startsOn: string; endsOn: string } | null;
+  /**
+   * A turma que a tela está filtrando, quando há uma.
+   *
+   * Só serve para pintar o dia: o âmbar da célula diz "aqui não tem aula", e
+   * um conselho de classe do 9º C não tira aula de mais ninguém. Sem isto, a
+   * grade da escola apareceria com o dia bloqueado por causa de uma turma — a
+   * mesma mentira que a contagem de dias letivos evita do lado do servidor.
+   */
+  turmaEmFoco?: string | null;
   /**
    * Abre o painel do dia.
    *
@@ -179,7 +192,11 @@ export function CalendarioMes({
           const ehHoje = dia === hoje;
           const foraDoPeriodo =
             periodo !== null && (dia < periodo.startsOn || dia > periodo.endsOn);
-          const naoLetivo = doDia.some((e) => e.dayEffect === "nao_letivo");
+          const naoLetivo = doDia.some(
+            (e) =>
+              e.dayEffect === "nao_letivo" &&
+              (e.classroomId === null || e.classroomId === turmaEmFoco),
+          );
           const sobra = doDia.length - MAX_VISIVEL;
 
           const porExtenso = `${Number(dia.slice(8))} de ${MESES[Number(dia.slice(5, 7)) - 1]}`;
@@ -231,7 +248,11 @@ export function CalendarioMes({
                   key={`${dia}-${evento.id}`}
                   onClick={() => aoAbrirDia?.(dia, "ver")}
                   disabled={!aoAbrirDia}
-                  title={`${evento.title} · ${EVENT_TYPE_LABEL[evento.type as EventType] ?? evento.type}`}
+                  title={[
+                    evento.title,
+                    EVENT_TYPE_LABEL[evento.type as EventType] ?? evento.type,
+                    evento.classroomName ?? "Toda a escola",
+                  ].join(" · ")}
                   className={[
                     "relative truncate rounded-field px-1.5 py-0.5 text-left text-[10px] leading-tight",
                     evento.dayEffect === "nao_letivo"
@@ -241,6 +262,12 @@ export function CalendarioMes({
                         : "bg-card text-foreground",
                   ].join(" ")}
                 >
+                  {/* O nome da turma vem na frente, em negrito: na célula de
+                      um dia cheio, "9º C" distingue mais rápido que o título,
+                      que vai truncar de qualquer forma. */}
+                  {evento.classroomName ? (
+                    <span className="font-bold">{evento.classroomName} </span>
+                  ) : null}
                   {evento.title}
                 </button>
               ))}
