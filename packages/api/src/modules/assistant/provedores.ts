@@ -101,7 +101,16 @@ export function camposAoTrocarProvedor(id: string): {
   return {
     providerLabel: escolhido.id,
     baseUrl: escolhido.baseUrl,
-    model: "",
+    /*
+     * Já escolhe o primeiro sugerido, e **não** deixa vazio.
+     *
+     * O `Select` precisa de um valor para mostrar. Deixar o estado vazio e
+     * exibir o primeiro item como se fosse o escolhido cria o pior tipo de
+     * defeito: a tela diz `gpt-4o-mini`, o formulário manda vazio, e o
+     * servidor recusa dizendo para preencher um campo que a pessoa está
+     * vendo preenchido.
+     */
+    model: escolhido.modelos[0] ?? "",
     modeloDigitado: escolhido.modelos.length === 0,
   };
 }

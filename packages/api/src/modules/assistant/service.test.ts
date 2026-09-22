@@ -206,6 +206,12 @@ describe("salvar", () => {
     // erro de novo.
     expect(erro.message).toContain("apps/web/.env");
     expect(erro.message).toMatch(/reinicie/i);
+    // `printf` e não `echo … >>`: arquivo `.env` sem quebra de linha no fim
+    // faz o `>>` colar a variável nova no fim da anterior, e as duas ficam
+    // inválidas — com o mesmo erro de antes, o que faz quem seguiu a
+    // instrução concluir que a instrução é que estava errada.
+    expect(erro.message).toContain("printf");
+    expect(erro.message).not.toMatch(/echo "ASSISTANT/);
     expect(erro.message).not.toContain("turbo.json");
     expect(erro.message).not.toContain("packages/env");
   });
@@ -458,5 +464,97 @@ describe("modelosDisponiveis", () => {
     });
 
     await expect(s.modelosDisponiveis()).rejects.toBeInstanceOf(ValidationError);
+  });
+});
+
+describe("mensagem do que falta para ligar", () => {
+  /**
+   * O que falta é decidido pela **mescla** do que está gravado com o que veio
+   * no formulário — que é o estado que ficaria na linha. Por isso o teste
+   * controla os dois lados: `guardado` é a linha, `entrada` é o que a direção
+   * mandou.
+   */
+  const ligar = (
+    opcoes: {
+      guardado?: Partial<Linha>;
+      entrada?: Partial<Parameters<ReturnType<typeof servico>["salvar"]>[0]>;
+      gravou?: { chamou: boolean };
+    } = {},
+  ) =>
+    servico({
+      repo: {
+        find: async () => configurada(opcoes.guardado ?? {}),
+        save: async (patch) => {
+          if (opcoes.gravou) opcoes.gravou.chamou = true;
+          return { ...configurada(opcoes.guardado ?? {}), ...patch } as never;
+        },
+      },
+    }).salvar(
+      {
+        ...BASE,
+        enabled: true,
+        baseUrl: "https://api.exemplo.com/v1",
+        model: "modelo-x",
+        ...opcoes.entrada,
+      },
+      "u1",
+    );
+
+  /**
+   * Listar os três quando só um falta faz a pessoa duvidar da tela, não do
+   * campo — foi o que aconteceu com o modelo vindo vazio do dropdown.
+   */
+  it("nomeia só o campo que está faltando", async () => {
+    await expect(ligar({ entrada: { model: null } })).rejects.toThrow(
+      "Para ligar o Astro, falta preencher o modelo.",
+    );
+    await expect(ligar({ entrada: { baseUrl: null } })).rejects.toThrow(
+      "Para ligar o Astro, falta preencher o endereço da API.",
+    );
+    await expect(
+      ligar({ guardado: { apiKeyCipher: null }, entrada: { apiKey: "" } }),
+    ).rejects.toThrow("Para ligar o Astro, falta preencher a credencial.");
+  });
+
+  it("junta com 'e' quando falta mais de um", async () => {
+    await expect(
+      ligar({ guardado: { apiKeyCipher: null }, entrada: { model: null, apiKey: "" } }),
+    ).rejects.toThrow("Para ligar o Astro, falta preencher o modelo e a credencial.");
+
+    await expect(
+      ligar({
+        guardado: { apiKeyCipher: null },
+        entrada: { baseUrl: null, model: null, apiKey: "" },
+      }),
+    ).rejects.toThrow(
+      "Para ligar o Astro, falta preencher o endereço da API, o modelo e a credencial.",
+    );
+  });
+
+  /**
+   * A credencial que já está gravada conta: editar o modelo sem redigitar o
+   * segredo não pode ser lido como "falta a credencial".
+   */
+  it("a credencial já gravada basta, mesmo sem redigitar", async () => {
+    await expect(ligar({ entrada: { apiKey: undefined } })).resolves.toMatchObject({
+      enabled: true,
+    });
+  });
+
+  /**
+   * A recusa não pode deixar no banco o estado que ela diz não aceitar. Antes
+   * a checagem vinha depois do `save`, e a linha ficava com `enabled = true` e
+   * o modelo vazio — nada quebrava, mas quem abrisse o banco leria "ligado".
+   */
+  it("recusa sem gravar nada", async () => {
+    const gravou = { chamou: false };
+
+    await expect(ligar({ entrada: { model: null }, gravou })).rejects.toThrow();
+
+    expect(gravou.chamou).toBe(false);
+  });
+
+  it("deixa ligar quando está tudo lá", async () => {
+    await expect(ligar()).resolves.toMatchObject({ enabled: true });
   });
 });

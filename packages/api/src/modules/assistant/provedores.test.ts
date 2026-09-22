@@ -41,9 +41,22 @@ describe("camposAoTrocarProvedor", () => {
     expect(camposAoTrocarProvedor("ollama").baseUrl).toBe("http://localhost:11434/v1");
   });
 
-  it("limpa o modelo, que era do provedor que saiu", () => {
-    for (const provedor of PROVEDORES) {
+  /**
+   * O defeito que isto guarda: o `Select` precisa de um valor para mostrar.
+   * Com o estado vazio e o primeiro item exibido como se fosse o escolhido, a
+   * tela dizia `gpt-4o-mini`, o formulário mandava vazio, e o servidor recusava
+   * pedindo para preencher um campo que a pessoa estava vendo preenchido.
+   */
+  it("já escolhe o primeiro modelo sugerido, em vez de deixar vazio", () => {
+    for (const provedor of PROVEDORES.filter((p) => p.modelos.length > 0)) {
+      expect(camposAoTrocarProvedor(provedor.id).model).toBe(provedor.modelos[0]);
+    }
+  });
+
+  it("fica vazio só quando não há o que sugerir", () => {
+    for (const provedor of PROVEDORES.filter((p) => p.modelos.length === 0)) {
       expect(camposAoTrocarProvedor(provedor.id).model).toBe("");
+      expect(camposAoTrocarProvedor(provedor.id).modeloDigitado).toBe(true);
     }
   });
 

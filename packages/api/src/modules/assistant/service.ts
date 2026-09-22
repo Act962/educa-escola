@@ -141,15 +141,49 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
         }
       }
 
-      const salva = await repo.save(patch);
+      /*
+       * Valida **antes** de gravar.
+       *
+       * Na primeira versão a checagem vinha depois do `save`, e a recusa
+       * deixava no banco exatamente o estado que ela diz não aceitar:
+       * `enabled = true` com o modelo vazio. Nada quebrava — `situacao`
+       * confere as três peças —, mas a linha ficava mentindo, e quem abrisse
+       * o banco leria "ligado".
+       *
+       * O resultado é o que já está gravado mais o que veio: `patch` só traz
+       * as colunas da credencial quando a direção digitou uma, então a mescla
+       * é o que de fato ficaria na linha.
+       */
+      const resultado = { ...(await configuracaoBruta()), ...patch } as {
+        enabled?: boolean;
+        baseUrl?: string | null;
+        model?: string | null;
+        apiKeyCipher?: string | null;
+      };
 
       // Ligar sem as três peças deixaria um botão no canto da tela que só
       // sabe dar erro. Recusar aqui é mais barato que descobrir na pergunta.
-      if (salva.enabled && !(salva.baseUrl && salva.model && salva.apiKeyCipher)) {
-        throw new ValidationError(
-          "Para ligar o Astro, preencha o endereço, o modelo e a credencial.",
-        );
+      if (resultado.enabled) {
+        // Nomeia o que falta em vez de listar os três. Mensagem que manda
+        // preencher campo já preenchido faz a pessoa duvidar da tela, não do
+        // campo — e foi exatamente o que aconteceu quando só o modelo vinha
+        // vazio.
+        const faltando = [
+          !resultado.baseUrl && "o endereço da API",
+          !resultado.model && "o modelo",
+          !resultado.apiKeyCipher && "a credencial",
+        ].filter((item): item is string => typeof item === "string");
+
+        if (faltando.length > 0) {
+          const lista =
+            faltando.length === 1
+              ? faltando[0]
+              : `${faltando.slice(0, -1).join(", ")} e ${faltando.at(-1)}`;
+          throw new ValidationError(`Para ligar o Astro, falta preencher ${lista}.`);
+        }
       }
+
+      await repo.save(patch);
 
       return this.configuracao();
     },

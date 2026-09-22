@@ -3,6 +3,7 @@ import {
   PROVEDORES,
   provedorDe,
 } from "@educa-escola/api/modules/assistant/provedores";
+import { COMANDO_DA_CHAVE } from "@educa-escola/api/modules/assistant/segredo";
 import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components/alert";
 import { Button } from "@educa-escola/ui/components/button";
 import { Card, CardEyebrow } from "@educa-escola/ui/components/card";
@@ -198,9 +199,10 @@ function Formulario({
               Sem <code>ASSISTANT_ENCRYPTION_KEY</code> a credencial do modelo não é gravada — nunca
               em claro. O campo da credencial fica fechado até ela existir.
             </span>
-            <code className="whitespace-pre-wrap break-all text-meta">
-              echo "ASSISTANT_ENCRYPTION_KEY=$(openssl rand -base64 32)" &gt;&gt; apps/web/.env
-            </code>
+            {/* `printf` com quebra de linha na frente, e não `echo … >>`:
+                `.env` sem quebra no fim faz o `>>` colar a variável nova no
+                fim da anterior, e as duas ficam inválidas. */}
+            <code className="whitespace-pre-wrap break-all text-meta">{COMANDO_DA_CHAVE}</code>
             <span>Depois reinicie o servidor: o .env é lido só na subida.</span>
           </AlertDescription>
         </Alert>
@@ -283,7 +285,14 @@ function Formulario({
             {({ provedor, digitado }) => {
               // A lista buscada no provedor vence a curada: ela é de hoje, a
               // outra é do dia em que o arquivo foi escrito.
-              const opcoes = modelosDoProvedor ?? provedorDe(provedor).modelos;
+              const sugeridos = modelosDoProvedor ?? provedorDe(provedor).modelos;
+
+              // O modelo salvo entra na lista mesmo que o provedor não o
+              // tenha devolvido. Sem isto, o `Select` exibiria outro valor e
+              // a próxima gravação trocaria o modelo sem ninguém pedir.
+              const escolhido = form.state.values.model;
+              const opcoes =
+                escolhido && !sugeridos.includes(escolhido) ? [escolhido, ...sugeridos] : sugeridos;
 
               return (
                 <form.Field name="model">
@@ -315,7 +324,7 @@ function Formulario({
                         />
                       ) : (
                         <Select
-                          value={field.state.value || opcoes[0]}
+                          value={field.state.value}
                           onValueChange={(valor) => {
                             if (valor === DIGITAR) {
                               form.setFieldValue("modeloDigitado", true);

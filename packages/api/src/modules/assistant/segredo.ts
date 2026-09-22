@@ -10,6 +10,19 @@ import { type Cifrado, decrypt, encrypt, parseKey } from "../../media/crypto";
  */
 
 /**
+ * O comando que gera a chave, num lugar só.
+ *
+ * `printf` com `\n` na frente, e não `echo … >>`, por causa de um defeito que
+ * este projeto já sofreu: arquivo `.env` sem quebra de linha no fim faz o `>>`
+ * **colar** a variável nova no fim da anterior. As duas ficam inválidas, e o
+ * erro que aparece é o mesmo de antes — então quem seguiu a instrução conclui
+ * que a instrução estava errada, e não que o arquivo é que ficou torto.
+ *
+ * O `\n` da frente custa, no pior caso, uma linha em branco.
+ */
+export const COMANDO_DA_CHAVE = `printf '\\nASSISTANT_ENCRYPTION_KEY=%s\\n' "$(openssl rand -base64 32)" >> apps/web/.env`;
+
+/**
  * A mensagem diz só o que falta.
  *
  * A primeira versão mandava declarar a variável em três lugares — copiada do
@@ -23,7 +36,7 @@ export function chaveDoAssistente(raw: string | undefined): Buffer {
   if (!raw) {
     throw new Error(
       "ASSISTANT_ENCRYPTION_KEY não está no ambiente. Rode " +
-        '`echo "ASSISTANT_ENCRYPTION_KEY=$(openssl rand -base64 32)" >> apps/web/.env` ' +
+        `\`${COMANDO_DA_CHAVE}\` ` +
         "e reinicie o servidor — o .env é lido só na subida.",
     );
   }
