@@ -195,9 +195,19 @@ describe("salvar", () => {
   it("recusa gravar credencial sem a chave do servidor", async () => {
     const s = servico({ semChaveDoServidor: true });
 
-    await expect(s.salvar({ ...BASE, apiKey: "sk-alguma-coisa" }, "u1")).rejects.toThrow(
-      /ASSISTANT_ENCRYPTION_KEY/,
-    );
+    const erro: Error = await s
+      .salvar({ ...BASE, apiKey: "sk-alguma-coisa" }, "u1")
+      .then(() => new Error("não deveria ter gravado"))
+      .catch((e: Error) => e);
+
+    expect(erro.message).toContain("ASSISTANT_ENCRYPTION_KEY");
+    // A instrução tem de dizer só o que falta, e incluir o reinício: o `.env`
+    // é lido na subida, e sem isso a pessoa acrescenta a linha e vê o mesmo
+    // erro de novo.
+    expect(erro.message).toContain("apps/web/.env");
+    expect(erro.message).toMatch(/reinicie/i);
+    expect(erro.message).not.toContain("turbo.json");
+    expect(erro.message).not.toContain("packages/env");
   });
 
   /** Ligar sem as três peças deixaria um botão que só sabe dar erro. */

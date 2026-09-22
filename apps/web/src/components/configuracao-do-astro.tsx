@@ -193,9 +193,15 @@ function Formulario({
         <Alert variant="warning">
           <TriangleAlert size={18} strokeWidth={1.8} aria-hidden />
           <AlertTitle>O servidor não tem a chave de cifragem</AlertTitle>
-          <AlertDescription>
-            Sem <code>ASSISTANT_ENCRYPTION_KEY</code> a credencial do modelo não é gravada — nunca
-            em claro. Gere com <code>openssl rand -base64 32</code> e declare no ambiente.
+          <AlertDescription className="flex flex-col gap-1">
+            <span>
+              Sem <code>ASSISTANT_ENCRYPTION_KEY</code> a credencial do modelo não é gravada — nunca
+              em claro. O campo da credencial fica fechado até ela existir.
+            </span>
+            <code className="whitespace-pre-wrap break-all text-meta">
+              echo "ASSISTANT_ENCRYPTION_KEY=$(openssl rand -base64 32)" &gt;&gt; apps/web/.env
+            </code>
+            <span>Depois reinicie o servidor: o .env é lido só na subida.</span>
           </AlertDescription>
         </Alert>
       )}
@@ -420,17 +426,26 @@ function Formulario({
                 <KeyRound size={14} strokeWidth={1.8} aria-hidden className="mr-1 inline" />
                 Credencial
               </Label>
+              {/*
+                Fechado quando o servidor não tem a chave de cifragem: sem
+                ela a gravação é recusada de qualquer jeito, e deixar o campo
+                aberto faria a pessoa colar um segredo de verdade para receber
+                um erro. Melhor barrar antes de a chave sair da máquina dela.
+              */}
               <Input
                 id={field.name}
                 type="password"
                 autoComplete="off"
+                disabled={!atual.chaveDoServidor}
                 value={field.state.value}
                 onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
                 placeholder={
-                  atual.credencialGravada
-                    ? "Deixe em branco para manter a atual"
-                    : "Cole a chave do provedor"
+                  !atual.chaveDoServidor
+                    ? "Configure ASSISTANT_ENCRYPTION_KEY no servidor primeiro"
+                    : atual.credencialGravada
+                      ? "Deixe em branco para manter a atual"
+                      : "Cole a chave do provedor"
                 }
               />
               <p className="text-meta text-muted-foreground">

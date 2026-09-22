@@ -9,11 +9,22 @@ import { type Cifrado, decrypt, encrypt, parseKey } from "../../media/crypto";
  * escola a recadastrar a credencial do modelo.
  */
 
+/**
+ * A mensagem diz só o que falta.
+ *
+ * A primeira versão mandava declarar a variável em três lugares — copiada do
+ * helper da foto, escrito quando nenhum dos três existia. Aqui
+ * `packages/env/src/server.ts` e o `turbo.json` já a declaram; o que falta é
+ * o valor no `.env` da instalação. Instrução com dois passos desnecessários
+ * manda quem lê procurar defeito onde não há, e o terceiro passo — reiniciar
+ * — é o que de fato faltava, porque o `.env` é lido uma vez, na subida.
+ */
 export function chaveDoAssistente(raw: string | undefined): Buffer {
   if (!raw) {
     throw new Error(
-      "ASSISTANT_ENCRYPTION_KEY não está configurada. Gere com `openssl rand -base64 32` " +
-        "e declare em apps/web/.env, em packages/env/src/server.ts e no turbo.json.",
+      "ASSISTANT_ENCRYPTION_KEY não está no ambiente. Rode " +
+        '`echo "ASSISTANT_ENCRYPTION_KEY=$(openssl rand -base64 32)" >> apps/web/.env` ' +
+        "e reinicie o servidor — o .env é lido só na subida.",
     );
   }
   return parseKey(raw);
