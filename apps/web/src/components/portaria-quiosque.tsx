@@ -221,6 +221,26 @@ export function PortariaQuiosque({
   const rostoLigado = rostoDisponivel() && !erroDaCamera && moldes.length > 0 && !loteVencido;
 
   /**
+   * Por que o rosto está desligado — nomeado, não deduzido.
+   *
+   * A primeira versão só escondia a câmera, e "não tem rosto cadastrado" ficava
+   * visualmente idêntico a "a câmera quebrou". Quem está no portão precisa
+   * saber se libera a permissão, se chama a secretaria para cadastrar, ou se é
+   * defeito de verdade — são três ações diferentes.
+   */
+  const motivoDoRostoDesligado = !rostoDisponivel()
+    ? "O reconhecimento facial não está instalado neste tablet."
+    : erroDaCamera
+      ? "A câmera não abriu. Autorize o uso da câmera no navegador — em rede, o tablet precisa estar em HTTPS."
+      : lote.isLoading
+        ? null
+        : moldes.length === 0
+          ? "Nenhum aluno tem rosto cadastrado ainda. A secretaria cadastra em Alunos."
+          : loteVencido
+            ? "A lista de rostos venceu e o tablet não conseguiu atualizar. Confira a rede."
+            : null;
+
+  /**
    * O sensor de presença, que é o que acorda a portaria.
    *
    * Roda só enquanto a tela hiberna, e só o detector — não os pontos do rosto
@@ -343,8 +363,9 @@ export function PortariaQuiosque({
       <Palco
         estado={estado}
         videoRef={videoRef}
-        erroDaCamera={erroDaCamera}
+        cameraViva={!erroDaCamera}
         rostoLigado={rostoLigado}
+        motivo={motivoDoRostoDesligado}
         acordada={acordada}
       />
 
@@ -372,14 +393,16 @@ export function PortariaQuiosque({
 function Palco({
   estado,
   videoRef,
-  erroDaCamera,
+  cameraViva,
   rostoLigado,
+  motivo,
   acordada,
 }: {
   estado: Estado;
   videoRef: React.RefObject<HTMLVideoElement | null>;
-  erroDaCamera: string | null;
+  cameraViva: boolean;
   rostoLigado: boolean;
+  motivo: string | null;
   acordada: boolean;
 }) {
   const borda =
@@ -404,7 +427,7 @@ function Palco({
       <div
         className={cn(
           "grid shrink-0 place-items-center overflow-hidden rounded-card bg-kiosk transition-all",
-          acordada ? "size-64 sm:size-80" : "size-0 opacity-0",
+          acordada ? "size-64 sm:size-80" : cameraViva ? "size-24 opacity-60" : "size-0",
         )}
       >
         {estado.tipo === "liberado" ? (
@@ -459,23 +482,26 @@ function Palco({
         <p className="text-card text-kiosk-foreground/70">Lendo…</p>
       ) : (
         <div className="flex flex-col items-center gap-5">
-          {erroDaCamera ? (
-            <CameraOff size={58} strokeWidth={1.5} className="text-warning" aria-hidden />
-          ) : (
+          {rostoLigado ? (
             <ScanFace
               size={72}
               strokeWidth={1.2}
               className="text-kiosk-foreground/40"
               aria-hidden
             />
+          ) : (
+            <CameraOff size={58} strokeWidth={1.5} className="text-warning" aria-hidden />
           )}
           <p className="font-extrabold text-4xl text-kiosk-foreground sm:text-5xl">
             {rostoLigado ? "Aproxime o rosto da tela" : "Passe a carteirinha no leitor"}
           </p>
-          {erroDaCamera ? (
-            <p className="max-w-lg text-card text-kiosk-foreground/60">
-              A câmera não abriu. Em rede, o tablet precisa estar em HTTPS — a carteirinha continua
-              funcionando.
+          {/*
+            O motivo vem escrito. Sem ele, "não tem rosto cadastrado" e "a
+            câmera quebrou" são a mesma tela — e a ação para cada um é outra.
+          */}
+          {motivo ? (
+            <p className="max-w-xl text-card text-kiosk-foreground/60">
+              {motivo} A carteirinha continua funcionando.
             </p>
           ) : null}
         </div>
