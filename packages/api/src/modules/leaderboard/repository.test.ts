@@ -1,7 +1,15 @@
+import { lesson } from "@educa-escola/db/schema";
 import { closeTestDb, withRollback } from "@educa-escola/db/testing";
+import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { createTestSchool, createTestUser } from "../../testing/fixtures";
+import {
+  createTestClassroom,
+  createTestLesson,
+  createTestSchool,
+  createTestSubject,
+  createTestUser,
+} from "../../testing/fixtures";
 import { createLeaderboardLookup, createLeaderboardRepository } from "./repository";
 
 afterAll(async () => {
@@ -142,6 +150,43 @@ describe("createLeaderboardLookup", () => {
     await withRollback(async (tx) => {
       await escolaPublicada(tx, "Escola A", 200);
       expect(await createLeaderboardLookup(tx).scoreboard(2025)).toHaveLength(0);
+    });
+  });
+});
+
+describe("contagens da escola", () => {
+  /**
+   * A coluna é `timestamp` sem fuso, gravada em UTC. Um `at time zone` só
+   * interpretaria o valor **como** horário de São Paulo em vez de convertê-lo
+   * para lá, e a chamada das 21h cairia no dia seguinte — tirando do
+   * professor um ponto que ele ganhou.
+   */
+  it("conta a chamada da noite no dia da aula, e não no seguinte", async () => {
+    await withRollback(async (tx) => {
+      const escola = await createTestSchool(tx);
+      const professor = await createTestUser(tx);
+      const turma = await createTestClassroom(tx, escola.id);
+      const disciplina = await createTestSubject(tx, escola.id);
+
+      const aula = await createTestLesson(tx, {
+        schoolId: escola.id,
+        classroomId: turma.id,
+        subjectId: disciplina.id,
+        teacherId: professor.id,
+        date: "2026-03-02",
+      });
+
+      // 21h de 2 de março em São Paulo = meia-noite de 3 de março em UTC.
+      await tx
+        .update(lesson)
+        .set({ attendanceRecordedAt: new Date("2026-03-03T00:00:00Z") })
+        .where(eq(lesson.id, aula.id));
+
+      const contagens = await createLeaderboardRepository(tx, {
+        schoolId: escola.id,
+      }).contagens(2026);
+
+      expect(contagens).toMatchObject({ aulasComChamada: 1, aulasNoPrazo: 1 });
     });
   });
 });

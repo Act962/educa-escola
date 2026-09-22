@@ -98,9 +98,15 @@ export function createLeaderboardRepository(db: DbHandle, tenant: TenantContext)
       const [aulas] = await db
         .select({
           comChamada: count(lesson.attendanceRecordedAt),
+          // Dois `at time zone` e não um: a coluna é `timestamp` sem fuso,
+          // gravada em UTC. Um só interpretaria o valor **como** horário de
+          // São Paulo em vez de convertê-lo para lá, e a chamada das 21h
+          // cairia no dia seguinte — tirando do professor um ponto que ele
+          // ganhou. É a mesma leitura que `toSchoolDate` faz do lado do TS.
           noPrazo: sql<number>`count(*) filter (
             where ${lesson.attendanceRecordedAt} is not null
-              and (${lesson.attendanceRecordedAt} at time zone 'America/Sao_Paulo')::date <= ${lesson.date}::date
+              and (${lesson.attendanceRecordedAt} at time zone 'UTC' at time zone 'America/Sao_Paulo')::date
+                  <= ${lesson.date}::date
           )`.mapWith(Number),
         })
         .from(lesson)
