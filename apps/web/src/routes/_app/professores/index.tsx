@@ -3,6 +3,7 @@ import { Badge } from "@educa-escola/ui/components/badge";
 import { Button } from "@educa-escola/ui/components/button";
 import { Card, CardEyebrow } from "@educa-escola/ui/components/card";
 import { Input } from "@educa-escola/ui/components/input";
+import { Label } from "@educa-escola/ui/components/label";
 import {
   Table,
   TableBody,
@@ -14,10 +15,11 @@ import {
 import { StatCard } from "@educa-escola/ui/integra/stat-card";
 import { EmptyState, ErrorState, ListSkeleton } from "@educa-escola/ui/integra/states";
 import { initialsOf } from "@educa-escola/ui/lib/initials";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ClipboardList, Search, TriangleAlert, Users } from "lucide-react";
+import { ClipboardList, Search, TriangleAlert, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { inteiro } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
@@ -55,6 +57,11 @@ function Professores() {
   const { year } = useSchoolContext();
   const [busca, setBusca] = useState("");
   const [soPendencias, setSoPendencias] = useState(false);
+  const [cadastrando, setCadastrando] = useState(false);
+  const me = useQuery(trpc.me.queryOptions());
+  /* Mesmo padrão do resto: quem não tem `faculty: ["manage"]` esbarraria num
+     403 depois de preencher o formulário inteiro. */
+  const podeCadastrar = me.data?.role === "owner" || me.data?.role === "admin";
 
   const docentes = useQuery({
     ...trpc.teacher.list.queryOptions({
@@ -122,7 +129,15 @@ function Professores() {
           >
             Só com pendência
           </Button>
+          {podeCadastrar ? (
+            <Button className="ml-auto" onClick={() => setCadastrando(true)}>
+              <UserPlus size={18} strokeWidth={1.8} aria-hidden />
+              Novo professor
+            </Button>
+          ) : null}
         </div>
+
+        {cadastrando ? <NovoProfessor onFechar={() => setCadastrando(false)} /> : null}
 
         {docentes.isLoading ? (
           <ListSkeleton rows={6} />
@@ -213,5 +228,143 @@ function Professores() {
         da turma ou taxa de aprovação.
       </p>
     </>
+  );
+}
+
+/**
+ * O cadastro de professor.
+ *
+ * O que sai daqui é um **link**, não uma senha: a escola nunca conhece a senha
+ * de ninguém. O endereço aparece uma vez e é copiado — mesma costura do link
+ * de matrícula, enquanto o envio automático não existe.
+ */
+function NovoProfessor({ onFechar }: { onFechar: () => void }) {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [disciplinas, setDisciplinas] = useState<string[]>([]);
+  const [link, setLink] = useState<string | null>(null);
+
+  const catalogo = useQuery({ ...trpc.teacher.disciplinas.queryOptions(), retry: false });
+
+  const convidar = useMutation(
+    trpc.teacher.convidar.mutationOptions({
+      onSuccess: (saida) => {
+        setLink(saida.url);
+        queryClient.invalidateQueries();
+      },
+      onError: (erro) => toast.error(erro.message),
+    }),
+  );
+
+  if (link) {
+    return (
+      <div className="flex flex-col gap-3 rounded-card bg-info-soft p-4">
+        <p className="font-bold text-corpo">Mande este endereço ao professor</p>
+        <p className="break-all font-mono text-meta">{link}</p>
+        <p className="text-meta text-muted-foreground">
+          Ele aparece só agora e vale 7 dias. Quem escolhe a senha é o professor — a escola não
+          conhece a senha de ninguém.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              void navigator.clipboard.writeText(link);
+              toast.success("Endereço copiado.");
+            }}
+          >
+            Copiar endereço
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onFechar}>
+            Concluir
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 rounded-card bg-muted p-4">
+      <p className="font-bold text-corpo">Novo professor</p>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="nome-do-professor">Nome completo</Label>
+          <Input
+            id="nome-do-professor"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="Como aparece no diário"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="email-do-professor">E-mail</Label>
+          <Input
+            id="email-do-professor"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="professor@escola.br"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="font-bold text-apoio">Disciplinas que ele pode lecionar</span>
+        {/*
+          Habilitação, não alocação: isto é o que ele **pode** dar, e serve
+          para a coordenação montar a grade oferecendo só quem dá a matéria. O
+          que ele leciona de fato continua saindo das aulas.
+        */}
+        <p className="text-meta text-muted-foreground">
+          Opcional. Serve para a coordenação saber quem pode pegar cada turma.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {(catalogo.data ?? []).map((disciplina) => {
+            const marcada = disciplinas.includes(disciplina.id);
+            return (
+              <Button
+                key={disciplina.id}
+                size="sm"
+                variant={marcada ? "default" : "secondary"}
+                aria-pressed={marcada}
+                className="min-h-8 px-3 text-meta"
+                onClick={() =>
+                  setDisciplinas((atuais) =>
+                    marcada
+                      ? atuais.filter((id) => id !== disciplina.id)
+                      : [...atuais, disciplina.id],
+                  )
+                }
+              >
+                {disciplina.name}
+              </Button>
+            );
+          })}
+          {catalogo.data?.length === 0 ? (
+            <p className="text-meta text-muted-foreground">
+              A escola ainda não tem disciplinas cadastradas. Elas ficam em Acadêmico.
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          disabled={nome.trim().length < 3 || !email.includes("@") || convidar.isPending}
+          onClick={() =>
+            convidar.mutate({ name: nome, email, subjectIds: disciplinas, expiryDays: 7 })
+          }
+        >
+          {convidar.isPending ? "Gerando link…" : "Gerar link de acesso"}
+        </Button>
+        <Button variant="ghost" onClick={onFechar}>
+          Cancelar
+        </Button>
+      </div>
+    </div>
   );
 }

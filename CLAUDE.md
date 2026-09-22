@@ -244,6 +244,7 @@ O mesmo teste exige que todo módulo tenha `repository.ts`, `service.ts` e
 | `assessment` | Avaliação, grade de notas, média ponderada e publicação |
 | `overview` | Números dos três painéis. Só consulta agregada, nunca lista |
 | `gate` | Portaria: quem passou no portão, quando e por qual meio. **Não é chamada** |
+| `teacher` | Corpo docente: lista com pendências, cadastro por convite e habilitação |
 
 A fila de pendências da direção é **uma lista só**: quem deve chamada e quem
 deve apenas nota saem juntos de `overview.gestao`, ordenados pelo tamanho da
@@ -269,6 +270,21 @@ Três regras de negócio atravessam quase tudo e vivem num lugar só:
   a grade de notas listava os dois e a checagem de publicação contava só
   `ativo`: o aluno aparecia como "Sem nota" na tela e a publicação passava
   assim mesmo, deixando no boletim exatamente o buraco que a regra proíbe.
+
+**Professor não é tabela: é vínculo.** O corpo docente são os `member` da
+organização com papel `teacher`. Cadastrar um professor é criar conta e
+vínculo, e o caminho é um **convite** — `teacher_invite`, com a mesma máquina
+do convite de matrícula (só o hash do token no banco, prazo, revogação). Quem
+escolhe a senha é o professor, abrindo o link: **a escola nunca conhece a senha
+de ninguém**, e senha provisória entregue em papel vira senha definitiva.
+
+Não usa o convite do Better Auth de propósito: o dele pressupõe conta existente
+e sessão para aceitar, e aqui a pessoa ainda não existe.
+
+`teacher_subject` é **habilitação**, não alocação: o que o professor *pode*
+lecionar, para a coordenação montar a grade antes de existir aula. O que ele
+leciona de fato continua saindo das aulas, e se sabe melhor assim — ninguém
+precisa manter.
 
 **O link de confirmação é a única exceção ao RBAC.** O responsável não tem
 conta — o requisito só lhe dá portal pós-MVP —, então a autorização dele é a

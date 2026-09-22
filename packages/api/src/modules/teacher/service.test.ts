@@ -29,12 +29,23 @@ interface Estado {
     subjectId: string;
     subjectName: string;
   }[];
+  disciplinas?: { id: string; name: string; code: string | null }[];
+  jaMembro?: { userId: string; role: string } | null;
+  conviteAberto?: { id: string } | null;
 }
 
 /** Dublê tipado como o repositório real: muda a interface, para de compilar. */
 function fakeRepository(estado: Estado = {}): TeacherRepository {
   const docentes = estado.docentes ?? [];
   return {
+    // O convite não é exercitado nos testes de leitura, mas o dublê é tipado
+    // como o repositório real: sem estes, a interface muda e o teste mente.
+    createInvite: async () => ({ id: "convite-1" }),
+    memberByEmail: async () => estado.jaMembro ?? null,
+    openInviteFor: async () => estado.conviteAberto ?? null,
+    aceitarConvite: async () => ({ id: "convite-1" }),
+    revokeInvite: async () => undefined,
+    listSubjects: async () => estado.disciplinas ?? [],
     list: async (search) =>
       search
         ? docentes.filter((d) => d.name.toLowerCase().includes(search.toLowerCase()))

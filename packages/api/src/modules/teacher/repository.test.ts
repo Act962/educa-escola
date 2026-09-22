@@ -1,4 +1,6 @@
+import { teacherSubject } from "@educa-escola/db/schema";
 import { closeTestDb, withRollback } from "@educa-escola/db/testing";
+import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 
 import {
@@ -10,7 +12,9 @@ import {
   createTestSubject,
   createTestUser,
 } from "../../testing/fixtures";
-import { createTeacherRepository } from "./repository";
+import { createTeacherInviteService } from "./convite-service";
+import { createTeacherInviteLookup, createTeacherRepository } from "./repository";
+import { createTeacherService } from "./service";
 
 afterAll(async () => {
   await closeTestDb();
@@ -253,6 +257,164 @@ describe("pendingGradesByTeacher", () => {
       }).pendingGradesByTeacher(new Date().getFullYear());
 
       expect(linha?.faltando).toBe(1);
+    });
+  });
+});
+
+describe("convite de professor", () => {
+  async function cenario(tx: Tx, nome = "Escola A") {
+    const escola = await createTestSchool(tx, nome);
+    const operador = await createTestUser(tx);
+    await createTestMembership(tx, { schoolId: escola.id, userId: operador.id, role: "owner" });
+    return { escola, operador, repo: createTeacherRepository(tx, { schoolId: escola.id }) };
+  }
+
+  function servicoDoConvite(tx: Tx, contas: { userId: string }[] = []) {
+    return createTeacherInviteService({
+      now: () => new Date(),
+      lookup: createTeacherInviteLookup(tx),
+      repoFor: (tenant) => createTeacherRepository(tx, tenant),
+      criarConta: async () => {
+        const conta = contas.shift();
+        if (!conta) throw new Error("dublê sem conta preparada");
+        return conta;
+      },
+    });
+  }
+
+  const tokenDe = (url: string) => url.split("/").at(-1) as string;
+
+  function servico(tx: Tx, schoolId: string, actorUserId: string) {
+    return createTeacherService(createTeacherRepository(tx, { schoolId }), {
+      now: () => new Date(),
+      linkBaseUrl: "http://localhost:3001",
+      actor: { userId: actorUserId },
+      criarConta: async () => ({ userId: "não usado aqui" }),
+    });
+  }
+
+  /**
+   * O caminho inteiro: a secretaria cadastra, o professor abre o link, cria a
+   * senha e vira membro da escola.
+   */
+  it("o professor nasce do aceite, com vínculo e habilitação", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenario(tx);
+      const disciplina = await createTestSubject(tx, c.escola.id, "Matemática");
+      const futuro = await createTestUser(tx);
+
+      const convite = await servico(tx, c.escola.id, c.operador.id).convidar({
+        name: "Ricardo Alves",
+        email: "Ricardo.Alves@Escola.br",
+        subjectIds: [disciplina.id],
+        expiryDays: 7,
+      });
+
+      // O e-mail é normalizado: "Ricardo.Alves@" e "ricardo.alves@" são a
+      // mesma pessoa para qualquer provedor, e duas linhas seriam dois acessos.
+      expect(convite.email).toBe("ricardo.alves@escola.br");
+
+      const aberto = await servicoDoConvite(tx).abrir(tokenDe(convite.url));
+      expect(aberto.nome).toBe("Ricardo Alves");
+      expect(aberto.escola).toBe("Escola A");
+
+      await servicoDoConvite(tx, [{ userId: futuro.id }]).aceitar({
+        token: tokenDe(convite.url),
+        password: "uma-senha-forte",
+      });
+
+      const docentes = await c.repo.list();
+      expect(docentes.map((d) => d.userId)).toContain(futuro.id);
+
+      const habilitacoes = await tx
+        .select()
+        .from(teacherSubject)
+        .where(eq(teacherSubject.userId, futuro.id));
+      expect(habilitacoes).toHaveLength(1);
+    });
+  });
+
+  /** Dois cliques no mesmo link não criam dois vínculos. */
+  it("o convite só é aceito uma vez", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenario(tx);
+      const a = await createTestUser(tx);
+      const b = await createTestUser(tx);
+
+      const convite = await servico(tx, c.escola.id, c.operador.id).convidar({
+        name: "Sérgio Bandeira",
+        email: "sergio@escola.br",
+        subjectIds: [],
+        expiryDays: 7,
+      });
+
+      await servicoDoConvite(tx, [{ userId: a.id }]).aceitar({
+        token: tokenDe(convite.url),
+        password: "uma-senha-forte",
+      });
+
+      await expect(
+        servicoDoConvite(tx, [{ userId: b.id }]).aceitar({
+          token: tokenDe(convite.url),
+          password: "outra-senha-forte",
+        }),
+      ).rejects.toThrow();
+    });
+  });
+
+  /** Emitir de novo revoga o anterior: dois links vivos confundem os dois lados. */
+  it("um convite vivo por e-mail", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenario(tx);
+      const s = servico(tx, c.escola.id, c.operador.id);
+
+      const primeiro = await s.convidar({
+        name: "Helena Diniz",
+        email: "helena@escola.br",
+        subjectIds: [],
+        expiryDays: 7,
+      });
+      const segundo = await s.convidar({
+        name: "Helena Diniz",
+        email: "helena@escola.br",
+        subjectIds: [],
+        expiryDays: 7,
+      });
+
+      await expect(servicoDoConvite(tx).abrir(tokenDe(primeiro.url))).rejects.toThrow(
+        /não vale mais/i,
+      );
+      await expect(servicoDoConvite(tx).abrir(tokenDe(segundo.url))).resolves.toBeTruthy();
+    });
+  });
+
+  it("recusa cadastrar quem já tem acesso à escola", async () => {
+    await withRollback(async (tx) => {
+      const c = await cenario(tx);
+      const existente = await createTestUser(tx, "ja.tem@escola.br");
+      await createTestMembership(tx, {
+        schoolId: c.escola.id,
+        userId: existente.id,
+        role: "teacher",
+      });
+
+      await expect(
+        servico(tx, c.escola.id, c.operador.id).convidar({
+          name: "Já Tem",
+          email: "ja.tem@escola.br",
+          subjectIds: [],
+          expiryDays: 7,
+        }),
+      ).rejects.toThrow(/já tem acesso/i);
+    });
+  });
+
+  /** Token desconhecido responde igual a token vencido: não dá para enumerar. */
+  it("token desconhecido não revela nada", async () => {
+    await withRollback(async (tx) => {
+      await expect(servicoDoConvite(tx).abrir("token-que-nao-existe-0000000")).rejects.toThrow(
+        /não existe ou já foi usado/i,
+      );
     });
   });
 });

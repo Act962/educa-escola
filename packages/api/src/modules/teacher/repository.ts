@@ -5,8 +5,11 @@ import {
   grade,
   lesson,
   member,
+  organization,
   student,
   subject,
+  teacherInvite,
+  teacherSubject,
   user,
 } from "@educa-escola/db/schema";
 import type { DbHandle } from "@educa-escola/db/types";
@@ -28,6 +31,113 @@ export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
   const doAno = (ano: number) => sql`date_part('year', ${lesson.date}) = ${ano}`;
 
   return {
+    // ---- convite e habilitação ------------------------------------------
+
+    async createInvite(data: {
+      name: string;
+      email: string;
+      tokenHash: string;
+      subjectIds: string[];
+      expiresAt: Date;
+      createdByUserId: string;
+    }) {
+      const [row] = await db
+        .insert(teacherInvite)
+        .values({ ...data, schoolId: tenant.schoolId })
+        .returning({ id: teacherInvite.id });
+      return row as { id: string };
+    },
+
+    /** Já existe alguém com este e-mail nesta escola? */
+    async memberByEmail(email: string) {
+      const [row] = await db
+        .select({ userId: user.id, role: member.role })
+        .from(member)
+        .innerJoin(user, eq(user.id, member.userId))
+        .where(and(eq(member.organizationId, tenant.schoolId), eq(user.email, email)))
+        .limit(1);
+      return row ?? null;
+    },
+
+    /** Convite aberto para o mesmo e-mail — evita dois links vivos. */
+    async openInviteFor(email: string) {
+      const [row] = await db
+        .select({ id: teacherInvite.id })
+        .from(teacherInvite)
+        .where(
+          and(
+            eq(teacherInvite.schoolId, tenant.schoolId),
+            eq(teacherInvite.email, email),
+            sql`${teacherInvite.consumedAt} is null`,
+            sql`${teacherInvite.revokedAt} is null`,
+            sql`${teacherInvite.expiresAt} > now()`,
+          ),
+        )
+        .limit(1);
+      return row ?? null;
+    },
+
+    /** Consome o convite e cria o vínculo do professor, numa transação só. */
+    async aceitarConvite(input: {
+      inviteId: string;
+      userId: string;
+      subjectIds: string[];
+      quando: Date;
+    }) {
+      return db.transaction(async (tx) => {
+        // `consumedAt is null` no filtro é o que torna o aceite único: dois
+        // cliques no mesmo link não criam dois vínculos.
+        const [consumido] = await tx
+          .update(teacherInvite)
+          .set({ consumedAt: input.quando })
+          .where(
+            and(eq(teacherInvite.id, input.inviteId), sql`${teacherInvite.consumedAt} is null`),
+          )
+          .returning({ id: teacherInvite.id });
+
+        if (!consumido) return null;
+
+        await tx.insert(member).values({
+          id: crypto.randomUUID(),
+          organizationId: tenant.schoolId,
+          userId: input.userId,
+          role: "teacher",
+          createdAt: input.quando,
+        });
+
+        if (input.subjectIds.length > 0) {
+          await tx
+            .insert(teacherSubject)
+            .values(
+              input.subjectIds.map((subjectId) => ({
+                schoolId: tenant.schoolId,
+                userId: input.userId,
+                subjectId,
+              })),
+            )
+            .onConflictDoNothing();
+        }
+
+        return { id: consumido.id };
+      });
+    },
+
+    async revokeInvite(id: string, when: Date) {
+      await db
+        .update(teacherInvite)
+        .set({ revokedAt: when })
+        .where(and(eq(teacherInvite.schoolId, tenant.schoolId), eq(teacherInvite.id, id)));
+    },
+
+    /** As disciplinas da escola, para a secretaria escolher. */
+    async listSubjects() {
+      return db
+        .select({ id: subject.id, name: subject.name, code: subject.code })
+        .from(subject)
+        .where(eq(subject.schoolId, tenant.schoolId))
+        .orderBy(asc(subject.name));
+    },
+
     /** O corpo docente, em ordem de nome. */
     async list(search?: string) {
       const busca = search?.trim()
@@ -225,3 +335,38 @@ export function createTeacherRepository(db: DbHandle, tenant: TenantContext) {
 }
 
 export type TeacherRepository = ReturnType<typeof createTeacherRepository>;
+
+/**
+ * Acha o convite pelo token, **sem filtro de escola**.
+ *
+ * Segunda exceção do sistema, pelo mesmo motivo da primeira
+ * (`createInviteLookup`, em enrollment-link): não há sessão de onde tirar o
+ * tenant — o professor ainda não tem conta. O `schoolId` da linha encontrada é
+ * o que vira o `TenantContext` de todo o resto.
+ *
+ * O comentário está aqui porque `architecture.test.ts` não pega: o factory com
+ * tenant no mesmo arquivo satisfaz a regra mecânica.
+ */
+export function createTeacherInviteLookup(db: DbHandle) {
+  return {
+    async byTokenHash(tokenHash: string) {
+      const [row] = await db
+        .select()
+        .from(teacherInvite)
+        .where(eq(teacherInvite.tokenHash, tokenHash))
+        .limit(1);
+      return row ?? null;
+    },
+
+    async schoolName(schoolId: string) {
+      const [row] = await db
+        .select({ name: organization.name })
+        .from(organization)
+        .where(eq(organization.id, schoolId))
+        .limit(1);
+      return row?.name ?? "";
+    },
+  };
+}
+
+export type TeacherInviteLookup = ReturnType<typeof createTeacherInviteLookup>;
