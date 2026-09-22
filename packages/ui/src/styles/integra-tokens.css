@@ -200,4 +200,10 @@
   --color-danger-soft: var(--ie-danger-soft);
   --color-info: var(--ie-info);
   --color-info-soft: var(--ie-info-soft);
+
+  /* A única sombra da identidade, e só para sobreposição real — cartão
+   * flutuante, diálogo, popover. O token existia desde o começo e nunca tinha
+   * virado utilitário; num card comum ele descaracteriza a tela, que se separa
+   * pelo azul do fundo. */
+  --shadow-overlay: var(--ie-shadow-overlay);
 }

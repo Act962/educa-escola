@@ -109,6 +109,10 @@ function Apps() {
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
+          {/* Voltou a ser texto: a assinatura passou a viver na barra lateral,
+              e duas marcas na mesma tela deixam de destacar qualquer coisa. O
+              rótulo continua dizendo que o catálogo é do ecossistema, que é o
+              que esta tela precisa informar. */}
           <CardEyebrow>Ecossistema Órbita</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Apps</h1>
           <p className="text-corpo text-muted-foreground">

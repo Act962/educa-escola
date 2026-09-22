@@ -15,10 +15,11 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@educa-escola/ui/components/sidebar";
+import { OrbitaIcone, OrbitaMarca } from "@educa-escola/ui/integra/orbita";
 import { initialsOf } from "@educa-escola/ui/lib/initials";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { GraduationCap, LogOut, Settings, UserRound } from "lucide-react";
+import { LogOut, Settings, UserRound } from "lucide-react";
 
 import { appOrbitaDe } from "@/lib/apps-orbita";
 import { navigationFor } from "@/lib/navigation";
@@ -75,15 +76,20 @@ export function AppSidebar({
           to="/inicio"
           className="flex items-center gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
-          <GraduationCap
-            size={26}
-            strokeWidth={1.7}
-            className="shrink-0 text-primary"
-            aria-hidden
+          {/*
+            A assinatura quando a barra está aberta, o símbolo quando ela
+            recolhe. São duas marcas e não uma com o texto escondido: a
+            assinatura já contém o símbolo, e cortá-la com `overflow` deixaria
+            um pedaço de letra aparecendo no lugar do ícone.
+          */}
+          <OrbitaMarca
+            titulo="Órbita Edu"
+            className="w-32 shrink-0 text-primary group-data-[collapsible=icon]:hidden"
           />
-          <span className="truncate font-extrabold text-lg tracking-[-0.4px] group-data-[collapsible=icon]:hidden">
-            Integra<span className="text-primary">Edu</span>
-          </span>
+          <OrbitaIcone
+            titulo="Órbita Edu"
+            className="hidden w-7 shrink-0 text-primary group-data-[collapsible=icon]:block"
+          />
         </Link>
 
         <div className="flex items-center gap-3 rounded-control bg-muted p-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0">
@@ -111,7 +117,11 @@ export function AppSidebar({
                     onClick={recolher}
                     render={<Link to={entry.to as string} params={entry.params ?? {}} />}
                   >
-                    <entry.icon strokeWidth={1.7} aria-hidden />
+                    <entry.icon
+                      strokeWidth={1.7}
+                      aria-hidden
+                      className={entry.destaque ? "text-primary" : undefined}
+                    />
                     <span>{entry.label}</span>
                   </SidebarMenuButton>
                   {/* O contador só aparece quando há o que fazer: um "0"

@@ -12,10 +12,11 @@ import {
   SelectValue,
 } from "@educa-escola/ui/components/select";
 import { Skeleton } from "@educa-escola/ui/components/skeleton";
+import { OrbitaMarca } from "@educa-escola/ui/integra/orbita";
 import { Passos } from "@educa-escola/ui/integra/steps";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, Clock, GraduationCap, Lock, TriangleAlert } from "lucide-react";
+import { Check, Clock, Lock, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 
 import { dataHora, telefone } from "@/lib/format";
@@ -545,10 +546,7 @@ function Casca({ children, escola }: { children: React.ReactNode; escola?: strin
     <div className="grid min-h-svh place-items-center bg-background p-6">
       <div className="flex w-full max-w-md flex-col items-center gap-4">
         <div className="flex flex-col items-center gap-1.5 text-center">
-          <GraduationCap size={30} strokeWidth={1.7} className="text-primary" aria-hidden />
-          <span className="font-extrabold text-base tracking-[-0.3px]">
-            Integra<span className="text-primary">Edu</span>
-          </span>
+          <OrbitaMarca titulo="Órbita Edu" className="w-36 text-primary" />
           {escola ? <span className="text-meta text-muted-foreground">{escola}</span> : null}
         </div>
         {children}

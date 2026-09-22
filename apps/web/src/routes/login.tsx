@@ -2,9 +2,9 @@ import { Button } from "@educa-escola/ui/components/button";
 import { Card } from "@educa-escola/ui/components/card";
 import { Input } from "@educa-escola/ui/components/input";
 import { Label } from "@educa-escola/ui/components/label";
+import { OrbitaMarca } from "@educa-escola/ui/integra/orbita";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -53,10 +53,7 @@ function Login() {
     <div className="grid min-h-svh place-items-center bg-background p-6">
       <Card className="w-full max-w-md">
         <div className="flex flex-col items-center gap-2 text-center">
-          <GraduationCap size={34} strokeWidth={1.7} className="text-primary" aria-hidden />
-          <span className="font-extrabold text-xl tracking-[-0.4px]">
-            Integra<span className="text-primary">Edu</span>
-          </span>
+          <OrbitaMarca titulo="Órbita Edu" className="w-44 text-primary" />
           <p className="text-corpo text-muted-foreground">
             Entre com o acesso fornecido pela sua escola.
           </p>

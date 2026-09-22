@@ -181,6 +181,19 @@ export function createOrbitaService(repo: OrbitaRepository, deps: OrbitaServiceD
     },
 
     /**
+     * A escola tem o assistente no ar?
+     *
+     * Existe separado de `installed` porque quem pergunta é o botão do Astro,
+     * que aparece para **todo** papel — inclusive o aluno, que tem `app: []` e
+     * receberia 403 na listagem. Saber que a escola contratou o assistente não
+     * é dado sensível; a lista do que mais ela contratou é, e continua fechada.
+     */
+    async assistenteDisponivel() {
+      const linha = await repo.findInstall("astro");
+      return { disponivel: linha?.status === "instalado" };
+    },
+
+    /**
      * O endereço para abrir um app, já autenticado.
      *
      * Só para app instalado: abrir o que a escola não contratou levaria a uma
