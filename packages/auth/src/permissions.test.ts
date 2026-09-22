@@ -210,8 +210,15 @@ describe("configurações da instituição", () => {
 });
 
 describe("Astro", () => {
-  /** A credencial do modelo é chave de gasto: quem assina responde pela escola. */
-  it("só a gestão configura o modelo", () => {
+  /**
+   * A credencial do modelo é chave de gasto: quem assina responde pela escola.
+   *
+   * `manage` também é o que decide **quem enxerga o consumo** — o anel colorido
+   * em volta do botão e os números no rodapé do diálogo saem de
+   * `assistant.uso`, que exige esta permissão. Professor e aluno usam o Astro
+   * e não veem quanto a escola está gastando: é número de quem paga.
+   */
+  it("só a gestão configura o modelo e vê o consumo", () => {
     for (const role of APP_ROLES) {
       const esperado = role === "owner" || role === "admin";
       expect(can(role, { assistant: ["manage"] })).toBe(esperado);
