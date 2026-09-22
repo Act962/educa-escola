@@ -16,6 +16,7 @@ import { Camera, CameraOff, IdCard, Lock, Trash2, UserRound } from "lucide-react
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { extratorDeRosto, NOME_DO_EXTRATOR, rostoDisponivel } from "@/lib/extrator-de-rosto";
 import { dataHora } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
@@ -45,6 +46,8 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
   const queryClient = useQueryClient();
   const [modo, setModo] = useState<"resumo" | "capturando" | "revogando">("resumo");
   const [foto, setFoto] = useState<string | null>(null);
+  /** Os códigos do rosto extraídos do mesmo quadro da foto. */
+  const [descritor, setDescritor] = useState<number[] | null>(null);
 
   const status = useQuery(trpc.photo.status.queryOptions({ studentId }));
 
@@ -55,12 +58,37 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
     }),
   );
 
+  /**
+   * O molde é cadastrado junto da foto, e não numa tela à parte.
+   *
+   * É o mesmo consentimento, a mesma câmera e a mesma pessoa na frente dela:
+   * separar em dois momentos faria a escola capturar a criança duas vezes, e
+   * criança que volta para a secretaria é a coisa que este fluxo existe para
+   * evitar.
+   */
+  const cadastrarMolde = useMutation(
+    trpc.gate.cadastrarMolde.mutationOptions({
+      // Falhar aqui não desfaz a foto: ela vale por si, e a portaria atende
+      // pela carteirinha. O aviso diz o que ficou de fora.
+      onError: (erro) =>
+        toast.warning(`Foto salva, mas o rosto não entrou na portaria: ${erro.message}`),
+    }),
+  );
+
   const salvar = useMutation(
     trpc.photo.save.mutationOptions({
-      onSuccess: () => {
-        toast.success("Foto cadastrada.");
+      onSuccess: (_saida, entrada) => {
+        toast.success(descritor ? "Foto e rosto cadastrados." : "Foto cadastrada.");
+        if (descritor) {
+          cadastrarMolde.mutate({
+            studentId: entrada.studentId,
+            descritor,
+            extractor: NOME_DO_EXTRATOR,
+          });
+        }
         setModo("resumo");
         setFoto(null);
+        setDescritor(null);
         queryClient.invalidateQueries();
       },
       onError: (erro) => toast.error(erro.message),
@@ -95,7 +123,10 @@ export function IdentificacaoFacial({ studentId }: { studentId: string }) {
       <Captura
         enviando={salvar.isPending}
         onCancelar={() => setModo("resumo")}
-        onCapturar={(dataUrl) => salvar.mutate({ studentId, dataUrl })}
+        onCapturar={(dataUrl, codigos) => {
+          setDescritor(codigos);
+          salvar.mutate({ studentId, dataUrl });
+        }}
       />
     );
   }
@@ -262,11 +293,18 @@ function Captura({
 }: {
   enviando: boolean;
   onCancelar: () => void;
-  onCapturar: (dataUrl: string) => void;
+  onCapturar: (dataUrl: string, descritor: number[] | null) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [previa, setPrevia] = useState<string | null>(null);
+  const [codigos, setCodigos] = useState<number[] | null>(null);
+  const [lendoRosto, setLendoRosto] = useState(false);
+
+  /* Carrega o modelo enquanto a pessoa se posiciona, não no clique. */
+  useEffect(() => {
+    if (rostoDisponivel()) void extratorDeRosto.preparar();
+  }, []);
 
   useEffect(() => {
     if (previa) return;
@@ -288,7 +326,7 @@ function Captura({
     };
   }, [previa]);
 
-  function capturar() {
+  async function capturar() {
     const video = videoRef.current;
     if (!video) return;
 
@@ -313,6 +351,20 @@ function Captura({
     );
 
     setPrevia(canvas.toDataURL("image/jpeg", 0.85));
+
+    /*
+     * Os códigos saem do **mesmo quadro** da foto, e antes de a câmera parar.
+     * Extrair depois, de uma imagem já comprimida, daria um descritor pior que
+     * o do rosto que estava ali — e descritor pior é aluno não reconhecido no
+     * portão.
+     */
+    if (!rostoDisponivel()) return;
+    setLendoRosto(true);
+    try {
+      setCodigos(await extratorDeRosto.extrair(video));
+    } finally {
+      setLendoRosto(false);
+    }
   }
 
   return (
@@ -355,16 +407,43 @@ function Captura({
         </div>
       )}
 
+      {/*
+        Diz o que a captura conseguiu, antes de gravar. Sem isso a escola
+        acharia que cadastrou o rosto e descobriria no portão, com a criança
+        na fila.
+      */}
+      {previa ? (
+        <p className="text-center text-meta text-muted-foreground">
+          {lendoRosto
+            ? "Lendo o rosto…"
+            : codigos
+              ? "Rosto reconhecido: ele vai abrir a portaria."
+              : rostoDisponivel()
+                ? "Não foi possível ler o rosto nesta foto. Ela vale para a ficha; no portão, use a carteirinha."
+                : "A leitura de rosto não está disponível. No portão, use a carteirinha."}
+        </p>
+      ) : null}
+
       <div className="flex items-center justify-between gap-3">
-        <Button variant="ghost" onClick={previa ? () => setPrevia(null) : onCancelar}>
+        <Button
+          variant="ghost"
+          onClick={
+            previa
+              ? () => {
+                  setPrevia(null);
+                  setCodigos(null);
+                }
+              : onCancelar
+          }
+        >
           {previa ? "Capturar de novo" : "Voltar"}
         </Button>
         {previa ? (
-          <Button disabled={enviando} onClick={() => onCapturar(previa)}>
+          <Button disabled={enviando || lendoRosto} onClick={() => onCapturar(previa, codigos)}>
             {enviando ? "Salvando…" : "Usar esta foto"}
           </Button>
         ) : (
-          <Button disabled={Boolean(erro)} onClick={capturar}>
+          <Button disabled={Boolean(erro)} onClick={() => void capturar()}>
             <Camera size={18} strokeWidth={1.7} aria-hidden />
             Capturar
           </Button>

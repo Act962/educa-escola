@@ -1,3 +1,4 @@
+import { identificar } from "@educa-escola/api/modules/gate/reconhecimento";
 import { Button } from "@educa-escola/ui/components/button";
 import { Input } from "@educa-escola/ui/components/input";
 import { SegmentedControl } from "@educa-escola/ui/integra/segmented";
@@ -31,6 +32,15 @@ type Estado =
 
 /** Quanto tempo o resultado fica na tela antes de voltar ao repouso. */
 const TEMPO_DO_CARTAO_MS = 4000;
+
+/**
+ * Intervalo entre leituras da câmera.
+ *
+ * A extração custa dezenas de milissegundos e segura a thread da tela. Ler a
+ * cada quadro deixaria o vídeo travado — e vídeo travado numa portaria parece
+ * defeito, mesmo quando o reconhecimento está funcionando.
+ */
+const INTERVALO_DA_LEITURA_MS = 350;
 
 const hora = (d: Date) =>
   d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }).replace(":", "h");
@@ -68,6 +78,15 @@ export function PortariaQuiosque({ deviceLabel }: { deviceLabel: string }) {
    */
   const [direcao, setDirecao] = useState<"entrada" | "saida">("entrada");
   const [agora, setAgora] = useState(() => new Date());
+  /**
+   * Quanto custou a última leitura, em milissegundos.
+   *
+   * Fica na tela porque "está rápido?" não se responde por palpite: o custo é
+   * da extração e depende do tablet, não do nosso código. Com o número à
+   * vista, a escola compara aparelhos antes de comprar — e se estiver ruim, o
+   * caminho é reduzir a resolução do quadro, não trocar a arquitetura.
+   */
+  const [msDaLeitura, setMsDaLeitura] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const situacao = useQuery({ ...trpc.gate.situacao.queryOptions(), refetchInterval: 30_000 });
@@ -140,6 +159,16 @@ export function PortariaQuiosque({ deviceLabel }: { deviceLabel: string }) {
     return () => clearTimeout(t);
   }, [estado]);
 
+  /*
+   * Carrega o modelo na abertura, não na primeira pessoa que chegar.
+   *
+   * São megabytes: pagar isso quando alguém já está na frente da câmera
+   * pareceria a portaria travada justo na hora de usar.
+   */
+  useEffect(() => {
+    if (rostoDisponivel()) void extratorDeRosto.preparar();
+  }, []);
+
   useEffect(() => {
     let stream: MediaStream | undefined;
 
@@ -162,6 +191,55 @@ export function PortariaQuiosque({ deviceLabel }: { deviceLabel: string }) {
   const moldes = lote.data?.alunos ?? [];
   const loteVencido = lote.data ? new Date(lote.data.validoAte) < agora : false;
   const rostoLigado = rostoDisponivel() && !erroDaCamera && moldes.length > 0 && !loteVencido;
+
+  /**
+   * O laço de leitura.
+   *
+   * Roda enquanto a tela está em repouso e para assim que alguém é
+   * reconhecido: continuar lendo enquanto o cartão está na tela releria a
+   * mesma pessoa, que o servidor já descartaria por repetição — e gastaria
+   * processador do tablet à toa.
+   *
+   * A comparação usa `identificar`, a **mesma** função do servidor. Duas
+   * implementações do mesmo limiar divergiriam, e a divergência apareceria
+   * como "no tablet abre, no servidor não".
+   */
+  useEffect(() => {
+    if (!rostoLigado || estado.tipo !== "aguardando" || registrar.isPending) return;
+
+    let vivo = true;
+    let emLeitura = false;
+
+    const ler = async () => {
+      if (!vivo || emLeitura || !videoRef.current) return;
+      emLeitura = true;
+      try {
+        const comecou = performance.now();
+        const descritor = await extratorDeRosto.extrair(videoRef.current);
+        if (!vivo) return;
+        setMsDaLeitura(Math.round(performance.now() - comecou));
+        if (!descritor) return;
+
+        const veredito = identificar(descritor, moldes);
+        if (veredito.tipo !== "reconhecido") return;
+
+        registrar.mutate({
+          studentId: veredito.studentId,
+          direction: direcao,
+          method: "rosto",
+          deviceLabel,
+        });
+      } finally {
+        emLeitura = false;
+      }
+    };
+
+    const t = setInterval(ler, INTERVALO_DA_LEITURA_MS);
+    return () => {
+      vivo = false;
+      clearInterval(t);
+    };
+  }, [rostoLigado, estado.tipo, registrar, moldes, direcao, deviceLabel]);
 
   return (
     <div className="flex min-h-svh flex-col gap-4 bg-kiosk p-4 sm:p-6">
@@ -217,6 +295,11 @@ export function PortariaQuiosque({ deviceLabel }: { deviceLabel: string }) {
           {situacao.data?.dentro ?? 0} na escola agora
         </span>
         <span className="text-card tabular-nums">{hora(agora)}</span>
+        {/* Só aparece quando o rosto está ligado: número solto no rodapé de
+            uma portaria que só usa carteirinha seria ruído. */}
+        {rostoLigado && msDaLeitura !== null ? (
+          <span className="text-apoio tabular-nums">leitura em {msDaLeitura} ms</span>
+        ) : null}
         <span className="text-apoio">{deviceLabel}</span>
       </footer>
     </div>

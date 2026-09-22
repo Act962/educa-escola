@@ -1,28 +1,38 @@
 /**
  * O extrator: transforma um quadro da câmera nos "códigos do rosto".
  *
- * DECISÃO-JOÃO: qual biblioteca de reconhecimento facial entra no projeto.
- * Quebra se: a escolha errada trava o navegador do tablet, ou baixa dezenas de
- *   megabytes de modelo em rede de escola. Também é a primeira dependência do
- *   sistema que processa biometria de menor — entra com o encarregado de dados
- *   sabendo.
- * Fiz assim: uma interface com implementação nula. A portaria **funciona
- *   inteira pela carteirinha** sem ela; ligar o rosto é registrar um extrator
- *   aqui, e nada mais no resto do código muda.
- * Alternativas: `@vladmandic/face-api` (sucessor mantido do face-api.js,
- *   descritor de 128 dimensões, ~6 MB de modelo) · MediaPipe Face Embedder do
- *   Google (mais leve e acelerado por GPU, descritor de outro tamanho) ·
- *   extrair no servidor, que evita lib no navegador e manda a imagem da
- *   criança pela rede a cada leitura.
- *
- * O nome do extrator vai gravado junto de cada molde: descritor de
- * bibliotecas diferentes não se compara, e trocar de biblioteca é recadastrar
- * todo mundo. A coluna `extractor` é o que torna isso detectável em vez de
- * silencioso.
+ * DECISÃO-JOÃO: `@vladmandic/face-api` é a escolha de agora, não a definitiva.
+ * Quebra se: for trocada depois de a escola cadastrar rostos — descritor de
+ *   extrator diferente não se compara, e todo mundo recadastra. É por isso que
+ *   `NOME_DO_EXTRATOR` vai gravado junto de cada molde: a troca fica
+ *   detectável em vez de silenciosa.
+ * Fiz assim: entrou para o teste local pedido pelo usuário, com versão fixa no
+ *   catálogo e os pesos servidos do próprio pacote — sem CDN, porque portaria
+ *   de escola é onde a rede falta. Trocar é reescrever este arquivo; nada no
+ *   resto do sistema conhece a biblioteca.
+ * Alternativas: `@mediapipe/tasks-vision` (mais leve, acelerado por GPU) ·
+ *   extrair no servidor, sem lib no navegador, mandando a imagem pela rede.
  */
+
+/** Vai gravado em cada molde. Mude junto com o modelo, sempre. */
+export const NOME_DO_EXTRATOR = "face-api/1.7.15/tiny+resnet";
+
+/** De onde o Vite serve os pesos (ver `pesosDoReconhecimentoFacial`). */
+const CAMINHO_DOS_PESOS = "/modelos-de-rosto";
+
+/**
+ * Confiança mínima para considerar que há um rosto no quadro.
+ *
+ * Alta de propósito: a portaria roda sobre vídeo contínuo, e um detector
+ * frouxo acha rosto em casaco, cartaz e sombra. Cada falso rosto vira uma
+ * comparação contra a escola inteira, e uma comparação a mais é uma chance a
+ * mais de identificar a criança errada.
+ */
+const CONFIANCA_MINIMA = 0.6;
+
 export interface ExtratorDeRosto {
-  /** Identificador gravado junto do molde. Mude ao trocar de modelo. */
   readonly nome: string;
+  readonly disponivel: boolean;
   /** Carrega o modelo. Chamado uma vez, na abertura do quiosque. */
   preparar(): Promise<void>;
   /**
@@ -35,22 +45,74 @@ export interface ExtratorDeRosto {
 }
 
 /**
- * O extrator enquanto não há biblioteca escolhida.
+ * O extrator quando a biblioteca não está instalada.
  *
  * Não lança: a portaria precisa subir e atender pela carteirinha mesmo sem
  * rosto. `disponivel` é o que a tela lê para não prometer o que não tem.
  */
-export const EXTRATOR_AUSENTE: ExtratorDeRosto & { disponivel: false } = {
+export const EXTRATOR_AUSENTE: ExtratorDeRosto = {
   nome: "nenhum",
   disponivel: false,
   preparar: async () => undefined,
   extrair: async () => null,
 };
 
-/**
- * O extrator em uso. Trocar isto é o único ponto a mexer quando a biblioteca
- * for escolhida.
- */
-export const extratorDeRosto: ExtratorDeRosto & { disponivel?: boolean } = EXTRATOR_AUSENTE;
+type FaceApi = typeof import("@vladmandic/face-api");
 
-export const rostoDisponivel = (): boolean => extratorDeRosto.disponivel !== false;
+let modulo: FaceApi | null = null;
+let carregando: Promise<FaceApi | null> | null = null;
+
+/**
+ * Carrega biblioteca e pesos uma vez só.
+ *
+ * Import dinâmico porque são megabytes que só a portaria usa: deixá-lo
+ * estático colocaria o modelo no pacote de quem abre o boletim.
+ */
+async function carregar(): Promise<FaceApi | null> {
+  if (modulo) return modulo;
+  carregando ??= (async () => {
+    try {
+      const api = await import("@vladmandic/face-api");
+      await Promise.all([
+        api.nets.tinyFaceDetector.loadFromUri(CAMINHO_DOS_PESOS),
+        api.nets.faceLandmark68TinyNet.loadFromUri(CAMINHO_DOS_PESOS),
+        api.nets.faceRecognitionNet.loadFromUri(CAMINHO_DOS_PESOS),
+      ]);
+      modulo = api;
+      return api;
+    } catch {
+      // Pesos ausentes, WebGL indisponível, aparelho fraco: a portaria cai
+      // para a carteirinha em vez de mostrar tela de erro no corredor.
+      return null;
+    }
+  })();
+  return carregando;
+}
+
+export const extratorDeRosto: ExtratorDeRosto = {
+  nome: NOME_DO_EXTRATOR,
+  disponivel: true,
+
+  async preparar() {
+    await carregar();
+  },
+
+  async extrair(quadro) {
+    const api = await carregar();
+    // Vídeo sem quadro ainda: `readyState` baixo devolveria tensor vazio e a
+    // biblioteca estouraria dentro do laço da câmera.
+    if (!api || quadro.readyState < 2 || quadro.videoWidth === 0) return null;
+
+    const achado = await api
+      .detectSingleFace(
+        quadro,
+        new api.TinyFaceDetectorOptions({ scoreThreshold: CONFIANCA_MINIMA }),
+      )
+      .withFaceLandmarks(true)
+      .withFaceDescriptor();
+
+    return achado ? Array.from(achado.descriptor) : null;
+  },
+};
+
+export const rostoDisponivel = (): boolean => extratorDeRosto.disponivel;
