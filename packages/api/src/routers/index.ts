@@ -7,6 +7,7 @@ import { lessonRouter } from "../modules/lesson/router";
 import { orbitaRouter } from "../modules/orbita/router";
 import { overviewRouter } from "../modules/overview/router";
 import { photoRouter } from "../modules/photo/router";
+import { scoreRouter } from "../modules/score/router";
 import { studentRouter } from "../modules/student/router";
 
 export const appRouter = router({
@@ -46,6 +47,7 @@ export const appRouter = router({
   overview: overviewRouter,
   /** Apps do ecossistema Órbita. O dado deles mora lá; aqui, o vínculo. */
   orbita: orbitaRouter,
+  score: scoreRouter,
 });
 
 export type AppRouter = typeof appRouter;

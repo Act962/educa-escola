@@ -104,3 +104,48 @@ describe("apps do Órbita", () => {
     expect(can("student", { app: ["read"] })).toBe(false);
   });
 });
+
+describe("pontuação e placar", () => {
+  it("todo papel vê os próprios pontos", () => {
+    for (const role of APP_ROLES) {
+      expect(can(role, { score: ["read"] })).toBe(true);
+    }
+  });
+
+  /** Apurar reprocessa o ano inteiro da escola — é escrita em massa. */
+  it("só quem responde pela escola reprocessa a apuração", () => {
+    expect(can("owner", { score: ["apurar"] })).toBe(true);
+    expect(can("admin", { score: ["apurar"] })).toBe(true);
+    expect(can("teacher", { score: ["apurar"] })).toBe(false);
+    expect(can("student", { score: ["apurar"] })).toBe(false);
+  });
+
+  /**
+   * O §7.5 do requisito proíbe classificação nominal entre alunos. Esta é a
+   * barreira: sem `ranking: read`, as procedures de placar não abrem.
+   */
+  it("aluno e professor não leem placar nominal", () => {
+    expect(can("student", { ranking: ["read"] })).toBe(false);
+    expect(can("teacher", { ranking: ["read"] })).toBe(false);
+    expect(can("admin", { ranking: ["read"] })).toBe(true);
+    expect(can("owner", { ranking: ["read"] })).toBe(true);
+  });
+
+  /** Expor o nome da escola num placar externo é decisão da direção. */
+  it("só a direção adere a placar externo", () => {
+    expect(can("owner", { ranking: ["opt_in"] })).toBe(true);
+    expect(can("admin", { ranking: ["opt_in"] })).toBe(false);
+  });
+
+  /**
+   * Ler dado de outra escola é o que a arquitetura inteira existe para
+   * impedir. Nenhum papel tem esta ação — ela entra na PR do placar entre
+   * escolas, com aval explícito, e este teste é o que obriga a decisão a ser
+   * consciente em vez de herdada.
+   */
+  it("nenhum papel lê placar de outra escola", () => {
+    for (const role of APP_ROLES) {
+      expect(can(role, { ranking: ["read_cross_school"] })).toBe(false);
+    }
+  });
+});
