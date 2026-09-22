@@ -38,7 +38,7 @@ const GESTAO: NavEntry[] = [
   { label: "Alunos", to: "/alunos", icon: GraduationCap },
   { label: "Turmas", to: "/turmas", icon: LayoutGrid },
   { label: "Apps", to: "/apps", icon: Blocks },
-  { label: "Professores", icon: Users, soon: true },
+  { label: "Professores", to: "/professores", icon: Users },
   { label: "Matrículas", to: "/matriculas", icon: IdCard },
   { label: "Acadêmico", icon: BookOpen, soon: true },
   { label: "Frequência", to: "/frequencia", icon: ClipboardCheck },

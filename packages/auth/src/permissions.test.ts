@@ -149,3 +149,21 @@ describe("pontuação e placar", () => {
     }
   });
 });
+
+describe("corpo docente", () => {
+  /**
+   * A lista carrega pendência de colega — dado de pessoal, não acadêmico. Por
+   * isso `faculty` é recurso próprio e não herda de quem lê aluno.
+   */
+  it("só a gestão enxerga o corpo docente", () => {
+    expect(can("owner", { faculty: ["read"] })).toBe(true);
+    expect(can("admin", { faculty: ["read"] })).toBe(true);
+    expect(can("teacher", { faculty: ["read"] })).toBe(false);
+    expect(can("student", { faculty: ["read"] })).toBe(false);
+  });
+
+  it("quem lê aluno não passa a ler docente por herança", () => {
+    expect(can("teacher", { student: ["read"] })).toBe(true);
+    expect(can("teacher", { faculty: ["read"] })).toBe(false);
+  });
+});

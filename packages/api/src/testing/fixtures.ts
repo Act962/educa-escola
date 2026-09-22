@@ -2,6 +2,7 @@ import {
   attendance,
   classroom,
   lesson,
+  member,
   organization,
   school,
   student,
@@ -39,6 +40,31 @@ export async function createTestUser(tx: TestTransaction, email?: string) {
     name: "Pessoa Teste",
     email: email ?? `teste-${id.slice(0, 8)}@example.com`,
     emailVerified: true,
+  });
+
+  return { id };
+}
+
+/**
+ * Vincula uma pessoa a uma escola com um papel.
+ *
+ * O corpo docente não é tabela de domínio: é `member` com papel `teacher`.
+ * `id` e `createdAt` vêm explícitos porque a tabela é gerada pelo CLI do
+ * Better Auth, que os preenche na aplicação — no banco não há default, e
+ * omitir qualquer um dos dois falha com violação de not-null.
+ */
+export async function createTestMembership(
+  tx: TestTransaction,
+  input: { schoolId: string; userId: string; role?: string },
+) {
+  const id = crypto.randomUUID();
+
+  await tx.insert(member).values({
+    id,
+    organizationId: input.schoolId,
+    userId: input.userId,
+    role: input.role ?? "teacher",
+    createdAt: new Date(),
   });
 
   return { id };
