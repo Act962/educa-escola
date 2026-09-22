@@ -70,6 +70,7 @@ export async function createContext({ req }: { req: Request }) {
         undefined,
       userAgent: req.headers.get("user-agent") ?? undefined,
     }),
+    /**
      * Token de uso único para entregar a identidade ao Órbita.
      *
      * Fecha sobre os headers em vez de expô-los no contexto: com
