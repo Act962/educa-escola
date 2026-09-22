@@ -36,8 +36,22 @@ Postgres na porta 5432 do host, com senha padrão `password`, e fixa
 | **A. GitHub Actions → GHCR, Coolify puxa a imagem** (escolhida em 2026-09-22) | Build não disputa CPU/RAM com a produção; imagem testada é a que sobe; rollback = trocar a tag | Um workflow a mais; token de leitura do GHCR no Coolify |
 | B. Coolify builda o `apps/web/Dockerfile` a partir do Git | Zero configuração extra | Build do Vite + TensorFlow.js em VPS pequena corre risco de OOM e derruba o app no meio do deploy |
 
-Com A, o fluxo fica: CI verde na `main` → job `publish` gera
-`ghcr.io/<org>/integra-web:<sha>` e `:main` → webhook de deploy do Coolify.
+Com A, o fluxo fica: CI verde na `main` → job `publish` (em
+`.github/workflows/ci.yml`) constrói a imagem, **sobe ela contra um Postgres
+descartável e exige 200 em `/api/health`**, e só então publica
+`ghcr.io/act962/integra-web:sha-<commit>` e `:main` → webhook de deploy do
+Coolify.
+
+- O Coolify acompanha a etiqueta `:main`. Rollback = apontar para uma
+  `:sha-<commit>` anterior.
+- O login no GHCR usa o `GITHUB_TOKEN` do próprio Actions: nenhum segredo a
+  cadastrar para publicar.
+- O deploy só é disparado se existirem os segredos `COOLIFY_WEBHOOK` e
+  `COOLIFY_TOKEN` no repositório. Sem eles, o job publica a imagem e avisa.
+- Depois da primeira publicação, conferir a visibilidade do pacote em
+  *github.com/Act962 → Packages → integra-web*. O repositório é público, então
+  a imagem pode ser pública (o Coolify baixa sem credencial). Se ficar
+  privada, cadastrar no Coolify um token do GitHub com `read:packages`.
 
 ## 4. Ajustes no código antes do primeiro deploy
 
@@ -79,7 +93,7 @@ Em ordem de prioridade. Cada um vira um PR pequeno.
    um balde único para todos. O sintoma é o aviso "Rate limiting could not
    determine a client IP" no log — se aparecer, configurar
    `advanced.ipAddress.trustedProxies`.
-6. **Workflow de publicação da imagem** no GitHub Actions (opção 3A).
+6. ✅ **Workflow de publicação da imagem** no GitHub Actions (opção 3A) — ver §3.
 
 ## 5. Variáveis de ambiente de produção
 
@@ -129,19 +143,24 @@ empresa) antes do primeiro cadastro de foto.
    atrás de IP permitido ou do próprio domínio com TLS.
 3. Criar `integra-db`, configurar backup S3 e rodar um backup manual.
 4. Gerar os três segredos e guardar no cofre.
-5. Criar `integra-web` com a imagem, variáveis, domínio e healthcheck
-   `/api/health` (as migrations rodam sozinhas na subida do container).
-6. Deploy. Conferir logs e `/api/health`.
-7. Provisionar a primeira escola pelo terminal do container no Coolify:
+5. Criar `integra-web` do tipo *Docker Image* com
+   `ghcr.io/act962/integra-web:main`, variáveis, domínio e healthcheck
+   `/api/health` na porta 3001 (as migrations rodam sozinhas na subida do
+   container).
+6. Copiar o *Deploy Webhook* e criar um token de API no Coolify; cadastrar os
+   dois como segredos `COOLIFY_WEBHOOK` e `COOLIFY_TOKEN` no GitHub
+   (*Settings → Secrets and variables → Actions*).
+7. Deploy. Conferir logs e `/api/health`.
+8. Provisionar a primeira escola pelo terminal do container no Coolify:
    ```bash
    cd /app/packages/auth && node_modules/.bin/jiti src/provision-cli.ts \
      --name "..." --slug ... --owner-name "..." --owner-email ... --owner-password "..."
    ```
-8. Smoke test: login da direção, criar turma, abrir a portaria num tablet
+9. Smoke test: login da direção, criar turma, abrir a portaria num tablet
    por HTTPS e confirmar que a câmera abre. Procurar no log o aviso
    "could not determine a client IP" — não pode aparecer (§4.5).
-9. Restaurar o backup do passo 3 num banco descartável — prova de que o
-   backup presta.
+10. Restaurar o backup do passo 3 num banco descartável — prova de que o
+    backup presta.
 
 ## 9. Operação contínua
 
