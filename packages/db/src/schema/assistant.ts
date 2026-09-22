@@ -33,6 +33,19 @@ export const assistantSettings = pgTable("assistant_settings", {
   /** Endpoint compatível com `/chat/completions`. É o que define o provedor. */
   baseUrl: text("base_url"),
   model: text("model"),
+  /**
+   * A organização, quando o provedor pede uma — o `org-…` da OpenAI.
+   *
+   * Em claro, e não cifrada como a credencial: é identificador de conta, não
+   * segredo. Sozinho ele não autentica nada. Cifrá-lo daria a impressão de que
+   * protege alguma coisa e só atrapalharia a direção a conferir se pôs o
+   * certo.
+   *
+   * Existe porque conta com mais de uma organização precisa dizer em qual o
+   * consumo é debitado: sem o cabeçalho, a OpenAI usa a padrão — e a fatura
+   * chega no lugar errado.
+   */
+  organizationId: text("organization_id"),
   /** AES-256-GCM. Os três juntos, ou nenhum: sem a etiqueta não há como abrir. */
   apiKeyCipher: text("api_key_cipher"),
   apiKeyIv: text("api_key_iv"),

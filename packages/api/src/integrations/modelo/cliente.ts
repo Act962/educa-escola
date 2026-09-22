@@ -47,6 +47,8 @@ export function createClienteCompativel(config: {
   baseUrl: string;
   apiKey: string;
   model: string;
+  /** `org-…` da OpenAI. Vira o cabeçalho `OpenAI-Organization`. */
+  organizationId?: string | null;
 }): ModeloDeLinguagem {
   // Tolera o endereço com e sem barra no fim: os dois aparecem na
   // documentação dos provedores, e quem digita não deve pagar por isso.
@@ -62,6 +64,9 @@ export function createClienteCompativel(config: {
           headers: {
             "content-type": "application/json",
             authorization: `Bearer ${config.apiKey}`,
+            // Só quando existe: provedor que não conhece o cabeçalho ignora,
+            // mas mandar `OpenAI-Organization: null` é pedir 400 de graça.
+            ...(config.organizationId ? { "openai-organization": config.organizationId } : {}),
           },
           body: JSON.stringify({
             model: config.model,

@@ -19,6 +19,8 @@ export const updateSettingsInput = z.object({
     .nullable()
     .optional(),
   model: z.string().trim().max(120).nullable().optional(),
+  /** `org-…` da OpenAI. Identificador, não segredo: vai em claro. */
+  organizationId: z.string().trim().max(120).nullable().optional(),
   /** `undefined` mantém a chave atual; `""` apaga; texto substitui. */
   apiKey: z.string().max(400).optional(),
   maxTokens: z.number().int().min(64).max(4000),

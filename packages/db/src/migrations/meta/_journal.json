@@ -92,6 +92,13 @@
       "when": 1790086481533,
       "tag": "0012_astro-nativo",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790087511246,
+      "tag": "0013_organizacao-do-modelo",
+      "breakpoints": true
     }
   ]
 }

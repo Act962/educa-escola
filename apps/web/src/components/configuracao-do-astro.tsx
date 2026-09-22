@@ -60,6 +60,7 @@ function Formulario({
     providerLabel: string | null;
     baseUrl: string | null;
     model: string | null;
+    organizationId: string | null;
     apiKeyHint: string | null;
     credencialGravada: boolean;
     chaveDoServidor: boolean;
@@ -76,6 +77,7 @@ function Formulario({
       providerLabel: atual.providerLabel ?? "",
       baseUrl: atual.baseUrl ?? "",
       model: atual.model ?? "",
+      organizationId: atual.organizationId ?? "",
       // Sempre vazio: a chave nunca volta do servidor, e um campo
       // pré-preenchido com pontinhos convidaria a salvar "••••" como chave.
       apiKey: "",
@@ -93,6 +95,7 @@ function Formulario({
           .trim()
           .refine((v) => v === "" || /^https?:\/\/.+/.test(v), "Informe um endereço http(s)"),
         model: z.string().trim().max(120),
+        organizationId: z.string().trim().max(120),
         apiKey: z.string().max(400),
         maxTokens: z
           .string()
@@ -110,6 +113,7 @@ function Formulario({
         providerLabel: value.providerLabel.trim() || null,
         baseUrl: value.baseUrl.trim() || null,
         model: value.model.trim() || null,
+        organizationId: value.organizationId.trim() || null,
         // Só manda a chave se a pessoa digitou alguma coisa. `undefined`
         // mantém; string vazia apagaria — e ninguém quer apagar por engano
         // ao corrigir o nome do modelo.
@@ -247,6 +251,31 @@ function Formulario({
                   {erro?.message}
                 </p>
               ))}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="organizationId">
+          {(field) => (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={field.name}>Organização (opcional)</Label>
+              <Input
+                id={field.name}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+                placeholder="org-…"
+              />
+              {/*
+                Não é segredo: é identificador de conta, e sozinho não
+                autentica nada. Vai em claro no banco, de propósito — cifrá-lo
+                daria a impressão de proteger alguma coisa e só atrapalharia a
+                conferência.
+              */}
+              <p className="text-meta text-muted-foreground">
+                Só para a OpenAI, e só se a conta tiver mais de uma organização: é ela que diz onde
+                o consumo é debitado. Em branco, o provedor usa a organização padrão.
+              </p>
             </div>
           )}
         </form.Field>

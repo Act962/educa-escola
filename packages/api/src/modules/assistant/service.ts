@@ -12,6 +12,7 @@ export const CONFIGURACAO_PADRAO = {
   providerLabel: null,
   baseUrl: null,
   model: null,
+  organizationId: null,
   apiKeyHint: null,
   maxTokens: 600,
   dailyLimit: 200,
@@ -25,7 +26,12 @@ export interface DepsDoAssistente {
   now: () => Date;
   chave: string | undefined;
   /** Constrói o cliente com a credencial já decifrada. Injetado para testar. */
-  modelo: (config: { baseUrl: string; apiKey: string; model: string }) => ModeloDeLinguagem;
+  modelo: (config: {
+    baseUrl: string;
+    apiKey: string;
+    model: string;
+    organizationId?: string | null;
+  }) => ModeloDeLinguagem;
 }
 
 /**
@@ -108,6 +114,7 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
         providerLabel: input.providerLabel?.trim() || null,
         baseUrl: input.baseUrl?.trim() || null,
         model: input.model?.trim() || null,
+        organizationId: input.organizationId?.trim() || null,
         maxTokens: input.maxTokens,
         dailyLimit: input.dailyLimit,
         allowTeachers: input.allowTeachers,
@@ -198,7 +205,12 @@ export function createAssistantService(repo: AssistantRepository, deps: DepsDoAs
         deps.chave,
       );
 
-      const modelo = deps.modelo({ baseUrl: salva.baseUrl, apiKey, model: salva.model });
+      const modelo = deps.modelo({
+        baseUrl: salva.baseUrl,
+        apiKey,
+        model: salva.model,
+        organizationId: salva.organizationId,
+      });
 
       const sistema = montarInstrucao({
         escola: quem.escola,

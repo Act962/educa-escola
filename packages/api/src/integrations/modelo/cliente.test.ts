@@ -75,6 +75,34 @@ describe("createClienteCompativel", () => {
   });
 
   /**
+   * Conta com mais de uma organização precisa dizer em qual o consumo é
+   * debitado. Sem o cabeçalho, a OpenAI usa a padrão — e a fatura chega no
+   * lugar errado, que é o tipo de erro que só aparece no fim do mês.
+   */
+  it("manda a organização como cabeçalho quando ela existe", async () => {
+    const fetchFalso = respondeCom({ choices: [{ message: { content: "ok" } }] });
+    vi.stubGlobal("fetch", fetchFalso);
+
+    await createClienteCompativel({ ...config, organizationId: "org-oqUIj123" }).responder(pedido);
+
+    const [, init = {}] = fetchFalso.mock.calls[0] ?? [];
+    expect((init.headers as Record<string, string>)["openai-organization"]).toBe("org-oqUIj123");
+  });
+
+  /** Mandar o cabeçalho vazio é pedir 400 de graça a quem não o conhece. */
+  it("omite o cabeçalho quando não há organização", async () => {
+    for (const organizationId of [undefined, null, ""]) {
+      const fetchFalso = respondeCom({ choices: [{ message: { content: "ok" } }] });
+      vi.stubGlobal("fetch", fetchFalso);
+
+      await createClienteCompativel({ ...config, organizationId }).responder(pedido);
+
+      const [, init = {}] = fetchFalso.mock.calls[0] ?? [];
+      expect(init.headers as Record<string, string>).not.toHaveProperty("openai-organization");
+    }
+  });
+
+  /**
    * "401" não diz nada para a secretaria; "a chave foi recusada" manda ela
    * para a tela certa.
    */
