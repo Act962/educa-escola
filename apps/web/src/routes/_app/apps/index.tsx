@@ -10,9 +10,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plug, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-
-import { APPS_ORBITA, type AppOrbita } from "@/lib/apps-orbita";
 import { inteiro } from "@/lib/format";
+import { APPS_ORBITA, type AppOrbita } from "@/lib/orbita-apps";
 import type { RouterOutputs } from "@/utils/trpc";
 import { useTRPC } from "@/utils/trpc";
 

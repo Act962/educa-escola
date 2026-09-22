@@ -1,14 +1,14 @@
 import { weightedAverage } from "../assessment/service";
-import type { MediaDoBimestre, NovoEvento } from "./apuracao";
+import type { ScoreRepository } from "./repository";
+import { type Nivel, nivelDe, proximoNivel, regraDe, type SubjectKind } from "./rules";
+import type { MediaDoBimestre, NovoEvento } from "./tally";
 import {
   apurarAulas,
   apurarAvaliacoes,
   apurarEvolucao,
   apurarFrequenciaDoAno,
   apurarPresencas,
-} from "./apuracao";
-import type { ScoreRepository } from "./repository";
-import { type Nivel, nivelDe, proximoNivel, regraDe, type SubjectKind } from "./rules";
+} from "./tally";
 
 export interface PosicaoNoPlacar {
   /** 1 é o primeiro. `null` quando a pessoa ainda não pontuou. */

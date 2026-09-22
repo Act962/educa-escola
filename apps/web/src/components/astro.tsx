@@ -6,7 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { SendHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { COR_DA_FAIXA, faixaDeUso, porcentagemDoTeto } from "@/lib/medidor-de-uso";
+import { COR_DA_FAIXA, faixaDeUso, porcentagemDoTeto } from "@/lib/usage-meter";
 import { useTRPC } from "@/utils/trpc";
 
 interface Fala {

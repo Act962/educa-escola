@@ -1,6 +1,6 @@
 import { ConflictError, NotFoundError, ValidationError } from "../../errors";
 import { ENROLLED_STATUSES } from "../student/schema";
-import { identificar, type Veredito } from "./reconhecimento";
+import { identificar, type Veredito } from "./recognition";
 import type { GateRepository } from "./repository";
 import type {
   CadastrarMoldeInput,
@@ -8,7 +8,7 @@ import type {
   PassagensInput,
   RegistrarInput,
 } from "./schema";
-import { cifrarMolde, decifrarMolde } from "./segredo";
+import { cifrarMolde, decifrarMolde } from "./secret";
 
 export interface DepsDaPortaria {
   now: () => Date;

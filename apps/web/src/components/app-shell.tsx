@@ -21,7 +21,7 @@ import { useState } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Astro } from "@/components/astro";
-import { SeletorDeBimestre } from "@/components/seletor-de-bimestre";
+import { TermSelector } from "@/components/term-selector";
 import { authClient } from "@/lib/auth-client";
 import { roleLabel } from "@/lib/navigation";
 import { useSchoolContext } from "@/lib/school-context";
@@ -110,7 +110,7 @@ function ContextBar() {
         sidebar, da busca e do menu da conta — quatro controles lado a lado,
         um mais alto que os outros.
       */}
-      <SeletorDeBimestre className="border-none bg-transparent text-info" />
+      <TermSelector className="border-none bg-transparent text-info" />
     </div>
   );
 }

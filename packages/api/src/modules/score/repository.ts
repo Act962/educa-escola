@@ -13,8 +13,8 @@ import type { DbHandle } from "@educa-escola/db/types";
 import { and, asc, count, desc, eq, inArray, sql, sum } from "drizzle-orm";
 
 import type { TenantContext } from "../../trpc/tenant";
-import type { AulaApurada, AvaliacaoApurada, NovoEvento, PresencaApurada } from "./apuracao";
 import type { SubjectKind } from "./rules";
+import type { AulaApurada, AvaliacaoApurada, NovoEvento, PresencaApurada } from "./tally";
 
 /**
  * Quantos eventos por `insert`.

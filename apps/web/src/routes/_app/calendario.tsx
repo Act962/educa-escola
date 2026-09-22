@@ -37,11 +37,11 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import { CalendarioMes } from "@/components/calendario-mes";
-import { alvoDe, CampoDeAlvo, type Turma } from "@/components/campo-de-alvo";
-import { CampoDeData } from "@/components/campo-de-data";
-import { PainelDoDia } from "@/components/painel-do-dia";
-import { SecaoRetratil, useSecoesRetrateis } from "@/components/secao-retratil";
+import { CollapsibleSection, useCollapsibleSections } from "@/components/collapsible-section";
+import { DateField } from "@/components/date-field";
+import { DayPanel } from "@/components/day-panel";
+import { MonthCalendar } from "@/components/month-calendar";
+import { alvoDe, TargetField, type Turma } from "@/components/target-field";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -120,7 +120,7 @@ function Calendario() {
     intencao: "ver" | "criar";
   } | null>(null);
 
-  const { abertas, alternar, irPara } = useSecoesRetrateis(
+  const { abertas, alternar, irPara } = useCollapsibleSections(
     "integra:calendario:secoes",
     SECOES_PADRAO,
   );
@@ -263,7 +263,7 @@ function Calendario() {
             </>
           ) : null}
 
-          <SecaoRetratil
+          <CollapsibleSection
             id="periodo"
             titulo={periodoDefinido ? "Período letivo" : "Defina o período letivo"}
             resumo={
@@ -281,10 +281,10 @@ function Calendario() {
               salvando={definir.isPending}
               erro={definir.isError ? definir.error.message : null}
             />
-          </SecaoRetratil>
+          </CollapsibleSection>
 
           {periodoDefinido ? (
-            <SecaoRetratil
+            <CollapsibleSection
               id="brasileiro"
               titulo="Calendário brasileiro"
               resumo="feriados nacionais, pontos facultativos e datas da cultura e da história"
@@ -303,11 +303,11 @@ function Calendario() {
                 resultado={importar.data ?? null}
                 erro={importar.isError ? importar.error.message : null}
               />
-            </SecaoRetratil>
+            </CollapsibleSection>
           ) : null}
 
           {periodoDefinido ? (
-            <SecaoRetratil
+            <CollapsibleSection
               id="novo"
               titulo="Novo evento"
               resumo="reunião, conselho, prazo — da escola inteira ou de uma turma"
@@ -322,10 +322,10 @@ function Calendario() {
                 criando={criar.isPending}
                 erro={criar.isError ? criar.error.message : null}
               />
-            </SecaoRetratil>
+            </CollapsibleSection>
           ) : null}
 
-          <SecaoRetratil
+          <CollapsibleSection
             id="eventos"
             titulo="Eventos do ano"
             resumo={`${eventos.length} ${eventos.length === 1 ? "registro" : "registros"}${
@@ -342,7 +342,7 @@ function Calendario() {
             }
           >
             {visao === "calendario" ? (
-              <CalendarioMes
+              <MonthCalendar
                 eventos={eventos}
                 ano={year}
                 periodo={periodoDefinido}
@@ -392,11 +392,11 @@ function Calendario() {
                 ))}
               </ul>
             )}
-          </SecaoRetratil>
+          </CollapsibleSection>
         </>
       )}
 
-      <PainelDoDia
+      <DayPanel
         dia={diaAberto?.dia ?? null}
         intencao={diaAberto?.intencao ?? "ver"}
         aberto={diaAberto !== null}
@@ -487,18 +487,13 @@ function DefinirAno({
       )}
 
       <div className="flex flex-wrap items-end gap-3">
-        <CampoDeData
+        <DateField
           id="inicio-do-ano"
           label="Início"
           value={inicio}
           onChange={(iso) => setInicio(iso ?? "")}
         />
-        <CampoDeData
-          id="fim-do-ano"
-          label="Fim"
-          value={fim}
-          onChange={(iso) => setFim(iso ?? "")}
-        />
+        <DateField id="fim-do-ano" label="Fim" value={fim} onChange={(iso) => setFim(iso ?? "")} />
         <div className="flex w-36 flex-col gap-2">
           <Label htmlFor="minimo-de-dias">Mínimo de dias</Label>
           <Input
@@ -598,11 +593,11 @@ function NovoEvento({
           />
         </div>
         {turmas.length > 0 ? (
-          <CampoDeAlvo id="alvo-do-evento" turmas={turmas} valor={turmaId} aoMudar={setTurmaId} />
+          <TargetField id="alvo-do-evento" turmas={turmas} valor={turmaId} aoMudar={setTurmaId} />
         ) : null}
         {/* O intervalo vem do ano letivo: a pessoa vê que 05/01 está fora
             antes de clicar, em vez de descobrir pela recusa do servidor. */}
-        <CampoDeData
+        <DateField
           id="inicio-do-evento"
           label="Início"
           value={inicio}
@@ -610,7 +605,7 @@ function NovoEvento({
           min={periodo?.startsOn}
           max={periodo?.endsOn}
         />
-        <CampoDeData
+        <DateField
           id="fim-do-evento"
           label="Fim (opcional)"
           value={fim}

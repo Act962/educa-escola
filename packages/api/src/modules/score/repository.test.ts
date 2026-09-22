@@ -10,8 +10,8 @@ import {
   createTestUser,
   recordTestAttendance,
 } from "../../testing/fixtures";
-import type { NovoEvento } from "./apuracao";
 import { createScoreRepository } from "./repository";
+import type { NovoEvento } from "./tally";
 
 afterAll(async () => {
   await closeTestDb();

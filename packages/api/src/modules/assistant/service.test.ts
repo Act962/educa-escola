@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../errors";
-import { ErroDoModelo, type ModeloDeLinguagem } from "../../integrations/modelo/cliente";
+import { ErroDoModelo, type ModeloDeLinguagem } from "../../integrations/model/client";
 import type { AssistantRepository } from "./repository";
-import { cifrarCredencial } from "./segredo";
+import { cifrarCredencial } from "./secret";
 import { CONFIGURACAO_PADRAO, createAssistantService, montarInstrucao } from "./service";
 
 /** 32 bytes em base64, só para o teste. Não é segredo de lugar nenhum. */

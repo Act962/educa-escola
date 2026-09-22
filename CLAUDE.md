@@ -348,14 +348,14 @@ obrigatória do service da foto, para o compilador cobrar quem esquecer); e a
 carteirinha com QR é o caminho que **nunca falha** — todo erro do rosto termina
 pedindo o QR, nunca barrando criança na porta.
 
-A comparação vive em `modules/gate/reconhecimento.ts`, sem banco nem tela,
+A comparação vive em `modules/gate/recognition.ts`, sem banco nem tela,
 porque é a única parte do sistema que pode identificar uma criança como outra.
 Além do limiar há uma **margem mínima**: dois alunos quase à mesma distância
 devolvem "ambíguo", não o menor por centésimos — irmãos parecidos existem, e
 liberar a criança errada não se desfaz.
 
 **Qual biblioteca extrai o descritor é `DECISÃO-JOÃO`**
-(`apps/web/src/lib/extrator-de-rosto.ts`). Até ela existir, a portaria sobe e
+(`apps/web/src/lib/face-extractor.ts`). Até ela existir, a portaria sobe e
 atende inteira pela carteirinha.
 
 **O molde facial do fornecedor não mora aqui.** Ele é proprietário do algoritmo que o gerou e

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Medal } from "lucide-react";
 
-import { EsqueletoDePontos, ExtratoDePontos, ResumoDePontos } from "@/components/painel-de-pontos";
+import { PointsSkeleton, PointsStatement, PointsSummary } from "@/components/points-panel";
 import { inteiro } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
@@ -37,7 +37,7 @@ function PontosDoProfessor() {
       </div>
 
       {painel.isLoading ? (
-        <EsqueletoDePontos />
+        <PointsSkeleton />
       ) : painel.isError || !painel.data ? (
         <Card>
           <ErrorState
@@ -47,7 +47,7 @@ function PontosDoProfessor() {
         </Card>
       ) : (
         <>
-          <ResumoDePontos dados={painel.data} ano={year} />
+          <PointsSummary dados={painel.data} ano={year} />
 
           <StatCard
             icon={Medal}
@@ -57,7 +57,7 @@ function PontosDoProfessor() {
             {painel.data.posicao ? `${painel.data.posicao}º de ${inteiro(painel.data.total)}` : "—"}
           </StatCard>
 
-          <ExtratoDePontos dados={painel.data} />
+          <PointsStatement dados={painel.data} />
 
           <p className="text-meta text-muted-foreground">
             Todos os pontos aqui são por <strong className="font-bold">registrar</strong>, nunca

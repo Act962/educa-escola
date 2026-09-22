@@ -1,7 +1,7 @@
 import type { AppRole } from "@educa-escola/auth";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../errors";
-import { ErroDoModelo, type ModeloDeLinguagem } from "../../integrations/modelo/cliente";
+import { ErroDoModelo, type ModeloDeLinguagem } from "../../integrations/model/client";
 import type { AssistantRepository } from "./repository";
 import type { AskInput, UpdateSettingsInput } from "./schema";
 import {
@@ -10,8 +10,8 @@ import {
   decifrarCredencial,
   dicaDaCredencial,
   limparCredencial,
-} from "./segredo";
-import { type NivelDeUso, nivelDeUso, nivelMaisGrave } from "./uso";
+} from "./secret";
+import { type NivelDeUso, nivelDeUso, nivelMaisGrave } from "./usage";
 
 /** Como a escola encontra o Astro antes de configurar qualquer coisa. */
 export const CONFIGURACAO_PADRAO = {

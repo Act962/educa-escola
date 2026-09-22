@@ -1,5 +1,5 @@
 import { ConflictError, NotFoundError, ValidationError, violaUnico } from "../../errors";
-import { gerarCodigo, normalizarCodigo } from "./codigo";
+import { gerarCodigo, normalizarCodigo } from "./code";
 import type { ReferralRepository } from "./repository";
 import type { RegisterConversionInput, RewardKind, UpdateProgramInput } from "./schema";
 

@@ -2,7 +2,7 @@ import { toSchoolDate } from "../../dates";
 import { ENROLLED_STATUSES } from "../student/schema";
 import { MINIMUM_ATTENDANCE_RATE } from "../student/service";
 import { type Coluna, gerarCsv, nomeDoArquivo, numero, percentual } from "./csv";
-import { type Indicador, montarIndicadores, taxa } from "./indicadores";
+import { type Indicador, montarIndicadores, taxa } from "./indicators";
 import type { ReportRepository } from "./repository";
 
 export type ChaveDeRelatorio = "alunos-por-turma" | "frequencia-por-turma" | "carga-dos-docentes";

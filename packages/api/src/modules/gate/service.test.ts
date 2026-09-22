@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ConflictError, ValidationError } from "../../errors";
 import type { GateRepository } from "./repository";
-import { cifrarMolde } from "./segredo";
+import { cifrarMolde } from "./secret";
 import { createGateService } from "./service";
 
 /** 32 bytes em base64, só para o teste. Não é segredo de lugar nenhum. */

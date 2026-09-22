@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
-
-import type { AulaApurada, AvaliacaoApurada, PresencaApurada } from "./apuracao";
 import type { ScoreRepository } from "./repository";
 import { createScoreService, mediaDePontos, mediasPorBimestre, posicaoEm } from "./service";
+import type { AulaApurada, AvaliacaoApurada, PresencaApurada } from "./tally";
 
 interface EstadoDoDuble {
   saldos?: { subjectKind: string; subjectId: string; points: number }[];

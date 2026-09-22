@@ -31,7 +31,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, LayoutGrid, List, Plus, Search } from "lucide-react";
 import { useState } from "react";
-import { MatriculasQuadro } from "@/components/matriculas-quadro";
+import { EnrollmentsBoard } from "@/components/enrollments-board";
 import {
   inteiro,
   parentesco,
@@ -280,7 +280,7 @@ function Matriculas() {
         </div>
 
         {modo === "quadro" ? (
-          <MatriculasQuadro
+          <EnrollmentsBoard
             filtros={{
               academicYear: ANO_LETIVO,
               search: search.trim() || undefined,

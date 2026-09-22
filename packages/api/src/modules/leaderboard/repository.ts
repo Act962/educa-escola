@@ -11,7 +11,7 @@ import type { DbHandle } from "@educa-escola/db/types";
 import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 
 import type { TenantContext } from "../../trpc/tenant";
-import type { ContagensDaEscola } from "./indicadores";
+import type { ContagensDaEscola } from "./indicators";
 
 /**
  * O repositório da própria escola. Tudo aqui é filtrado por `tenant.schoolId`.
