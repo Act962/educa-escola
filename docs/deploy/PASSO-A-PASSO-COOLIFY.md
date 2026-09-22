@@ -1,5 +1,9 @@
 # Passo a passo — subir o Integra Edu no Coolify
 
+> **A produção já existe** em <https://orbitaedu.nasaex.com>, montada com este
+> roteiro em 22/09/2026. Ele continua aqui para remontar o ambiente, criar um
+> staging ou refazer o servidor — e as etapas 12 e 13 ainda não foram feitas.
+>
 > Roteiro de execução do [plano de deploy](PLANO-DEPLOY-COOLIFY.md). Siga na
 > ordem: cada etapa depende da anterior. Os nomes de tela seguem a
 > documentação do Coolify v4 — se algum rótulo tiver mudado, o conceito é o
@@ -17,8 +21,8 @@ que baixar.
 | Item | Exemplo | Onde guardar |
 | --- | --- | --- |
 | VPS com Ubuntu 24.04 LTS, acesso SSH como root | 4 vCPU · 8 GB · 80 GB | — |
-| Domínio do app | `app.integraedu.com.br` | — |
-| Domínio do painel do Coolify (diferente do app) | `painel.integraedu.com.br` | — |
+| Domínio do app | `orbitaedu.nasaex.com` | — |
+| Domínio do painel do Coolify (diferente do app) | `painel.nasaex.com` | — |
 | Bucket S3-compatível para backup + chaves de acesso | Backblaze B2, Cloudflare R2 | Cofre |
 | Cofre de senhas da equipe | 1Password, Bitwarden | — |
 
@@ -27,8 +31,8 @@ que baixar.
 No provedor do domínio, crie dois registros **A** apontando para o IP da VPS:
 
 ```
-app.integraedu.com.br     A   <IP da VPS>
-painel.integraedu.com.br  A   <IP da VPS>
+orbitaedu.nasaex.com  A   <IP da VPS>
+painel.nasaex.com     A   <IP da VPS>
 ```
 
 Faça isso primeiro: o certificado HTTPS só é emitido depois que o DNS
@@ -50,7 +54,7 @@ Na conta criada, ative **2FA** (perfil do usuário).
 
 ## Etapa 3 — Painel com HTTPS e firewall
 
-1. **Settings → Configuration → URL:** `https://painel.integraedu.com.br` →
+1. **Settings → Configuration → URL:** `https://painel.nasaex.com` →
    **Save**. Confirme que o painel abre por esse endereço com cadeado.
 2. Firewall da VPS (no painel do provedor ou `ufw`): libere só **22, 80 e
    443**. As portas **8000, 6001 e 6002** só eram necessárias para o acesso
@@ -105,7 +109,7 @@ mídia é backup inútil para as fotos.
 2. **Image:** `ghcr.io/act962/integra-web` · **Tag:** `main`.
 3. **Configuration → General:**
    - **Name:** `integra-web`
-   - **Domains:** `https://app.integraedu.com.br`
+   - **Domains:** `https://orbitaedu.nasaex.com`
    - **Ports Exposes:** `3001` (o padrão é 80 — **troque**, senão o proxy não
      acha o app)
 4. **Configuration → Environment Variables** — todas como variável de
@@ -113,7 +117,7 @@ mídia é backup inútil para as fotos.
 
    ```
    DATABASE_URL=<Postgres URL (internal) da etapa 5>
-   BETTER_AUTH_URL=https://app.integraedu.com.br
+   BETTER_AUTH_URL=https://orbitaedu.nasaex.com
    BETTER_AUTH_SECRET=<etapa 7>
    MEDIA_ENCRYPTION_KEY=<etapa 7>
    ASSISTANT_ENCRYPTION_KEY=<etapa 7>
@@ -158,7 +162,7 @@ mídia é backup inútil para as fotos.
    Se aparecer `[migrate] Falhou.`, o erro do Postgres vem logo abaixo; o
    servidor não sobe até isso ser resolvido. O motivo mais comum no primeiro
    deploy é `DATABASE_URL` errado.
-3. Abra `https://app.integraedu.com.br/api/health`. Esperado:
+3. Abra `https://orbitaedu.nasaex.com/api/health`. Esperado:
 
    ```json
    {"status":"ok","checks":{"database":"ok"}}
@@ -184,7 +188,7 @@ primeiro acesso.
 
 ## Etapa 11 — Smoke test
 
-- [ ] Login da direção em `https://app.integraedu.com.br` funciona.
+- [ ] Login da direção em `https://orbitaedu.nasaex.com` funciona.
 - [ ] Criar uma turma e um aluno; conferir que aparecem.
 - [ ] Abrir `/portaria` num tablet **pelo domínio com HTTPS** e confirmar que
       a câmera liga (sem HTTPS o navegador bloqueia a câmera).
@@ -235,7 +239,7 @@ Backup que nunca foi restaurado é hipótese. Repita a cada trimestre.
 | Deploy novo | Automático a cada merge na `main` com CI verde |
 | Voltar uma versão | App → **Configuration → General → Tag**: troque `main` por `sha-<commit>` anterior (as tags estão em *Act962 → Packages → integra-web*) → **Deploy**. Depois, volte para `main` |
 | Deploy não terminou | Logs do deploy e do container. `[migrate] Falhou.` = problema de migration; container reiniciando sem esse log = variável de ambiente faltando |
-| App fora do ar | `https://app.integraedu.com.br/api/health`: 503 é o banco; sem resposta é o container ou o proxy |
+| App fora do ar | `https://orbitaedu.nasaex.com/api/health`: 503 é o banco; sem resposta é o container ou o proxy |
 | Nova escola | Etapa 10 |
 
 **Rollback não desfaz migration.** Voltar a imagem para uma versão anterior
