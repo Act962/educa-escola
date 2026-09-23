@@ -146,6 +146,20 @@ Três coisas que separam este seed do `seed:demo`, e nenhuma é detalhe:
 disciplinas, geração de senha, sequência de matrícula) e é testado sem banco em
 `seed-producao-data.test.ts`.
 
+**Para apontar para outro banco, `--env-file`** — um Postgres local à parte, uma
+cópia de homologação:
+
+```bash
+pnpm run seed:producao -- --env-file apps/web/.env.local \
+  --name "Escola de Testes" --slug escola-teste --dominio escola-teste.br
+```
+
+O arquivo pedido ganha do que já estiver no ambiente, e é por isso que o CLI
+importa o seed por `import()` no fim do arquivo: `@educa-escola/env` valida o
+ambiente no carregamento do módulo, então um `import` estático abriria conexão
+com o banco do `apps/web/.env` antes de a flag ser lida. Apontar para o banco
+errado é o erro que este comando mais precisa tornar impossível.
+
 Para desenvolver ou demonstrar, o atalho é a escola de exemplo — turmas,
 alunos, aulas, chamadas, avaliações e notas coerentes entre si:
 

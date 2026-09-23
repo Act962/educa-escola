@@ -1,10 +1,21 @@
-import { seedProducao } from "./seed-producao";
+import { existsSync } from "node:fs";
+import { join, resolve } from "node:path";
+
+import { findWorkspaceRoot } from "@educa-escola/env/load";
+import dotenv from "dotenv";
+
 import { resolverPerfis } from "./seed-producao-data";
 
 /**
  * Uso mínimo:
  *   pnpm run seed:producao -- \
  *     --name "Escola Municipal X" --slug escola-x --dominio escola-x.br
+ *
+ * Para apontar para outro banco que não o do `apps/web/.env` — um Postgres
+ * local de testes, uma cópia de homologação —, passe `--env-file`:
+ *
+ *   pnpm run seed:producao -- --env-file apps/web/.env.local \
+ *     --name "Escola de Testes" --slug escola-teste --dominio escola-teste.br
  *
  * Cria a escola e um acesso de cada tipo — direção (`owner`), secretaria
  * (`admin`), professor (`teacher`) e aluno (`student`) —, as oito disciplinas
@@ -16,6 +27,7 @@ import { resolverPerfis } from "./seed-producao-data";
  * `seed:demo`, que tem senha fixa e fraca porque a escola dele é fictícia.
  *
  * Opcionais:
+ *   --env-file apps/web/.env.local
  *   --inep 35012345
  *   --turma "6º A"            (padrão: "Turma A")
  *   --ano 2026                (padrão: ano corrente)
@@ -46,6 +58,48 @@ function required(flag: string): string {
 function falhar(mensagem: string): never {
   console.error(mensagem);
   process.exit(1);
+}
+
+/**
+ * O `--env-file` precisa ser lido **antes** de tudo, e é por isso que o seed
+ * entra por `import()` no fim do arquivo.
+ *
+ * `@educa-escola/env` valida o ambiente no carregamento do módulo, e
+ * `seed-producao.ts` puxa a configuração da auth, que puxa o env. Um `import`
+ * estático lá em cima seria avaliado antes desta linha, e o comando abriria
+ * conexão com o banco do `apps/web/.env` — justamente o que a flag existe para
+ * evitar. Apontar para o banco errado é o erro que este arquivo mais precisa
+ * tornar impossível.
+ *
+ * `override: true` porque o arquivo pedido na linha de comando ganha do que já
+ * estiver no ambiente: o contrário faria a flag ser silenciosamente ignorada
+ * em quem exporta `DATABASE_URL` no shell.
+ */
+const envFile = arg("env-file");
+if (envFile) {
+  const caminho = resolverEnvFile(envFile);
+
+  const { error } = dotenv.config({ path: caminho, override: true, quiet: true });
+  if (error) falhar(`Não consegui ler ${caminho}: ${error.message}`);
+
+  console.log(`Ambiente: ${caminho}`);
+}
+
+/**
+ * Aceita o caminho relativo ao cwd **ou** à raiz do workspace.
+ *
+ * O comando é escrito da raiz (`--env-file apps/web/.env.local`), mas o pnpm
+ * roda o script com o cwd em `packages/auth`: resolver só pelo cwd fazia o
+ * caminho que está na documentação não existir.
+ */
+function resolverEnvFile(valor: string): string {
+  const root = findWorkspaceRoot();
+  const candidatos = [resolve(process.cwd(), valor), ...(root ? [join(root, valor)] : [])];
+
+  const achado = candidatos.find((caminho) => existsSync(caminho));
+  if (achado) return achado;
+
+  falhar(`Não achei o arquivo de ambiente. Procurei em:\n  ${candidatos.join("\n  ")}`);
 }
 
 const TURNOS = ["manha", "tarde", "noite"] as const;
@@ -91,6 +145,9 @@ try {
 } catch (erro) {
   falhar(erro instanceof Error ? erro.message : String(erro));
 }
+
+// Depois do `--env-file`, nunca antes: ver o comentário acima.
+const { seedProducao } = await import("./seed-producao");
 
 const resultado = await seedProducao({
   name: required("name"),
