@@ -12,3 +12,4 @@ export * from "./orbita";
 export * from "./referral";
 export * from "./school";
 export * from "./score";
+export * from "./whatsapp";

@@ -131,6 +131,49 @@ describe("regras de arquitetura", () => {
     expect(offenders).toEqual([]);
   });
 
+  /**
+   * A Graph API é detalhe do adaptador da Meta.
+   *
+   * Estamos avaliando a API oficial e alternativas não oficiais ao mesmo tempo,
+   * e a fronteira só vale enquanto for mecânica: o dia de trocar de fornecedor
+   * precisa ser o dia de escrever um irmão de `messaging/whatsapp/cloud.ts`, e
+   * não o de caçar `graph.facebook.com` pelo código. Mesma regra do `@aws-sdk`.
+   */
+  it("só messaging/whatsapp conhece a Graph API", () => {
+    const offenders = sourceFiles(SRC)
+      // `isProductionCode` tira este próprio arquivo da conta: a regra carrega
+      // o endereço que ela proíbe.
+      .filter(isProductionCode)
+      .filter((file) => !file.includes(join("messaging", "whatsapp")))
+      .filter((file) => /graph\.facebook\.com/.test(readFileSync(file, "utf8")))
+      .map(rel);
+
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * Adaptador cru não sabe de que escola é a credencial.
+   *
+   * `createCloudChannel` recebe token e id de número prontos; quem os tira da
+   * linha certa, decifrados, é o service do módulo, por `criarCanal`. Construir
+   * o adaptador direto num router pula a camada que confere a configuração e a
+   * que decifra — e é onde um token de outra escola caberia.
+   */
+  it("fora de messaging/whatsapp, código de produção não constrói canal cru", () => {
+    const offenders = sourceFiles(SRC)
+      .filter(isProductionCode)
+      .filter((file) => !file.includes(join("messaging", "whatsapp")))
+      // A chamada, e não o nome solto: o service **explica** em comentário por
+      // que não constrói o adaptador, e uma regra que proíbe citar o nome
+      // proíbe documentar a própria regra.
+      .filter((file) =>
+        /\b(createCloudChannel|createMemoryChannel)\s*\(/.test(readFileSync(file, "utf8")),
+      )
+      .map(rel);
+
+    expect(offenders).toEqual([]);
+  });
+
   it("todo módulo expõe repository, service e router", () => {
     const modulesDir = join(SRC, "modules");
     const incomplete = readdirSync(modulesDir, { withFileTypes: true })

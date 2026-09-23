@@ -82,6 +82,17 @@ export const statement = {
    * professor a enxerga, porque é ela que responde "o aluno chegou?" na aula.
    */
   gate: ["read", "operate", "enroll_face", "delete_entry"],
+  /**
+   * WhatsApp. `manage` é a credencial do número e os modelos de mensagem;
+   * `send` é apertar o botão que dispara.
+   *
+   * Separados porque têm consequências diferentes: configurar errado se
+   * conserta na tela, mandar mensagem para a família não se desfaz — e a Meta
+   * cobra por conversa iniciada. A leitura também exige `manage`, porque a aba
+   * mostra credencial e lista de destinatários, que é mapa de contato de
+   * família.
+   */
+  whatsapp: ["manage", "send"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -113,6 +124,8 @@ export const owner = ac.newRole({
   ranking: ["read", "opt_in"],
   assistant: ["manage"],
   gate: ["read", "operate", "enroll_face", "delete_entry"],
+  /** A direção assina o contrato com a Meta: o número sai em nome da escola. */
+  whatsapp: ["manage", "send"],
 });
 
 /** Secretaria / administrativo: opera a escola inteira, menos excluí-la. */
@@ -126,6 +139,8 @@ export const admin = ac.newRole({
   assistant: ["manage"],
   /** A recepção é a secretaria: ela abre o quiosque e cadastra o molde. */
   gate: ["read", "operate", "enroll_face", "delete_entry"],
+  /** Quem fala com a família no dia a dia é a secretaria. */
+  whatsapp: ["manage", "send"],
 });
 
 /**
@@ -167,6 +182,16 @@ export const teacher = ac.newRole({
    * pessoal. O professor vê o que ele mesmo deve no próprio painel.
    */
   faculty: [],
+  /**
+   * Vazio. **`[A VALIDAR]`**
+   *
+   * Professor falando com a família pelo número oficial da escola é decisão
+   * pedagógica e administrativa que ninguém tomou ainda — e o número é um só,
+   * com a reputação da escola pendurada nele. Abrir depois é acrescentar
+   * `send` aqui; fechar depois de ter aberto é tirar uma ferramenta de quem já
+   * a usa.
+   */
+  whatsapp: [],
 });
 
 /**
@@ -211,6 +236,8 @@ export const student = ac.newRole({
    * colega. O aluno não precisa dela, e a portaria não é tela dele.
    */
   gate: [],
+  /** Aluno não dispara mensagem em nome da escola. */
+  whatsapp: [],
 });
 
 export const roles = { owner, admin, teacher, student };
