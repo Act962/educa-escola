@@ -20,6 +20,7 @@ import { scoreRouter } from "../modules/score/router";
 import { settingsRouter } from "../modules/settings/router";
 import { studentRouter } from "../modules/student/router";
 import { teacherRouter } from "../modules/teacher/router";
+import { whatsappRouter } from "../modules/whatsapp/router";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
@@ -83,6 +84,11 @@ export const appRouter = router({
    * `referral: read`; a de quem divulga resolve por identidade.
    */
   referral: referralRouter,
+  /**
+   * WhatsApp. Porta e adaptadores em `messaging/whatsapp/`: a Meta é uma
+   * implementação, não o contrato. Toda a aba é da gestão.
+   */
+  whatsapp: whatsappRouter,
 });
 
 export type AppRouter = typeof appRouter;
