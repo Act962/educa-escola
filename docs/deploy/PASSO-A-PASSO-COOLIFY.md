@@ -201,8 +201,20 @@ Só a escola e a direção, sem o resto, continua sendo
 `node_modules/.bin/jiti src/provision-cli.ts` — com `--owner-password` escolhida
 por você, em vez de gerada.
 
+Para **apresentar o produto a partir daqui**, com os painéis mostrando números
+em vez dos estados vazios, acrescente `--com-demonstracao --sala "Sala 12"`. Ele
+põe 31 colegas na turma, seis semanas de aula, chamadas e notas, com uma chamada
+em atraso e uma Prova 2 em rascunho faltando duas notas — o roteiro montado.
+
+É **dado fictício em banco de produção**, e por isso é opt-in: use só para a
+apresentação, e conte que alguém vai ter de distinguir esses alunos dos
+verdadeiros depois. O relatório final imprime o id da turma e como remover.
+Turma noturna não é aceita com a flag: a grade de demonstração não tem horário
+da noite.
+
 **Nunca rode `seed:demo` aqui.** Ele apaga e regrava a escola de demonstração;
-é para um ambiente de staging.
+é para um ambiente de staging. O `--com-demonstracao` é o contrário: nunca
+apaga, e se a turma já tem aula não escreve.
 
 ## Etapa 11 — Smoke test
 

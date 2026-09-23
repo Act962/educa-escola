@@ -137,15 +137,48 @@ Três coisas que separam este seed do `seed:demo`, e nenhuma é detalhe:
   a senha do primeiro acesso é lida numa tela, digitada em outra e às vezes
   ditada por telefone. Conta que já existia tem a senha **mantida** — comando de
   preparação não derruba acesso de quem já usa o sistema.
-- **Nada de fictício, exceto o que o app exige.** Nenhuma aula, nota ou
-  chamada; os painéis abrem nos estados vazios. A ficha do aluno existe porque
-  sem `student` casado com o `userId` a via do Aluno responde "nenhuma matrícula
+- **Nada de fictício por padrão, exceto o que o app exige.** Nenhuma aula, nota
+  ou chamada; os painéis abrem nos estados vazios — a menos que se peça
+  `--com-demonstracao`, logo abaixo. A ficha do aluno existe porque sem
+  `student` casado com o `userId` a via do Aluno responde "nenhuma matrícula
   vinculada a este acesso" e não abre — e vem com matrícula `ativa` e trilha,
   não só a projeção em `student`.
 
 `seed-producao-data.ts` guarda o que é decidido antes de escrever (perfis,
 disciplinas, geração de senha, sequência de matrícula) e é testado sem banco em
 `seed-producao-data.test.ts`.
+
+**`--com-demonstracao` grava dado fictício na turma**, e existe para um caso só:
+apresentar o produto a partir do ambiente que está no ar, com os painéis
+mostrando números em vez dos estados vazios.
+
+```bash
+pnpm run seed:producao -- --name "Escola X" --slug escola-x --dominio escola-x.br \
+  --turma "6º A" --com-demonstracao --sala "Sala 12"
+```
+
+Acrescenta 31 colegas na turma, seis semanas de aula mais uma à frente,
+chamadas, quatro avaliações por disciplina e as notas — tudo derivado dos
+geradores puros de `seed-demo-data.ts`, então nada sorteia e a apresentação se
+ensaia. O roteiro fica montado: **uma chamada em atraso**, **duas notas
+faltando numa Prova 2 em rascunho** (a publicação é recusada com o motivo),
+alunos abaixo dos 75% e a média do bimestre anterior para o gráfico comparar.
+
+Quatro coisas a saber antes de usar em produção:
+
+- **Não apaga nada**, como o resto do seed: se a turma já tem aula, não escreve.
+- **O dado é fictício em banco de verdade.** O relatório final imprime o id da
+  turma e como remover: apagar a turma cascateia aula, chamada, avaliação e
+  nota; os colegas (os alunos sem conta) saem junto, à mão.
+- **Só manhã ou tarde.** A grade de demonstração não tem horário noturno, e o
+  comando recusa `--turno noite` em vez de mostrar aula às 13h numa turma da
+  noite.
+- **O dia letivo sai do fuso da escola** (`school.timezone`), não do UTC. Rodar
+  às 21h de São Paulo pelo relógio do processo datava as aulas de amanhã, e a
+  pendência de chamada desaparecia da fila da direção — que só conta aula com
+  data anterior à de hoje. `diaLetivoDe` existe por isso, e repete
+  `toSchoolDate` de `packages/api/src/dates.ts` porque `packages/auth` não pode
+  importar `packages/api`.
 
 **Para apontar para outro banco, `--env-file`** — um Postgres local à parte, uma
 cópia de homologação:
@@ -198,6 +231,7 @@ subir Postgres. Três armadilhas que esse teste guarda:
 | `pnpm run build` | Build de todos os workspaces |
 | `pnpm run seed:demo` | Popula a escola de demonstração (regrava se já existir) |
 | `pnpm run seed:producao -- --name … --slug … --dominio …` | Escola nova com um acesso por papel. Nunca apaga |
+| `… --com-demonstracao` | Acrescenta aulas, chamadas e notas na turma, para apresentar do ambiente no ar |
 | `pnpm run db:generate` | Gera migration a partir do schema |
 | `pnpm run db:studio` | Drizzle Studio |
 | `pnpm run db:stop` / `db:down` | Para / remove o container do Postgres |
