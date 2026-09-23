@@ -174,14 +174,32 @@ Não existe auto-cadastro: a escola é provisionada por comando. No app →
 **Terminal** (abre um shell dentro do container):
 
 ```bash
-cd /app/packages/auth && node_modules/.bin/jiti src/provision-cli.ts \
-  --name "Escola Municipal X" --slug escola-x \
-  --owner-name "Maria Diretora" \
-  --owner-email diretoria@escola-x.br --owner-password "uma-senha-forte"
+cd /app/packages/auth && node_modules/.bin/jiti src/seed-producao-cli.ts \
+  --name "Escola Municipal X" --slug escola-x --dominio escola-x.br \
+  --turma "6º A" --segmento fundamental_ii --serie 6
 ```
 
-Passe a senha para a direção por canal seguro, e peça que ela troque no
-primeiro acesso.
+Isso deixa a escola pronta para o primeiro dia: a `organization`, a `school`,
+**um acesso por papel** (direção `owner`, secretaria `admin`, professor
+`teacher`, aluno `student`), as oito disciplinas da base comum e a turma, com o
+aluno matriculado nela. Os e-mails saem do `--dominio` (`direcao@escola-x.br`,
+`secretaria@…`, `professor@…`, `aluno@…`); para endereços reais, passe
+`--email-direcao`, `--email-secretaria`, `--email-professor` e `--email-aluno`,
+e os nomes em `--nome-*`.
+
+**As senhas são geradas pelo comando e aparecem uma única vez**, ao final. Copie
+da tela do Terminal antes de fechá-la, entregue por canal seguro, e peça a troca
+no primeiro acesso. Não há como recuperá-las depois — quem perder usa "esqueci
+minha senha".
+
+O comando **nunca apaga**, e é idempotente pelo `--slug`: rodar de novo apenas
+acrescenta o que faltava, e conta que já existe tem a senha mantida. Se a escola
+foi criada antes com `provision-cli.ts`, rodar este comando acrescenta os três
+acessos restantes, as disciplinas e a turma, sem tocar na direção.
+
+Só a escola e a direção, sem o resto, continua sendo
+`node_modules/.bin/jiti src/provision-cli.ts` — com `--owner-password` escolhida
+por você, em vez de gerada.
 
 **Nunca rode `seed:demo` aqui.** Ele apaga e regrava a escola de demonstração;
 é para um ambiente de staging.

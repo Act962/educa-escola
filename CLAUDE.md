@@ -112,6 +112,55 @@ Cria a `organization`, a `school` e o primeiro `member` como `owner`. É
 idempotente pelo `slug`. Roda via `jiti` porque o CLI importa TypeScript com
 resolução de bundler, que o Node puro não resolve.
 
+**Para escola nova em produção, o comando é o `seed:producao`** — é o
+`provision` levado até o fim, com um acesso de cada tipo:
+
+```bash
+pnpm run seed:producao -- \
+  --name "Escola Municipal X" --slug escola-x --dominio escola-x.br
+```
+
+Cria a escola, **quatro contas — uma por papel do RBAC** (`owner`, `admin`,
+`teacher`, `student`) —, as oito disciplinas da base comum e uma turma com o
+aluno matriculado nela. São quatro e não três porque a via de Gestão tem dois
+papéis com poderes diferentes: só a direção exclui a escola e instala app do
+Órbita.
+
+Três coisas que separam este seed do `seed:demo`, e nenhuma é detalhe:
+
+- **Nunca apaga.** O `seed:demo` começa deletando para a demonstração ser
+  sempre igual; aqui isso destruiria a escola. Toda etapa procura antes de
+  escrever, então rodar de novo — ou rodar depois de um `provision` — só
+  acrescenta o que faltava, e o relatório diz o que criou e o que reaproveitou.
+- **Senha gerada, mostrada uma vez.** Sem senha no código e sem senha
+  compartilhada: 16 caracteres de um alfabeto sem `O`/`0` e `I`/`l`/`1`, porque
+  a senha do primeiro acesso é lida numa tela, digitada em outra e às vezes
+  ditada por telefone. Conta que já existia tem a senha **mantida** — comando de
+  preparação não derruba acesso de quem já usa o sistema.
+- **Nada de fictício, exceto o que o app exige.** Nenhuma aula, nota ou
+  chamada; os painéis abrem nos estados vazios. A ficha do aluno existe porque
+  sem `student` casado com o `userId` a via do Aluno responde "nenhuma matrícula
+  vinculada a este acesso" e não abre — e vem com matrícula `ativa` e trilha,
+  não só a projeção em `student`.
+
+`seed-producao-data.ts` guarda o que é decidido antes de escrever (perfis,
+disciplinas, geração de senha, sequência de matrícula) e é testado sem banco em
+`seed-producao-data.test.ts`.
+
+**Para apontar para outro banco, `--env-file`** — um Postgres local à parte, uma
+cópia de homologação:
+
+```bash
+pnpm run seed:producao -- --env-file apps/web/.env.local \
+  --name "Escola de Testes" --slug escola-teste --dominio escola-teste.br
+```
+
+O arquivo pedido ganha do que já estiver no ambiente, e é por isso que o CLI
+importa o seed por `import()` no fim do arquivo: `@educa-escola/env` valida o
+ambiente no carregamento do módulo, então um `import` estático abriria conexão
+com o banco do `apps/web/.env` antes de a flag ser lida. Apontar para o banco
+errado é o erro que este comando mais precisa tornar impossível.
+
 Para desenvolver ou demonstrar, o atalho é a escola de exemplo — turmas,
 alunos, aulas, chamadas, avaliações e notas coerentes entre si:
 
@@ -148,6 +197,7 @@ subir Postgres. Três armadilhas que esse teste guarda:
 | `pnpm run check` | Biome: formata e corrige lint |
 | `pnpm run build` | Build de todos os workspaces |
 | `pnpm run seed:demo` | Popula a escola de demonstração (regrava se já existir) |
+| `pnpm run seed:producao -- --name … --slug … --dominio …` | Escola nova com um acesso por papel. Nunca apaga |
 | `pnpm run db:generate` | Gera migration a partir do schema |
 | `pnpm run db:studio` | Drizzle Studio |
 | `pnpm run db:stop` / `db:down` | Para / remove o container do Postgres |
