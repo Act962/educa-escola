@@ -43,6 +43,31 @@ export const env = createEnv({
      */
     ASSISTANT_ENCRYPTION_KEY: z.string().min(1).optional(),
     /**
+     * Chave que cifra o token e o app secret do WhatsApp, 32 bytes em base64.
+     *
+     * Chave própria, e não a do Astro nem a de mídia, pela razão já registrada
+     * lá: são segredos de ciclos diferentes, e girar um por incidente não deve
+     * obrigar a recadastrar os outros. Opcional para o app subir sem ela — sem
+     * a chave a tela recusa **gravar** a credencial, com instrução, e nunca
+     * grava em claro.
+     */
+    WHATSAPP_ENCRYPTION_KEY: z.string().min(1).optional(),
+    /**
+     * A versão da Graph API. Parâmetro, e não constante no código, porque a
+     * Meta aposenta versão sozinha — subir de v21 para v23 não deve ser deploy
+     * de código.
+     */
+    WHATSAPP_API_VERSION: z.string().min(2).default("v21.0"),
+    /**
+     * `memoria` força o dublê, mesmo com credencial real gravada.
+     *
+     * É o que permite apresentar o fluxo inteiro sem mandar mensagem para
+     * família nenhuma. Ao contrário de `STORAGE_DRIVER=memory`, não é recusado
+     * em produção: aqui ele não perde dado em silêncio — ele não envia, que é
+     * falha visível na hora e reversível tirando a variável.
+     */
+    WHATSAPP_DRIVER: z.enum(["cloud", "memoria"]).default("cloud"),
+    /**
      * Onde os arquivos ficam: `r2` em produção, `memory` no CI e no local.
      *
      * O padrão é `memory` porque o CI não tem segredo do R2 e PR vindo de fork
