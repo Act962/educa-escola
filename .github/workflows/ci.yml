@@ -130,6 +130,17 @@ jobs:
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Cache de camadas entre execuções — é o que evita rebuildar do zero,
+          # e não tem relação com o GHCR: vive no cache do GitHub Actions. Com o
+          # Dockerfile copiando os manifestos antes do install, um commit que só
+          # mexe em código reaproveita a camada de dependências daqui.
+          #
+          # `mode=max` guarda também as camadas intermediárias (estágio builder).
+          # O cache do Actions tem teto de ~10 GB por repositório e sofre
+          # evicção; se ele começar a faltar, a alternativa é guardar o cache no
+          # próprio GHCR, trocando as duas linhas abaixo por:
+          #   cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
+          #   cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache,mode=max
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

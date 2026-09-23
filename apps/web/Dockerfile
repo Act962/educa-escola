@@ -5,8 +5,24 @@ ENV SKIP_ENV_VALIDATION=1
 # the build evaluates the auth config; the real secret comes from compose at runtime
 ENV BETTER_AUTH_SECRET=build-time-placeholder-secret-not-used-at-runtime
 
+# Só os manifestos primeiro. Enquanto o lockfile e os package.json não mudam,
+# a camada do install é reaproveitada do cache — commit que mexe apenas em
+# código-fonte não reinstala nada. Copiar o repositório inteiro antes do install
+# (como era) invalidava esta camada a cada alteração de qualquer arquivo.
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/web/package.json apps/web/
+COPY packages/api/package.json packages/api/
+COPY packages/auth/package.json packages/auth/
+COPY packages/config/package.json packages/config/
+COPY packages/db/package.json packages/db/
+COPY packages/env/package.json packages/env/
+COPY packages/ui/package.json packages/ui/
+RUN --mount=type=cache,target=/pnpm-store pnpm install --frozen-lockfile --store-dir /pnpm-store
+
+# Agora o código. Muda a cada commit, mas já não invalida o install acima.
+# `.dockerignore` mantém node_modules fora, então este COPY não sobrescreve o
+# que o install montou.
 COPY . .
-RUN --mount=type=cache,target=/pnpm-store pnpm install --store-dir /pnpm-store
 
 ENV NODE_ENV=production
 RUN cd apps/web && pnpm run build
