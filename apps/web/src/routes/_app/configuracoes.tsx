@@ -5,6 +5,7 @@ import { Button } from "@educa-escola/ui/components/button";
 import { Card, CardEyebrow } from "@educa-escola/ui/components/card";
 import { Input } from "@educa-escola/ui/components/input";
 import { Label } from "@educa-escola/ui/components/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@educa-escola/ui/components/tabs";
 import { StatCard } from "@educa-escola/ui/integra/stat-card";
 import { ErrorState, ListSkeleton, PermissionState } from "@educa-escola/ui/integra/states";
 import { initialsOf } from "@educa-escola/ui/lib/initials";
@@ -16,9 +17,11 @@ import { toast } from "sonner";
 import z from "zod";
 import { AstroSettings } from "@/components/astro-settings";
 import { DateField } from "@/components/date-field";
+import { WhatsAppSettings } from "@/components/whatsapp/whatsapp-settings";
 import { authClient } from "@/lib/auth-client";
 import { instantDateText, integerText } from "@/lib/format";
 import { roleLabel } from "@/lib/navigation";
+import { podeNoPapel } from "@/lib/permissions";
 import { useSchoolContext } from "@/lib/school-context";
 import { type RouterOutputs, useTRPC } from "@/utils/trpc";
 
@@ -43,6 +46,8 @@ type Visao = RouterOutputs["settings"]["overview"];
 function Configuracoes() {
   const trpc = useTRPC();
   const visao = useQuery({ ...trpc.settings.overview.queryOptions(), retry: false });
+  const me = useQuery(trpc.me.queryOptions());
+  const podeWhatsApp = podeNoPapel(me.data?.role, { whatsapp: ["manage"] });
 
   return (
     <>
@@ -76,13 +81,29 @@ function Configuracoes() {
           )}
         </Card>
       ) : visao.data ? (
-        <>
-          <DadosDaInstituicao visao={visao.data} />
-          <AnoLetivo />
-          <AstroSettings />
-          <Acessos visao={visao.data} />
-          <RegrasEmVigor visao={visao.data} />
-        </>
+        <Tabs defaultValue="instituicao">
+          <TabsList>
+            <TabsTrigger value="instituicao">Instituição</TabsTrigger>
+            {/* A aba some para quem não tem a permissão. Esconder não é a
+                barreira — o servidor responde 403 de qualquer jeito —, mas
+                oferecer uma aba que vai negar é pior que não oferecer. */}
+            {podeWhatsApp ? <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger> : null}
+          </TabsList>
+
+          <TabsContent value="instituicao" className="flex flex-col gap-6">
+            <DadosDaInstituicao visao={visao.data} />
+            <AnoLetivo />
+            <AstroSettings />
+            <Acessos visao={visao.data} />
+            <RegrasEmVigor visao={visao.data} />
+          </TabsContent>
+
+          {podeWhatsApp ? (
+            <TabsContent value="whatsapp">
+              <WhatsAppSettings />
+            </TabsContent>
+          ) : null}
+        </Tabs>
       ) : null}
     </>
   );
