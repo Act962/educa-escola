@@ -287,6 +287,15 @@ export function colegasDeDemonstracao(): ColegaDeDemonstracao[] {
 }
 
 /**
+ * A disciplina que recebe a Prova 2 em rascunho, com duas notas faltando.
+ *
+ * É Matemática porque é a disciplina do roteiro de `DEMO.md` — e é escolhida
+ * por nome, não por posição, para não depender da ordem em que o banco devolve
+ * as disciplinas. Se a escola não tiver esta, a pendência cai na primeira.
+ */
+export const DISCIPLINA_COM_PENDENCIA = "Matemática";
+
+/**
  * O que o professor escreveu no diário das últimas aulas.
  *
  * Existe para a aula registrada não ficar com o campo vazio na tela — o diário

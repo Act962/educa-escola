@@ -10,7 +10,7 @@ import {
   subject,
 } from "@educa-escola/db/schema";
 import type { DbHandle } from "@educa-escola/db/types";
-import { and, desc, eq, like } from "drizzle-orm";
+import { and, asc, desc, eq, like } from "drizzle-orm";
 
 import {
   absencesFor,
@@ -28,6 +28,7 @@ import {
   CONTEUDOS_DE_AULA,
   type ColegaDeDemonstracao,
   colegasDeDemonstracao,
+  DISCIPLINA_COM_PENDENCIA,
   diaLetivoDe,
   FUSO_PADRAO,
   matriculaSeguinte,
@@ -140,10 +141,14 @@ export async function semearConteudoDeDemonstracao(
 
   if (existente) return VAZIO;
 
+  // `order by` explícito: sem ele a ordem das linhas é escolha do Postgres, e
+  // é ela que decide o índice de cada disciplina na geração das notas. Uma
+  // apresentação que muda de número entre execuções não se ensaia.
   const disciplinas = await tx
     .select({ id: subject.id, name: subject.name })
     .from(subject)
-    .where(eq(subject.schoolId, schoolId));
+    .where(eq(subject.schoolId, schoolId))
+    .orderBy(asc(subject.name));
 
   const idDaDisciplina = new Map(disciplinas.map((linha) => [linha.name, linha.id]));
 
@@ -341,6 +346,17 @@ async function semearAvaliacoes(
   const { schoolId, classroomId, teacherId, disciplinas, carteiras, hoje, hojeIso } = args;
 
   const bimestre = bimestreDe(hojeIso);
+
+  /**
+   * A disciplina que fica com a Prova 2 em rascunho.
+   *
+   * Escolhida **pelo nome**, e não pela posição na lista: a posição dependia da
+   * ordem em que o banco devolvia as linhas, então a pendência do roteiro podia
+   * mudar de disciplina entre uma execução e outra.
+   */
+  const comPendenciaId = (
+    disciplinas.find((item) => item.name === DISCIPLINA_COM_PENDENCIA) ?? disciplinas[0]
+  )?.id;
   const dataDe = (deslocamento: number) => {
     const valor = new Date(hoje);
     valor.setUTCDate(valor.getUTCDate() + deslocamento);
@@ -351,7 +367,7 @@ async function semearAvaliacoes(
   const linhasDeNota: (typeof grade.$inferInsert)[] = [];
 
   disciplinas.forEach((disciplina, indiceDaDisciplina) => {
-    const comPendencia = indiceDaDisciplina === 0;
+    const comPendencia = disciplina.id === comPendenciaId;
 
     const definicoes = [
       {

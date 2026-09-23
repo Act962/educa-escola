@@ -6,6 +6,7 @@ import {
   ALUNO_COM_CONTA,
   bimestreDe,
   colegasDeDemonstracao,
+  DISCIPLINA_COM_PENDENCIA,
   DISCIPLINAS_BASE,
   diaLetivoDe,
   matriculaSeguinte,
@@ -44,6 +45,14 @@ describe("DISCIPLINAS_BASE", () => {
   it("não repete sigla: é ela que aparece na grade horária", () => {
     const siglas = DISCIPLINAS_BASE.map((disciplina) => disciplina.code);
     expect(new Set(siglas).size).toBe(siglas.length);
+  });
+
+  it("contém a disciplina que recebe a pendência do roteiro", () => {
+    // Se sumisse daqui, a Prova 2 em rascunho cairia numa disciplina qualquer —
+    // e o roteiro da apresentação apontaria para a tela errada.
+    expect(DISCIPLINAS_BASE.map((disciplina) => disciplina.name)).toContain(
+      DISCIPLINA_COM_PENDENCIA,
+    );
   });
 });
 
