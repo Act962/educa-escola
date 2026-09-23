@@ -26,6 +26,12 @@ import { resolverPerfis } from "./seed-producao-data";
  * são recuperáveis: quem perder usa "esqueci minha senha". É o oposto do
  * `seed:demo`, que tem senha fixa e fraca porque a escola dele é fictícia.
  *
+ * `--com-demonstracao` grava **dado fictício** na turma — colegas, seis semanas
+ * de aula, chamadas, avaliações e notas — para os painéis mostrarem números numa
+ * apresentação feita do ambiente que está no ar. Fora desse caso, não use: é
+ * dado que alguém vai ter de distinguir do verdadeiro depois. Não apaga nada, e
+ * se a turma já tiver aula não escreve.
+ *
  * Opcionais:
  *   --env-file apps/web/.env.local
  *   --inep 35012345
@@ -36,6 +42,8 @@ import { resolverPerfis } from "./seed-producao-data";
  *   --serie 6
  *   --aluno-nascimento 2014-03-22
  *   --aluno-responsavel "Maria Souza"
+ *   --com-demonstracao        (dado fictício na turma; ver abaixo)
+ *   --sala "Sala 12"          (padrão: "Sala 1"; só com --com-demonstracao)
  *   --email-direcao / --email-secretaria / --email-professor / --email-aluno
  *   --nome-direcao  / --nome-secretaria  / --nome-professor  / --nome-aluno
  *   --senha-direcao / --senha-secretaria / --senha-professor / --senha-aluno
@@ -113,6 +121,18 @@ if (segmento && !SEGMENTOS.includes(segmento)) {
   falhar(`--segmento aceita ${SEGMENTOS.join(", ")}`);
 }
 
+/** Flag sem valor: basta estar presente. */
+const temFlag = (nome: string) => process.argv.includes(`--${nome}`);
+
+const comDemonstracao = temFlag("com-demonstracao");
+
+if (comDemonstracao && turno === "noite") {
+  falhar(
+    "O conteúdo de demonstração não tem horário de turno noturno. " +
+      "Use --turno manha ou --turno tarde, ou rode sem --com-demonstracao.",
+  );
+}
+
 const serie = arg("serie");
 if (serie && Number.isNaN(Number.parseInt(serie, 10))) falhar("--serie aceita um número");
 
@@ -165,6 +185,7 @@ const resultado = await seedProducao({
     birthDate: arg("aluno-nascimento"),
     guardianName: arg("aluno-responsavel"),
   },
+  demonstracao: comDemonstracao ? { sala: arg("sala") ?? "Sala 1" } : undefined,
 });
 
 console.log(
@@ -182,6 +203,22 @@ console.log(
   `Aluno de acesso: matrícula ${resultado.aluno.registration} ` +
     `(${resultado.aluno.criado ? "criado, matrícula ativa" : "já existia"})`,
 );
+
+const { demonstracao } = resultado;
+if (demonstracao?.jaHavia) {
+  console.log("Demonstração: a turma já tinha aula — nada foi escrito.");
+} else if (demonstracao) {
+  console.log(
+    `Demonstração: ${demonstracao.colegas} colegas · ${demonstracao.aulas} aulas ` +
+      `(${demonstracao.aulasComChamada} com chamada, 1 pendente) · ` +
+      `${demonstracao.chamadas} presenças · ${demonstracao.avaliacoes} avaliações · ` +
+      `${demonstracao.notas} notas`,
+  );
+  console.log(
+    `  Dado fictício. Para remover: apague a turma ${resultado.turma.id} ` +
+      "(cascateia aula, chamada, avaliação e nota) e os alunos dela sem conta.",
+  );
+}
 
 console.log("\nAcessos — anote as senhas agora, elas não são exibidas de novo:\n");
 for (const acesso of resultado.acessos) {

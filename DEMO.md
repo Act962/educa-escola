@@ -37,7 +37,13 @@ roteiro.
 
 > Senha fraca e compartilhada existe **só** para esta escola de demonstração,
 > com dados fictícios. Instalação real é provisionada por
-> `pnpm --filter @educa-escola/auth run provision`, com senha própria.
+> `pnpm run seed:producao`, com senha gerada e mostrada uma única vez.
+
+**Para apresentar a partir do ambiente que está no ar**, este seed não serve —
+ele apaga e regrava a escola dele, e é para staging. Use
+`pnpm run seed:producao -- … --com-demonstracao`: uma turma com aulas, chamadas e
+notas, sem apagar nada, com os mesmos momentos de roteiro (chamada em atraso,
+publicação recusada por nota faltando). Ver CLAUDE.md, seção "Comandos".
 
 ## O que o seed deixa preparado
 

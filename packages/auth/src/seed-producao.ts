@@ -14,6 +14,10 @@ import { and, desc, eq, like } from "drizzle-orm";
 
 import { auth } from "./index";
 import {
+  type ConteudoDeDemonstracaoResult,
+  semearConteudoDeDemonstracao,
+} from "./seed-producao-conteudo";
+import {
   DISCIPLINAS_BASE,
   matriculaSeguinte,
   type PerfilKey,
@@ -36,10 +40,15 @@ import {
  * reaproveitou — rodar duas vezes no mesmo banco é seguro, e rodar depois de um
  * `provision` só acrescenta o que faltava.
  *
- * **Nada de fictício.** Nenhuma aula, nota ou chamada. Os painéis abrem nos
- * estados vazios até a escola cadastrar o que é dela: painel cheio de dado
- * inventado em produção vira relatório errado na primeira semana, e aí ninguém
- * sabe mais o que apagar.
+ * **Nada de fictício, por padrão.** Nenhuma aula, nota ou chamada: os painéis
+ * abrem nos estados vazios até a escola cadastrar o que é dela. Painel cheio de
+ * dado inventado em produção vira relatório errado na primeira semana, e aí
+ * ninguém sabe mais o que apagar.
+ *
+ * `demonstracao` é a exceção, e é opt-in explícito: serve para apresentar o
+ * produto do ambiente que está no ar, com números na tela. O que ela grava
+ * pende todo da turma — ver `seed-producao-conteudo.ts`, inclusive como
+ * remover depois.
  *
  * O aluno é a exceção que o próprio app obriga: sem uma ficha em `student`
  * casada com o `userId`, `student.byUserId` responde "nenhuma matrícula
@@ -67,6 +76,15 @@ export interface SeedProducaoInput {
     birthDate?: string;
     guardianName?: string;
   };
+  /**
+   * Conteúdo de demonstração na turma: colegas, aulas, chamadas e notas.
+   *
+   * **Desligado por padrão, e é dado fictício em banco de verdade.** Serve para
+   * apresentar o produto a partir do ambiente que está no ar, com os painéis
+   * mostrando números. A sala é a que aparece na aula; a grade de horário existe
+   * só para manhã e tarde, então turma noturna não é aceita aqui.
+   */
+  demonstracao?: { sala: string };
 }
 
 export interface AcessoPreparado {
@@ -92,6 +110,8 @@ export interface SeedProducaoResult {
   disciplinas: { criadas: number; reaproveitadas: number };
   turma: { id: string; name: string; criada: boolean };
   aluno: { id: string; registration: string; criado: boolean };
+  /** Ausente quando a flag de demonstração não foi pedida. */
+  demonstracao?: ConteudoDeDemonstracaoResult;
 }
 
 export async function seedProducao(input: SeedProducaoInput): Promise<SeedProducaoResult> {
@@ -123,7 +143,34 @@ export async function seedProducao(input: SeedProducaoInput): Promise<SeedProduc
       criadoPorUserId: contas.get("secretaria")?.userId,
     });
 
-    return { acessos, disciplinas, turma, aluno };
+    const professorId = contas.get("professor")?.userId;
+
+    // Recusar é melhor que aproveitar o horário da tarde: a tela mostraria uma
+    // turma noturna com aula às 13h, e número errado numa apresentação é pior
+    // que a ausência dele.
+    if (input.demonstracao && input.turma.shift === "noite") {
+      throw new Error(
+        "O conteúdo de demonstração não tem horário de turno noturno. " +
+          "Use --turno manha ou --turno tarde, ou rode sem --com-demonstracao.",
+      );
+    }
+
+    const demonstracao =
+      input.demonstracao && professorId && input.turma.shift !== "noite"
+        ? await semearConteudoDeDemonstracao(tx, {
+            schoolId: escola.schoolId,
+            classroomId: turma.id,
+            turmaName: turma.name,
+            shift: input.turma.shift,
+            sala: input.demonstracao.sala,
+            academicYear: input.turma.academicYear,
+            teacherId: professorId,
+            alunoStudentId: aluno.id,
+            criadoPorUserId: contas.get("secretaria")?.userId,
+          })
+        : undefined;
+
+    return { acessos, disciplinas, turma, aluno, demonstracao };
   });
 
   return { schoolId: escola.schoolId, escolaCriada: escola.criada, ...dominio };

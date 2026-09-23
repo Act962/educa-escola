@@ -791,9 +791,16 @@ export function spreadIndexes(total: number, count: number, offset = 0): Set<num
   return picked;
 }
 
-/** Faltas e atrasos de um aluno sobre um total de aulas, a partir da taxa alvo. */
+/**
+ * Faltas e atrasos de um aluno sobre um total de aulas, a partir da taxa alvo.
+ *
+ * Pede só os dois campos que usa, e não o `DemoStudent` inteiro: o seed de
+ * produção tem um aluno que já existe no banco, sem nome nem matrícula nesta
+ * lista, e obrigá-lo a fabricar um registro vazio só para satisfazer o tipo
+ * escondia o que a função de fato lê.
+ */
 export function absencesFor(
-  student: DemoStudent,
+  student: Pick<DemoStudent, "attendance" | "lates">,
   totalLessons: number,
 ): {
   absences: number;

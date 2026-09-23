@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 import { roles } from "./permissions";
 import {
   ALFABETO_SENHA,
+  ALUNO_COM_CONTA,
+  bimestreDe,
+  colegasDeDemonstracao,
+  DISCIPLINA_COM_PENDENCIA,
   DISCIPLINAS_BASE,
+  diaLetivoDe,
   matriculaSeguinte,
   PERFIS,
   padraoDeMatricula,
@@ -40,6 +45,14 @@ describe("DISCIPLINAS_BASE", () => {
   it("não repete sigla: é ela que aparece na grade horária", () => {
     const siglas = DISCIPLINAS_BASE.map((disciplina) => disciplina.code);
     expect(new Set(siglas).size).toBe(siglas.length);
+  });
+
+  it("contém a disciplina que recebe a pendência do roteiro", () => {
+    // Se sumisse daqui, a Prova 2 em rascunho cairia numa disciplina qualquer —
+    // e o roteiro da apresentação apontaria para a tela errada.
+    expect(DISCIPLINAS_BASE.map((disciplina) => disciplina.name)).toContain(
+      DISCIPLINA_COM_PENDENCIA,
+    );
   });
 });
 
@@ -104,6 +117,93 @@ describe("resolverPerfis", () => {
   it("usa o nome padrão do papel quando nenhum vem", () => {
     const perfis = resolverPerfis({ dominio: "escola-x.br", nomes: { professor: "  " } });
     expect(perfis.find((perfil) => perfil.key === "professor")?.nome).toBe("Professor(a)");
+  });
+});
+
+describe("diaLetivoDe", () => {
+  it("usa o fuso da escola, não o UTC — 21h de São Paulo ainda é hoje", () => {
+    // 2026-09-23T00:30Z é 21h30 do dia 22 em São Paulo. Foi exatamente aqui que
+    // o seed datou as aulas de amanhã e a pendência de chamada sumiu da fila da
+    // direção, que só conta aula com data anterior à de hoje.
+    const noite = new Date("2026-09-23T00:30:00Z");
+
+    expect(diaLetivoDe(noite)).toBe("2026-09-22");
+    expect(noite.toISOString().slice(0, 10)).toBe("2026-09-23");
+  });
+
+  it("respeita outro fuso quando a escola tem o seu", () => {
+    const instante = new Date("2026-09-23T00:30:00Z");
+    expect(diaLetivoDe(instante, "America/Rio_Branco")).toBe("2026-09-22");
+    expect(diaLetivoDe(instante, "UTC")).toBe("2026-09-23");
+  });
+});
+
+describe("bimestreDe", () => {
+  it("segue o calendário escolar, não o trimestre civil", () => {
+    const bimestre = (mes: number) => bimestreDe(`2026-${String(mes).padStart(2, "0")}-15`);
+
+    expect([bimestre(2), bimestre(3), bimestre(4)]).toEqual([1, 1, 1]);
+    expect([bimestre(5), bimestre(6), bimestre(7)]).toEqual([2, 2, 2]);
+    expect([bimestre(8), bimestre(9)]).toEqual([3, 3]);
+    expect([bimestre(10), bimestre(11), bimestre(12)]).toEqual([4, 4, 4]);
+  });
+
+  it("põe janeiro no 1º: não existe bimestre zero", () => {
+    expect(bimestreDe("2026-01-10")).toBe(1);
+  });
+
+  it("lê o mês do texto: o primeiro de outubro é 4º bimestre, não 3º", () => {
+    expect(bimestreDe("2026-10-01")).toBe(4);
+  });
+});
+
+describe("colegasDeDemonstracao", () => {
+  const colegas = colegasDeDemonstracao();
+
+  it("tem turma cheia o bastante para os painéis mostrarem número", () => {
+    expect(colegas.length).toBeGreaterThan(20);
+  });
+
+  it("sai sem matrícula: quem numera é a sequência da escola", () => {
+    for (const colega of colegas) {
+      expect(colega).not.toHaveProperty("registration");
+    }
+  });
+
+  it("não repete nome — a listagem da direção já exibiu oito homônimas", () => {
+    const nomes = colegas.map((colega) => colega.name);
+    expect(new Set(nomes).size).toBe(nomes.length);
+  });
+
+  it("traz alguém abaixo dos 75% da LDB, que é o recorte de risco", () => {
+    expect(colegas.some((colega) => colega.attendance < 0.75)).toBe(true);
+  });
+
+  it("traz documentação pendente, que conta como matriculado", () => {
+    expect(colegas.some((colega) => colega.status === "documentacao_pendente")).toBe(true);
+  });
+
+  it("não traz transferido: numa turma só, aluno fora da sala confunde", () => {
+    expect(colegas.some((colega) => colega.status === "transferido")).toBe(false);
+  });
+
+  it("é estável entre chamadas — apresentação não se ensaia com número que muda", () => {
+    expect(colegasDeDemonstracao()).toEqual(colegas);
+  });
+});
+
+describe("ALUNO_COM_CONTA", () => {
+  it("não tem frequência cheia: 100% não mostra o cálculo funcionando", () => {
+    expect(ALUNO_COM_CONTA.attendance).toBeLessThan(1);
+    expect(ALUNO_COM_CONTA.attendance).toBeGreaterThan(0.75);
+    expect(ALUNO_COM_CONTA.lates).toBeGreaterThan(0);
+  });
+
+  it("tem aptidão escrita, e folgada acima da média de aprovação", () => {
+    // Sem aptidão explícita ele herdaria o piso da faixa (5,4) e o boletim da
+    // apresentação abria em recuperação em quase toda disciplina.
+    expect(ALUNO_COM_CONTA.aptitude).toBeGreaterThan(7);
+    expect(ALUNO_COM_CONTA.aptitude).toBeLessThanOrEqual(10);
   });
 });
 
