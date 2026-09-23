@@ -107,7 +107,7 @@ export const defineYearInput = z
  * turma, embora valha para a escola toda. Por isso a checagem é do par, e não
  * de cada campo.
  */
-const alvoDoEvento = {
+const eventTarget = {
   scope: z.enum(EVENT_SCOPES).default("institucional"),
   classroomId: z.string().min(1).nullable().optional(),
 };
@@ -127,7 +127,7 @@ export const createEventInput = z
     description: z.string().trim().max(500).optional(),
     startsOn: dataCivil,
     endsOn: dataCivil.optional(),
-    ...alvoDoEvento,
+    ...eventTarget,
   })
   .refine((v) => !v.endsOn || v.startsOn <= v.endsOn, {
     message: "O fim do evento não pode ser antes do início",
@@ -152,7 +152,7 @@ export const updateEventInput = z
     description: z.string().trim().max(500).nullable().optional(),
     startsOn: dataCivil,
     endsOn: dataCivil.optional(),
-    ...alvoDoEvento,
+    ...eventTarget,
   })
   .refine((v) => !v.endsOn || v.startsOn <= v.endsOn, {
     message: "O fim do evento não pode ser antes do início",

@@ -43,22 +43,22 @@ function fakeRepo(over: Partial<GateRepository> = {}): GateRepository {
  * Já aconteceu no módulo do Astro; aqui o erro custaria um molde biométrico
  * gravado sem cifragem.
  */
-const servico = (opcoes: { repo?: Partial<GateRepository>; semChave?: boolean } = {}) =>
+const servico = (opcoes: { repo?: Partial<GateRepository>; withoutKey?: boolean } = {}) =>
   createGateService(fakeRepo(opcoes.repo ?? {}), {
     now: () => AGORA,
-    chave: opcoes.semChave ? undefined : CHAVE,
+    key: opcoes.withoutKey ? undefined : CHAVE,
     actor: { userId: "u1" },
   });
 
 /** Um molde gravado de verdade: cifrado, como sai do banco. */
-function moldeDe(studentId: string, descritor: number[], extractor = "ext-a") {
-  const c = encryptTemplate(descritor, CHAVE);
+function moldeDe(studentId: string, descriptor: number[], extractor = "ext-a") {
+  const c = encryptTemplate(descriptor, CHAVE);
   return {
     studentId,
     cipher: c.cipher,
     iv: c.iv,
     authTag: c.authTag,
-    dimensions: descritor.length,
+    dimensions: descriptor.length,
     extractor,
   };
 }
@@ -68,7 +68,7 @@ describe("lote", () => {
     const s = servico({ repo: { listTemplates: async () => [moldeDe("a1", [0.1, 0.2, 0.3])] } });
     const lote = await s.lote();
 
-    expect(lote.alunos).toEqual([{ studentId: "a1", descritor: [0.1, 0.2, 0.3] }]);
+    expect(lote.alunos).toEqual([{ studentId: "a1", descriptor: [0.1, 0.2, 0.3] }]);
     expect(lote.extractor).toBe("ext-a");
     expect(lote.validoAte.getTime()).toBeGreaterThan(AGORA.getTime());
   });
@@ -99,7 +99,7 @@ describe("lote", () => {
     const lote = await s.lote();
 
     expect(lote.alunos.map((a) => a.studentId)).toEqual(["a1"]);
-    expect(lote.pendentesDeRecadastro).toBe(1);
+    expect(lote.pendingReenrollment).toBe(1);
   });
 });
 
@@ -108,7 +108,7 @@ describe("identificarRosto", () => {
 
   it("acha o aluno e devolve o cartão da portaria", async () => {
     const saida = await servico({ repo: comMolde }).identificarRosto({
-      descritor: [0.01, 0, 0],
+      descriptor: [0.01, 0, 0],
       extractor: "ext-a",
     });
 
@@ -123,7 +123,7 @@ describe("identificarRosto", () => {
    */
   it("o cartão não carrega nota, frequência nem responsável", async () => {
     const saida = await servico({ repo: comMolde }).identificarRosto({
-      descritor: [0, 0, 0],
+      descriptor: [0, 0, 0],
       extractor: "ext-a",
     });
 
@@ -135,7 +135,7 @@ describe("identificarRosto", () => {
 
   it("rosto desconhecido não vira o aluno mais parecido", async () => {
     const saida = await servico({ repo: comMolde }).identificarRosto({
-      descritor: [9, 9, 9],
+      descriptor: [9, 9, 9],
       extractor: "ext-a",
     });
     expect(saida).toEqual({ encontrado: false, motivo: "ninguem" });
@@ -143,7 +143,7 @@ describe("identificarRosto", () => {
 
   it("recusa quando o tablet usa outro extrator", async () => {
     await expect(
-      servico({ repo: comMolde }).identificarRosto({ descritor: [0, 0, 0], extractor: "ext-z" }),
+      servico({ repo: comMolde }).identificarRosto({ descriptor: [0, 0, 0], extractor: "ext-z" }),
     ).rejects.toBeInstanceOf(ValidationError);
   });
 });
@@ -268,7 +268,7 @@ describe("cadastrarMolde", () => {
     });
 
     await expect(
-      s.cadastrarMolde({ studentId: "a1", descritor: [0, 1], extractor: "ext-a" }),
+      s.enrollTemplate({ studentId: "a1", descriptor: [0, 1], extractor: "ext-a" }),
     ).rejects.toThrow(/carteirinha/i);
     expect(gravados).toHaveLength(0);
   });
@@ -284,7 +284,7 @@ describe("cadastrarMolde", () => {
       },
     });
 
-    await s.cadastrarMolde({ studentId: "a1", descritor: [0.5, 0.25], extractor: "ext-a" });
+    await s.enrollTemplate({ studentId: "a1", descriptor: [0.5, 0.25], extractor: "ext-a" });
 
     expect(gravados[0]?.dimensions).toBe(2);
     expect(gravados[0]?.cipher).not.toContain("0.5");
@@ -294,7 +294,7 @@ describe("cadastrarMolde", () => {
   it("sem a chave do servidor, não grava nada", async () => {
     const gravados: unknown[] = [];
     const s = servico({
-      semChave: true,
+      withoutKey: true,
       repo: {
         saveTemplate: async (d) => {
           gravados.push(d);
@@ -304,7 +304,7 @@ describe("cadastrarMolde", () => {
     });
 
     await expect(
-      s.cadastrarMolde({ studentId: "a1", descritor: [0, 1], extractor: "ext-a" }),
+      s.enrollTemplate({ studentId: "a1", descriptor: [0, 1], extractor: "ext-a" }),
     ).rejects.toThrow(/MEDIA_ENCRYPTION_KEY/);
     expect(gravados).toHaveLength(0);
   });

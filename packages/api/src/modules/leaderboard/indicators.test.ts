@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { indicatorsFor, MAXIMUM_SCORE, ratio, type SchoolCounts } from "./indicators";
 
 const vazia: SchoolCounts = {
-  aulasComChamada: 0,
-  aulasNoPrazo: 0,
-  avaliacoesPublicadas: 0,
-  avaliacoesSemPendencia: 0,
+  lessonsWithAttendance: 0,
+  lessonsOnTime: 0,
+  publishedAssessments: 0,
+  assessmentsWithoutPending: 0,
   comparecimentos: 0,
   registrosDeChamada: 0,
 };
@@ -35,18 +35,18 @@ describe("proporcao", () => {
 describe("indicadoresDe", () => {
   it("soma os três indicadores", () => {
     const resultado = indicatorsFor({
-      aulasComChamada: 100,
-      aulasNoPrazo: 90,
-      avaliacoesPublicadas: 10,
-      avaliacoesSemPendencia: 8,
+      lessonsWithAttendance: 100,
+      lessonsOnTime: 90,
+      publishedAssessments: 10,
+      assessmentsWithoutPending: 8,
       comparecimentos: 950,
       registrosDeChamada: 1000,
     });
 
     expect(resultado).toEqual({
-      chamadaNoPrazo: 90,
-      notasSemPendencia: 80,
-      frequenciaMedia: 95,
+      attendanceOnTime: 90,
+      gradesWithoutPending: 80,
+      averageAttendance: 95,
       points: 265,
     });
   });
@@ -59,18 +59,18 @@ describe("indicadoresDe", () => {
    */
   it("escola grande e escola pequena com o mesmo desempenho empatam", () => {
     const pequena = indicatorsFor({
-      aulasComChamada: 50,
-      aulasNoPrazo: 45,
-      avaliacoesPublicadas: 5,
-      avaliacoesSemPendencia: 4,
+      lessonsWithAttendance: 50,
+      lessonsOnTime: 45,
+      publishedAssessments: 5,
+      assessmentsWithoutPending: 4,
       comparecimentos: 190,
       registrosDeChamada: 200,
     });
     const grande = indicatorsFor({
-      aulasComChamada: 500,
-      aulasNoPrazo: 450,
-      avaliacoesPublicadas: 50,
-      avaliacoesSemPendencia: 40,
+      lessonsWithAttendance: 500,
+      lessonsOnTime: 450,
+      publishedAssessments: 50,
+      assessmentsWithoutPending: 40,
       comparecimentos: 1900,
       registrosDeChamada: 2000,
     });
@@ -84,10 +84,10 @@ describe("indicadoresDe", () => {
 
   it("escola impecável chega ao máximo", () => {
     const perfeita = indicatorsFor({
-      aulasComChamada: 10,
-      aulasNoPrazo: 10,
-      avaliacoesPublicadas: 4,
-      avaliacoesSemPendencia: 4,
+      lessonsWithAttendance: 10,
+      lessonsOnTime: 10,
+      publishedAssessments: 4,
+      assessmentsWithoutPending: 4,
       comparecimentos: 80,
       registrosDeChamada: 80,
     });

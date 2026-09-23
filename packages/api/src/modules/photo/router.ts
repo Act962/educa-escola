@@ -17,7 +17,7 @@ function serviceFor(ctx: { db: DbHandle; tenant: TenantContext; membership: Memb
       now: () => new Date(),
       encryptionKey: env.MEDIA_ENCRYPTION_KEY,
       actor: { userId: ctx.membership.userId },
-      apagarMoldeFacial: (studentId) =>
+      deleteFaceTemplate: (studentId) =>
         createGateRepository(ctx.db, ctx.tenant).deleteTemplate(studentId),
     },
   );

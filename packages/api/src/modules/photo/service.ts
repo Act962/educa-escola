@@ -17,7 +17,7 @@ export interface PhotoServiceDeps {
    * criança cuja família pediu para parar. Exigir aqui faz o compilador
    * reclamar de quem montar o serviço sem ligar as duas coisas.
    */
-  apagarMoldeFacial: (studentId: string) => Promise<void>;
+  deleteFaceTemplate: (studentId: string) => Promise<void>;
 }
 
 /**
@@ -127,12 +127,12 @@ export function createPhotoService(
       // chega ao banco. Gravar em claro "só desta vez" é como isso vaza.
       const key = parseKey(deps.encryptionKey);
       const { bytes, contentType } = parseDataUrl(input.dataUrl);
-      const cifrado = encrypt(bytes, key);
+      const encrypted = encrypt(bytes, key);
       const now = deps.now();
 
       await photos.upsert({
         studentId: input.studentId,
-        ...cifrado,
+        ...encrypted,
         contentType,
         capturedAt: now,
         capturedByUserId: deps.actor.userId,
@@ -162,7 +162,7 @@ export function createPhotoService(
 
       const removida = await photos.remove(input.studentId);
       // A biometria some inteira ou não some: imagem e molde no mesmo gesto.
-      await deps.apagarMoldeFacial(input.studentId);
+      await deps.deleteFaceTemplate(input.studentId);
       if (consent && !consent.revokedAt) await photos.revokeConsent(consent.id, now);
 
       if (matricula) {

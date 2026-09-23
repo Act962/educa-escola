@@ -451,9 +451,9 @@ export function createEnrollmentService(repo: EnrollmentRepository, deps: Enroll
       if (input.guardian && !guardian) throw new NotFoundError("Responsável não encontrado");
 
       const mudancas: Record<string, { de: string | null; para: string | null }> = {};
-      const anotar = (campo: string, de: string | null, para: string | null | undefined) => {
+      const anotar = (field: string, de: string | null, para: string | null | undefined) => {
         if (para === undefined || para === de) return;
-        mudancas[campo] = { de, para: para ?? null };
+        mudancas[field] = { de, para: para ?? null };
       };
 
       anotar("alunoNome", detail.studentName, input.student?.name);

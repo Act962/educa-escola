@@ -15,20 +15,20 @@
 
 export interface SchoolCounts {
   /** Aulas cuja chamada foi registrada, e quantas dessas ficaram no prazo. */
-  aulasComChamada: number;
-  aulasNoPrazo: number;
+  lessonsWithAttendance: number;
+  lessonsOnTime: number;
   /** Avaliações publicadas, e quantas saíram sem aluno sem lançamento. */
-  avaliacoesPublicadas: number;
-  avaliacoesSemPendencia: number;
+  publishedAssessments: number;
+  assessmentsWithoutPending: number;
   /** Presenças (com atraso) e o total de registros de chamada. */
   comparecimentos: number;
   registrosDeChamada: number;
 }
 
 export interface SchoolIndicators {
-  chamadaNoPrazo: number;
-  notasSemPendencia: number;
-  frequenciaMedia: number;
+  attendanceOnTime: number;
+  gradesWithoutPending: number;
+  averageAttendance: number;
   points: number;
 }
 
@@ -48,15 +48,18 @@ export function ratio(parte: number, total: number): number {
 }
 
 export function indicatorsFor(contagens: SchoolCounts): SchoolIndicators {
-  const chamadaNoPrazo = ratio(contagens.aulasNoPrazo, contagens.aulasComChamada);
-  const notasSemPendencia = ratio(contagens.avaliacoesSemPendencia, contagens.avaliacoesPublicadas);
-  const frequenciaMedia = ratio(contagens.comparecimentos, contagens.registrosDeChamada);
+  const attendanceOnTime = ratio(contagens.lessonsOnTime, contagens.lessonsWithAttendance);
+  const gradesWithoutPending = ratio(
+    contagens.assessmentsWithoutPending,
+    contagens.publishedAssessments,
+  );
+  const averageAttendance = ratio(contagens.comparecimentos, contagens.registrosDeChamada);
 
   return {
-    chamadaNoPrazo,
-    notasSemPendencia,
-    frequenciaMedia,
-    points: chamadaNoPrazo + notasSemPendencia + frequenciaMedia,
+    attendanceOnTime,
+    gradesWithoutPending,
+    averageAttendance,
+    points: attendanceOnTime + gradesWithoutPending + averageAttendance,
   };
 }
 

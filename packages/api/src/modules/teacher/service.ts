@@ -17,14 +17,14 @@ export interface TeacherListItem {
   userId: string;
   name: string;
   email: string;
-  turmas: number;
-  disciplinas: number;
-  aulas: number;
+  classrooms: number;
+  subjects: number;
+  lessons: number;
   /** Aulas encerradas sem chamada. */
-  chamadasPendentes: number;
+  pendingAttendance: number;
   /** Lançamentos de nota que faltam. */
-  notasPendentes: number;
-  situacao: Situation;
+  pendingGrades: number;
+  situation: Situation;
 }
 
 /**
@@ -40,13 +40,13 @@ export type Situation = "em_dia" | "atencao" | "atrasado" | "sem_turma";
 export const PENDING_FOR_OVERDUE = 3;
 
 export function situationOf(input: {
-  aulas: number;
-  chamadasPendentes: number;
-  notasPendentes: number;
+  lessons: number;
+  pendingAttendance: number;
+  pendingGrades: number;
 }): Situation {
-  if (input.aulas === 0) return "sem_turma";
+  if (input.lessons === 0) return "sem_turma";
 
-  const total = input.chamadasPendentes + input.notasPendentes;
+  const total = input.pendingAttendance + input.pendingGrades;
   if (total === 0) return "em_dia";
   return total >= PENDING_FOR_OVERDUE ? "atrasado" : "atencao";
 }
@@ -63,7 +63,7 @@ export function createTeacherService(repo: TeacherRepository) {
     async list(filters: TeacherFilters, now: Date) {
       const hoje = toSchoolDate(now);
 
-      const [docentes, carga, chamadas, notas] = await Promise.all([
+      const [teachers, carga, chamadas, grades] = await Promise.all([
         repo.list(filters.search),
         repo.loadByTeacher(filters.academicYear),
         repo.pendingCallsByTeacher(filters.academicYear, hoje),
@@ -71,52 +71,52 @@ export function createTeacherService(repo: TeacherRepository) {
       ]);
 
       const porCarga = new Map(carga.map((linha) => [linha.teacherId, linha]));
-      const porChamada = new Map(chamadas.map((linha) => [linha.teacherId, linha.pendentes]));
-      const porNota = new Map(notas.map((linha) => [linha.teacherId, linha.faltando]));
+      const porChamada = new Map(chamadas.map((linha) => [linha.teacherId, linha.pending]));
+      const porNota = new Map(grades.map((linha) => [linha.teacherId, linha.faltando]));
 
-      const linhas: TeacherListItem[] = docentes.map((docente) => {
-        const dele = porCarga.get(docente.userId);
+      const linhas: TeacherListItem[] = teachers.map((teacher) => {
+        const dele = porCarga.get(teacher.userId);
         const base = {
-          aulas: dele?.aulas ?? 0,
-          chamadasPendentes: porChamada.get(docente.userId) ?? 0,
-          notasPendentes: porNota.get(docente.userId) ?? 0,
+          lessons: dele?.lessons ?? 0,
+          pendingAttendance: porChamada.get(teacher.userId) ?? 0,
+          pendingGrades: porNota.get(teacher.userId) ?? 0,
         };
 
         return {
-          userId: docente.userId,
-          name: docente.name,
-          email: docente.email,
-          turmas: dele?.turmas ?? 0,
-          disciplinas: dele?.disciplinas ?? 0,
+          userId: teacher.userId,
+          name: teacher.name,
+          email: teacher.email,
+          classrooms: dele?.classrooms ?? 0,
+          subjects: dele?.subjects ?? 0,
           ...base,
-          situacao: situationOf(base),
+          situation: situationOf(base),
         };
       });
 
-      const visiveis = filters.comPendencia
-        ? linhas.filter((linha) => linha.situacao === "atrasado" || linha.situacao === "atencao")
+      const visiveis = filters.withPending
+        ? linhas.filter((linha) => linha.situation === "atrasado" || linha.situation === "atencao")
         : linhas;
 
       return {
         items: visiveis,
         total: linhas.length,
-        resumo: {
+        summary: {
           total: linhas.length,
-          semTurma: linhas.filter((l) => l.situacao === "sem_turma").length,
-          comPendencia: linhas.filter((l) => l.situacao === "atrasado" || l.situacao === "atencao")
+          withoutClassroom: linhas.filter((l) => l.situation === "sem_turma").length,
+          withPending: linhas.filter((l) => l.situation === "atrasado" || l.situation === "atencao")
             .length,
-          chamadasPendentes: linhas.reduce((soma, l) => soma + l.chamadasPendentes, 0),
+          pendingAttendance: linhas.reduce((soma, l) => soma + l.pendingAttendance, 0),
         },
       };
     },
 
     /** A ficha de um docente: onde ele dá aula e o que está devendo. */
     async byId(userId: string, academicYear: number, now: Date) {
-      const docente = await repo.findMember(userId);
-      if (!docente) throw new NotFoundError("Professor não encontrado nesta escola");
+      const teacher = await repo.findMember(userId);
+      if (!teacher) throw new NotFoundError("Professor não encontrado nesta escola");
 
       const hoje = toSchoolDate(now);
-      const [alocacoes, alunos, frequencia, carga, chamadas, notas] = await Promise.all([
+      const [alocacoes, alunos, attendanceRate, carga, chamadas, grades] = await Promise.all([
         repo.assignmentsOf(userId, academicYear),
         repo.reachOf(userId, academicYear),
         repo.attendanceOf(userId, academicYear),
@@ -127,22 +127,22 @@ export function createTeacherService(repo: TeacherRepository) {
 
       const dele = carga.find((linha) => linha.teacherId === userId);
       const base = {
-        aulas: dele?.aulas ?? 0,
-        chamadasPendentes: chamadas.find((l) => l.teacherId === userId)?.pendentes ?? 0,
-        notasPendentes: notas.find((l) => l.teacherId === userId)?.faltando ?? 0,
+        lessons: dele?.lessons ?? 0,
+        pendingAttendance: chamadas.find((l) => l.teacherId === userId)?.pending ?? 0,
+        pendingGrades: grades.find((l) => l.teacherId === userId)?.faltando ?? 0,
       };
 
       return {
-        ...docente,
+        ...teacher,
         ...base,
-        aulasRegistradas: dele?.registradas ?? 0,
+        recordedLessons: dele?.registradas ?? 0,
         alunos,
-        situacao: situationOf(base),
+        situation: situationOf(base),
         // Uma linha por turma, com as disciplinas que ele dá nela: a leitura
         // natural é "no 8º A ele dá Matemática e Física", não uma lista de
         // pares turma+disciplina repetindo a turma.
-        turmas: groupByClassroom(alocacoes),
-        frequenciaDasTurmas: rate(frequencia.comparecimentos, frequencia.registros),
+        classrooms: groupByClassroom(alocacoes),
+        classroomAttendance: rate(attendanceRate.comparecimentos, attendanceRate.registros),
       };
     },
   };
@@ -152,19 +152,19 @@ export function createTeacherService(repo: TeacherRepository) {
 export function groupByClassroom(
   alocacoes: { classroomId: string; classroomName: string; subjectName: string }[],
 ) {
-  const porTurma = new Map<string, { classroomId: string; nome: string; disciplinas: string[] }>();
+  const byClassroom = new Map<string, { classroomId: string; name: string; subjects: string[] }>();
 
   for (const linha of alocacoes) {
-    const atual = porTurma.get(linha.classroomId) ?? {
+    const atual = byClassroom.get(linha.classroomId) ?? {
       classroomId: linha.classroomId,
-      nome: linha.classroomName,
-      disciplinas: [],
+      name: linha.classroomName,
+      subjects: [],
     };
-    if (!atual.disciplinas.includes(linha.subjectName)) atual.disciplinas.push(linha.subjectName);
-    porTurma.set(linha.classroomId, atual);
+    if (!atual.subjects.includes(linha.subjectName)) atual.subjects.push(linha.subjectName);
+    byClassroom.set(linha.classroomId, atual);
   }
 
-  return [...porTurma.values()];
+  return [...byClassroom.values()];
 }
 
 /**

@@ -23,7 +23,7 @@ export interface DayAffectingEvent {
 
 export interface SchoolDayCount {
   /** Dias úteis no período, antes de qualquer evento. */
-  diasUteis: number;
+  weekdays: number;
   /** Dias úteis perdidos para feriado, recesso ou férias. */
   perdidos: number;
   /** Dias não úteis recuperados por reposição. */
@@ -38,16 +38,16 @@ export interface SchoolDayCount {
 
 /** "2026-02-05" -> dia da semana (0 domingo). Meio-dia UTC: nunca vira o dia. */
 export function dayOfWeek(data: string): number {
-  const [ano, mes, dia] = data.split("-").map(Number);
-  return new Date(Date.UTC(ano ?? 1970, (mes ?? 1) - 1, dia ?? 1, 12)).getUTCDay();
+  const [year, mes, day] = data.split("-").map(Number);
+  return new Date(Date.UTC(year ?? 1970, (mes ?? 1) - 1, day ?? 1, 12)).getUTCDay();
 }
 
 /** Percorre o intervalo, com as duas pontas incluídas. */
-export function* diasEntre(inicio: string, fim: string): Generator<string> {
-  const [a, m, d] = inicio.split("-").map(Number);
+export function* daysBetween(start: string, end: string): Generator<string> {
+  const [a, m, d] = start.split("-").map(Number);
   const atual = new Date(Date.UTC(a ?? 1970, (m ?? 1) - 1, d ?? 1, 12));
   const limite = (() => {
-    const [fa, fm, fd] = fim.split("-").map(Number);
+    const [fa, fm, fd] = end.split("-").map(Number);
     return new Date(Date.UTC(fa ?? 1970, (fm ?? 1) - 1, fd ?? 1, 12));
   })();
 
@@ -73,38 +73,38 @@ export function countSchoolDays(input: {
   startsOn: string;
   endsOn: string;
   minimo: number;
-  eventos: DayAffectingEvent[];
+  events: DayAffectingEvent[];
 }): SchoolDayCount {
   const naoLetivos = new Set<string>();
   const extras = new Set<string>();
 
-  for (const evento of input.eventos) {
+  for (const evento of input.events) {
     if (evento.dayEffect === "nenhum") continue;
     const destino = evento.dayEffect === "nao_letivo" ? naoLetivos : extras;
-    for (const dia of diasEntre(evento.startsOn, evento.endsOn)) destino.add(dia);
+    for (const day of daysBetween(evento.startsOn, evento.endsOn)) destino.add(day);
   }
 
-  let diasUteis = 0;
+  let weekdays = 0;
   let perdidos = 0;
   let repostos = 0;
 
-  for (const dia of diasEntre(input.startsOn, input.endsOn)) {
-    const util = isWeekday(dia);
-    if (util) diasUteis += 1;
+  for (const day of daysBetween(input.startsOn, input.endsOn)) {
+    const util = isWeekday(day);
+    if (util) weekdays += 1;
 
     // Reposição vence o feriado: se a escola marcou aula naquele dia, houve
     // aula. É a mesma leitura que o `attendanceRecordedAt` faz da chamada.
-    if (extras.has(dia)) {
+    if (extras.has(day)) {
       if (!util) repostos += 1;
       continue;
     }
-    if (util && naoLetivos.has(dia)) perdidos += 1;
+    if (util && naoLetivos.has(day)) perdidos += 1;
   }
 
-  const letivos = diasUteis - perdidos + repostos;
+  const letivos = weekdays - perdidos + repostos;
 
   return {
-    diasUteis,
+    weekdays,
     perdidos,
     repostos,
     letivos,

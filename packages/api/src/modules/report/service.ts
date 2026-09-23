@@ -8,39 +8,39 @@ import type { ReportRepository } from "./repository";
 export type ReportKey = "alunos-por-turma" | "frequencia-por-turma" | "carga-dos-docentes";
 
 export interface AvailableReport {
-  chave: ReportKey;
-  titulo: string;
+  key: ReportKey;
+  title: string;
   descricao: string;
 }
 
 /** O catálogo do §15.1 e §15.2 no recorte que os dados de hoje sustentam. */
 export const REPORTS: AvailableReport[] = [
   {
-    chave: "alunos-por-turma",
-    titulo: "Alunos por turma",
+    key: "alunos-por-turma",
+    title: "Alunos por turma",
     descricao: "Quantos em cada turma, por turno, e quantos com documentação pendente.",
   },
   {
-    chave: "frequencia-por-turma",
-    titulo: "Frequência por turma",
+    key: "frequencia-por-turma",
+    title: "Frequência por turma",
     descricao: "Frequência média de cada turma no ano, contra o mínimo de 75%.",
   },
   {
-    chave: "carga-dos-docentes",
-    titulo: "Carga dos docentes",
+    key: "carga-dos-docentes",
+    title: "Carga dos docentes",
     descricao: "Turmas, aulas dadas e chamadas em aberto por professor.",
   },
 ];
 
 export function createReportService(repo: ReportRepository) {
-  async function indicadores(academicYear: number, now: Date): Promise<Indicator[]> {
+  async function indicators(academicYear: number, now: Date): Promise<Indicator[]> {
     const hoje = toSchoolDate(now);
 
-    const [situacoes, frequenciaTurmas, porAluno, docentes] = await Promise.all([
+    const [situacoes, frequenciaTurmas, byStudent, teachers] = await Promise.all([
       repo.movimentacao(),
-      repo.frequenciaPorTurma(academicYear),
-      repo.frequenciaPorAluno(academicYear),
-      repo.cargaPorDocente(academicYear, hoje),
+      repo.attendanceByClassroom(academicYear),
+      repo.attendanceByStudent(academicYear),
+      repo.loadByTeacher(academicYear, hoje),
     ]);
 
     const registros = frequenciaTurmas.reduce((soma, t) => soma + t.registros, 0);
@@ -55,20 +55,20 @@ export function createReportService(repo: ReportRepository) {
       .reduce((soma, linha) => soma + linha.total, 0);
 
     return buildIndicators({
-      alunosNaSala: naSala,
-      frequenciaGeral: rate(comparecimentos, registros),
+      studentsInRoom: naSala,
+      overallAttendance: rate(comparecimentos, registros),
       // Aluno sem aula registrada não está em risco: está sem aula. É a mesma
       // leitura que `attendanceRate` faz devolvendo `null` em vez de 0%.
-      alunosEmRisco: porAluno.filter(
+      studentsAtRisk: byStudent.filter(
         (aluno) =>
           aluno.registros > 0 && aluno.comparecimentos / aluno.registros < MINIMUM_ATTENDANCE_RATE,
       ).length,
-      pendenciasDeLancamento: docentes.reduce((soma, d) => soma + d.semChamada, 0),
+      pendingGradeEntries: teachers.reduce((soma, d) => soma + d.semChamada, 0),
     });
   }
 
   return {
-    indicadores,
+    indicators,
 
     catalogo: () => REPORTS,
 
@@ -79,42 +79,42 @@ export function createReportService(repo: ReportRepository) {
      * de ser os mesmos da tela, e reimplementá-los no cliente seria criar duas
      * versões da verdade que divergem na primeira mudança.
      */
-    async exportar(chave: ReportKey, academicYear: number, now: Date) {
+    async exportar(key: ReportKey, academicYear: number, now: Date) {
       const hoje = toSchoolDate(now);
 
-      if (chave === "alunos-por-turma") {
-        const linhas = await repo.alunosPorTurma(academicYear);
+      if (key === "alunos-por-turma") {
+        const linhas = await repo.studentsByClassroom(academicYear);
         type Linha = (typeof linhas)[number];
-        const colunas: Column<Linha>[] = [
-          { titulo: "Turma", valor: (l) => l.classroomName },
-          { titulo: "Série", valor: (l) => l.gradeLevel ?? "" },
-          { titulo: "Total", valor: (l) => l.total },
-          { titulo: "Na sala", valor: (l) => l.naSala },
-          { titulo: "Documentação pendente", valor: (l) => l.documentacaoPendente },
-          { titulo: "Manhã", valor: (l) => l.manha },
-          { titulo: "Tarde", valor: (l) => l.tarde },
-          { titulo: "Noite", valor: (l) => l.noite },
+        const columns: Column<Linha>[] = [
+          { title: "Turma", valor: (l) => l.classroomName },
+          { title: "Série", valor: (l) => l.gradeLevel ?? "" },
+          { title: "Total", valor: (l) => l.total },
+          { title: "Na sala", valor: (l) => l.naSala },
+          { title: "Documentação pendente", valor: (l) => l.documentacaoPendente },
+          { title: "Manhã", valor: (l) => l.manha },
+          { title: "Tarde", valor: (l) => l.tarde },
+          { title: "Noite", valor: (l) => l.noite },
         ];
         return {
-          nome: fileName("Alunos por turma", academicYear, hoje),
-          conteudo: generateCsv(colunas, linhas),
+          name: fileName("Alunos por turma", academicYear, hoje),
+          conteudo: generateCsv(columns, linhas),
         };
       }
 
-      if (chave === "frequencia-por-turma") {
-        const linhas = await repo.frequenciaPorTurma(academicYear);
+      if (key === "frequencia-por-turma") {
+        const linhas = await repo.attendanceByClassroom(academicYear);
         type Linha = (typeof linhas)[number];
-        const colunas: Column<Linha>[] = [
-          { titulo: "Turma", valor: (l) => l.classroomName },
-          { titulo: "Alunos com registro", valor: (l) => l.alunos },
-          { titulo: "Registros de chamada", valor: (l) => l.registros },
-          { titulo: "Comparecimentos", valor: (l) => l.comparecimentos },
+        const columns: Column<Linha>[] = [
+          { title: "Turma", valor: (l) => l.classroomName },
+          { title: "Alunos com registro", valor: (l) => l.alunos },
+          { title: "Registros de chamada", valor: (l) => l.registros },
+          { title: "Comparecimentos", valor: (l) => l.comparecimentos },
           {
-            titulo: "Frequência",
+            title: "Frequência",
             valor: (l) => percentCell(rate(l.comparecimentos, l.registros)),
           },
           {
-            titulo: "Abaixo do mínimo",
+            title: "Abaixo do mínimo",
             valor: (l) => {
               const t = rate(l.comparecimentos, l.registros);
               // Vazio, e não "Não", quando não há aula: a turma não está
@@ -124,40 +124,43 @@ export function createReportService(repo: ReportRepository) {
           },
         ];
         return {
-          nome: fileName("Frequência por turma", academicYear, hoje),
-          conteudo: generateCsv(colunas, linhas),
+          name: fileName("Frequência por turma", academicYear, hoje),
+          conteudo: generateCsv(columns, linhas),
         };
       }
 
-      const linhas = await repo.cargaPorDocente(academicYear, hoje);
+      const linhas = await repo.loadByTeacher(academicYear, hoje);
       type Linha = (typeof linhas)[number];
-      const colunas: Column<Linha>[] = [
-        { titulo: "Professor", valor: (l) => l.teacherName },
-        { titulo: "Turmas", valor: (l) => l.turmas },
-        { titulo: "Aulas no ano", valor: (l) => l.aulas },
-        { titulo: "Chamadas em aberto", valor: (l) => l.semChamada },
+      const columns: Column<Linha>[] = [
+        { title: "Professor", valor: (l) => l.teacherName },
+        { title: "Turmas", valor: (l) => l.classrooms },
+        { title: "Aulas no ano", valor: (l) => l.lessons },
+        { title: "Chamadas em aberto", valor: (l) => l.semChamada },
         {
-          titulo: "Média de aulas por turma",
-          valor: (l) => numberCell(l.turmas > 0 ? l.aulas / l.turmas : null),
+          title: "Média de aulas por turma",
+          valor: (l) => numberCell(l.classrooms > 0 ? l.lessons / l.classrooms : null),
         },
       ];
       return {
-        nome: fileName("Carga dos docentes", academicYear, hoje),
-        conteudo: generateCsv(colunas, linhas),
+        name: fileName("Carga dos docentes", academicYear, hoje),
+        conteudo: generateCsv(columns, linhas),
       };
     },
 
     /** As turmas com frequência abaixo do mínimo — o recorte que a direção age. */
-    async turmasEmAlerta(academicYear: number) {
-      const linhas = await repo.frequenciaPorTurma(academicYear);
+    async classroomsAtRisk(academicYear: number) {
+      const linhas = await repo.attendanceByClassroom(academicYear);
       return linhas
         .map((linha) => ({
           classroomId: linha.classroomId,
-          nome: linha.classroomName,
-          frequencia: rate(linha.comparecimentos, linha.registros),
+          name: linha.classroomName,
+          attendanceRate: rate(linha.comparecimentos, linha.registros),
           alunos: linha.alunos,
         }))
-        .filter((linha) => linha.frequencia !== null && linha.frequencia < MINIMUM_ATTENDANCE_RATE);
+        .filter(
+          (linha) =>
+            linha.attendanceRate !== null && linha.attendanceRate < MINIMUM_ATTENDANCE_RATE,
+        );
     },
   };
 }

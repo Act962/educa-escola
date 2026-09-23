@@ -13,7 +13,7 @@ import { decryptTemplate, encryptTemplate } from "./secret";
 export interface GateDeps {
   now: () => Date;
   /** A chave de cifragem dos moldes. Vive fora do banco, como a da foto. */
-  chave: string | undefined;
+  key: string | undefined;
   actor: { userId: string };
 }
 
@@ -63,8 +63,8 @@ export function createGateService(repo: GateRepository, deps: GateDeps) {
   }
 
   /** O dia seguinte, à meia-noite: o fim aberto da janela do dia. */
-  function fimDoDia(inicio: Date): Date {
-    return new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + 1);
+  function fimDoDia(start: Date): Date {
+    return new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
   }
 
   /**
@@ -75,8 +75,8 @@ export function createGateService(repo: GateRepository, deps: GateDeps) {
    * começaria às 21h do dia 21.
    */
   function diaCivil(texto: string): Date {
-    const [ano, mes, dia] = texto.split("-").map(Number);
-    return new Date(ano as number, (mes as number) - 1, dia as number);
+    const [year, mes, day] = texto.split("-").map(Number);
+    return new Date(year as number, (mes as number) - 1, day as number);
   }
 
   /** Aluno fora de `ENROLLED_STATUSES` não abre portão. */
@@ -103,7 +103,7 @@ export function createGateService(repo: GateRepository, deps: GateDeps) {
      */
     async lote() {
       const gravados = await repo.listTemplates();
-      const alunos: { studentId: string; descritor: number[] }[] = [];
+      const alunos: { studentId: string; descriptor: number[] }[] = [];
 
       let extractor: string | null = null;
       for (const molde of gravados) {
@@ -115,9 +115,9 @@ export function createGateService(repo: GateRepository, deps: GateDeps) {
 
         alunos.push({
           studentId: molde.studentId,
-          descritor: decryptTemplate(
+          descriptor: decryptTemplate(
             { cipher: molde.cipher, iv: molde.iv, authTag: molde.authTag },
-            deps.chave,
+            deps.key,
           ),
         });
       }
@@ -125,7 +125,7 @@ export function createGateService(repo: GateRepository, deps: GateDeps) {
       return {
         extractor,
         alunos,
-        pendentesDeRecadastro: gravados.length - alunos.length,
+        pendingReenrollment: gravados.length - alunos.length,
         validoAte: new Date(deps.now().getTime() + VALIDADE_DO_LOTE_MS),
       };
     },
@@ -138,7 +138,7 @@ export function createGateService(repo: GateRepository, deps: GateDeps) {
      * segurar os moldes. O caminho é o mesmo e a regra é a mesma — `identify`
      * é a única implementação, nos dois lados.
      */
-    async identificarRosto(entrada: { descritor: number[]; extractor: string }) {
+    async identificarRosto(entrada: { descriptor: number[]; extractor: string }) {
       const { alunos, extractor } = await this.lote();
 
       if (extractor && entrada.extractor !== extractor) {
@@ -147,30 +147,30 @@ export function createGateService(repo: GateRepository, deps: GateDeps) {
         );
       }
 
-      const veredito = identify(entrada.descritor, alunos);
-      return this.cartaoDoVeredito(veredito);
+      const verdict = identify(entrada.descriptor, alunos);
+      return this.verdictCard(verdict);
     },
 
     /** Traduz o veredito em algo que a tela possa mostrar sem decidir nada. */
-    async cartaoDoVeredito(veredito: Verdict) {
-      if (veredito.tipo !== "reconhecido") {
+    async verdictCard(verdict: Verdict) {
+      if (verdict.tipo !== "reconhecido") {
         // Ambíguo e desconhecido dão o mesmo resultado na tela de propósito:
         // "não identificado, use a carteirinha". Dizer "você parece com outro
         // aluno" na frente da fila não ajuda ninguém e expõe as duas crianças.
-        return { encontrado: false as const, motivo: veredito.tipo };
+        return { encontrado: false as const, motivo: verdict.tipo };
       }
 
-      const aluno = await repo.findStudent(veredito.studentId);
+      const aluno = await repo.findStudent(verdict.studentId);
       if (!aluno) return { encontrado: false as const, motivo: "ninguem" as const };
 
-      return { encontrado: true as const, aluno, distancia: veredito.distance };
+      return { encontrado: true as const, aluno, distance: verdict.distance };
     },
 
     /** O caminho da carteirinha: o QR carrega o número de matrícula. */
-    async porMatricula(registration: string) {
+    async byRegistration(registration: string) {
       const aluno = await repo.findByRegistration(registration);
       if (!aluno) return { encontrado: false as const, motivo: "ninguem" as const };
-      return { encontrado: true as const, aluno, distancia: null };
+      return { encontrado: true as const, aluno, distance: null };
     },
 
     /**
@@ -246,7 +246,7 @@ export function createGateService(repo: GateRepository, deps: GateDeps) {
      * reconhecimento na entrada. A checagem é aqui e não na tela porque tela
      * se contorna.
      */
-    async cadastrarMolde(input: EnrollTemplateInput) {
+    async enrollTemplate(input: EnrollTemplateInput) {
       const aluno = await repo.findStudent(input.studentId);
       if (!aluno) throw new NotFoundError("Aluno não encontrado nesta escola.");
 
@@ -257,18 +257,18 @@ export function createGateService(repo: GateRepository, deps: GateDeps) {
         );
       }
 
-      const cifrado = encryptTemplate(input.descritor, deps.chave);
+      const encrypted = encryptTemplate(input.descriptor, deps.key);
       await repo.saveTemplate({
         studentId: input.studentId,
-        cipher: cifrado.cipher,
-        iv: cifrado.iv,
-        authTag: cifrado.authTag,
-        dimensions: input.descritor.length,
+        cipher: encrypted.cipher,
+        iv: encrypted.iv,
+        authTag: encrypted.authTag,
+        dimensions: input.descriptor.length,
         extractor: input.extractor,
         enrolledByUserId: deps.actor.userId,
       });
 
-      return { studentId: input.studentId, dimensions: input.descritor.length };
+      return { studentId: input.studentId, dimensions: input.descriptor.length };
     },
 
     /**
@@ -283,7 +283,7 @@ export function createGateService(repo: GateRepository, deps: GateDeps) {
     },
 
     /** O rodapé do quiosque: quantos estão dentro, e o movimento de hoje. */
-    async situacao() {
+    async situation() {
       const desde = inicioDoDia();
       const [dentro, passagens] = await Promise.all([
         repo.presentCount(desde),
@@ -299,7 +299,7 @@ export function createGateService(repo: GateRepository, deps: GateDeps) {
      * escolher data antes de ver qualquer coisa é ruído no caminho comum.
      */
     async passagens(input: EntriesInput) {
-      const desde = input.dia ? diaCivil(input.dia) : inicioDoDia();
+      const desde = input.day ? diaCivil(input.day) : inicioDoDia();
       return repo.listEntries({
         desde,
         ate: fimDoDia(desde),

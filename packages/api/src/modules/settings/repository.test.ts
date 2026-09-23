@@ -66,9 +66,9 @@ describe("createSettingsRepository", () => {
         await createTestMembership(tx, { schoolId: escola.id, userId: pessoa.id, role });
       }
 
-      const contagem = await createSettingsRepository(tx, { schoolId: escola.id }).countByRole();
+      const count = await createSettingsRepository(tx, { schoolId: escola.id }).countByRole();
 
-      expect(Object.fromEntries(contagem.map((c) => [c.role, c.total]))).toEqual({
+      expect(Object.fromEntries(count.map((c) => [c.role, c.total]))).toEqual({
         owner: 1,
         admin: 1,
         teacher: 2,
@@ -95,9 +95,9 @@ describe("createSettingsRepository", () => {
       });
       await createTestMembership(tx, { schoolId: outra.id, userId: deFora.id, role: "owner" });
 
-      const lista = await createSettingsRepository(tx, { schoolId: escola.id }).administrators();
+      const list = await createSettingsRepository(tx, { schoolId: escola.id }).administrators();
 
-      expect(lista.map((l) => l.email)).toEqual(["secretaria@escola.br", "diretora@escola.br"]);
+      expect(list.map((l) => l.email)).toEqual(["secretaria@escola.br", "diretora@escola.br"]);
     });
   });
 });

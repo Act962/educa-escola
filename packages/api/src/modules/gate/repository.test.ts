@@ -18,8 +18,8 @@ const CHAVE = Buffer.alloc(32, 9).toString("base64");
 afterAll(closeTestDb);
 
 /** Uma escola com um aluno matriculado em turma, que é o caso da portaria. */
-async function cenario(tx: Parameters<Parameters<typeof withRollback>[0]>[0], nome = "Escola A") {
-  const escola = await createTestSchool(tx, nome);
+async function cenario(tx: Parameters<Parameters<typeof withRollback>[0]>[0], name = "Escola A") {
+  const escola = await createTestSchool(tx, name);
   const turma = await createTestClassroom(tx, escola.id, "9º C");
   const operador = await createTestUser(tx);
   const aluno = await createTestStudent(tx, {
@@ -61,12 +61,12 @@ describe("createGateRepository", () => {
   it("guarda o molde cifrado e o devolve com o extrator", async () => {
     await withRollback(async (tx) => {
       const c = await cenario(tx);
-      const cifrado = encryptTemplate([0.1, 0.2, 0.3], CHAVE);
+      const encrypted = encryptTemplate([0.1, 0.2, 0.3], CHAVE);
 
       await c.repo.saveTemplate({
         studentId: c.aluno.id,
-        ...cifrado,
-        authTag: cifrado.authTag,
+        ...encrypted,
+        authTag: encrypted.authTag,
         dimensions: 3,
         extractor: "ext-a",
         enrolledByUserId: c.operador.id,
@@ -217,20 +217,20 @@ describe("createGateRepository", () => {
     it("quem está dentro é quem entrou por último", async () => {
       await withRollback(async (tx) => {
         const c = await cenario(tx);
-        const inicio = new Date(Date.now() - 86_400_000);
+        const start = new Date(Date.now() - 86_400_000);
 
         await passar(c, "entrada", 120);
-        expect(await c.repo.presentCount(inicio)).toBe(1);
+        expect(await c.repo.presentCount(start)).toBe(1);
 
         await passar(c, "saida", 60);
-        expect(await c.repo.presentCount(inicio)).toBe(0);
+        expect(await c.repo.presentCount(start)).toBe(0);
 
         await passar(c, "entrada", 10);
-        expect(await c.repo.presentCount(inicio)).toBe(1);
+        expect(await c.repo.presentCount(start)).toBe(1);
 
         // Entrada repetida não soma duas vezes a mesma pessoa.
         await passar(c, "entrada", 5);
-        expect(await c.repo.presentCount(inicio)).toBe(1);
+        expect(await c.repo.presentCount(start)).toBe(1);
       });
     });
 
@@ -337,11 +337,11 @@ describe("exclusão de passagem", () => {
     await withRollback(async (tx) => {
       const c = await cenario(tx);
       const passagem = await passar(c);
-      const inicio = new Date(Date.now() - 86_400_000);
+      const start = new Date(Date.now() - 86_400_000);
 
-      expect(await c.repo.presentCount(inicio)).toBe(1);
+      expect(await c.repo.presentCount(start)).toBe(1);
       await c.repo.softDelete(passagem.id, c.operador.id, new Date());
-      expect(await c.repo.presentCount(inicio)).toBe(0);
+      expect(await c.repo.presentCount(start)).toBe(0);
     });
   });
 

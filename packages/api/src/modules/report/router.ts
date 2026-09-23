@@ -18,15 +18,15 @@ function serviceFor(ctx: { db: DbHandle; tenant: TenantContext }) {
  * ver um agregado que o descreve.
  */
 export const reportRouter = router({
-  indicadores: permitted({ student: ["read"], grade: ["read"] })
+  indicators: permitted({ student: ["read"], grade: ["read"] })
     .input(reportYearInput)
-    .query(({ ctx, input }) => serviceFor(ctx).indicadores(input.academicYear, new Date())),
+    .query(({ ctx, input }) => serviceFor(ctx).indicators(input.academicYear, new Date())),
 
   catalogo: permitted({ student: ["read"] }).query(({ ctx }) => serviceFor(ctx).catalogo()),
 
-  turmasEmAlerta: permitted({ student: ["read"] })
+  classroomsAtRisk: permitted({ student: ["read"] })
     .input(reportYearInput)
-    .query(({ ctx, input }) => serviceFor(ctx).turmasEmAlerta(input.academicYear)),
+    .query(({ ctx, input }) => serviceFor(ctx).classroomsAtRisk(input.academicYear)),
 
   /**
    * O CSV é montado no servidor, não no navegador: a conta e o recorte têm de
@@ -36,6 +36,6 @@ export const reportRouter = router({
   exportar: permitted({ student: ["read"], grade: ["read"] })
     .input(exportInput)
     .mutation(({ ctx, input }) =>
-      serviceFor(ctx).exportar(input.chave, input.academicYear, new Date()),
+      serviceFor(ctx).exportar(input.key, input.academicYear, new Date()),
     ),
 });

@@ -7,19 +7,19 @@ import type { CreateSubjectInput, SetCurriculumInput, Stage } from "./schema";
 
 /** Único lugar do módulo que monta query. Recebe `(db, tenant)`. */
 export function createAcademicRepository(db: DbHandle, tenant: TenantContext) {
-  const naEscola = eq(subject.schoolId, tenant.schoolId);
+  const atSchool = eq(subject.schoolId, tenant.schoolId);
   const naGrade = eq(curriculum.schoolId, tenant.schoolId);
 
   return {
     async listSubjects() {
-      return db.select().from(subject).where(naEscola).orderBy(asc(subject.name));
+      return db.select().from(subject).where(atSchool).orderBy(asc(subject.name));
     },
 
     async findSubjectByName(name: string) {
       const [row] = await db
         .select()
         .from(subject)
-        .where(and(naEscola, eq(subject.name, name)))
+        .where(and(atSchool, eq(subject.name, name)))
         .limit(1);
       return row ?? null;
     },
@@ -28,7 +28,7 @@ export function createAcademicRepository(db: DbHandle, tenant: TenantContext) {
       const [row] = await db
         .select()
         .from(subject)
-        .where(and(naEscola, eq(subject.id, id)))
+        .where(and(atSchool, eq(subject.id, id)))
         .limit(1);
       return row ?? null;
     },
@@ -45,7 +45,7 @@ export function createAcademicRepository(db: DbHandle, tenant: TenantContext) {
       const [row] = await db
         .update(subject)
         .set(data)
-        .where(and(naEscola, eq(subject.id, id)))
+        .where(and(atSchool, eq(subject.id, id)))
         .returning();
       return row ?? null;
     },
@@ -53,7 +53,7 @@ export function createAcademicRepository(db: DbHandle, tenant: TenantContext) {
     async removeSubject(id: string) {
       const [row] = await db
         .delete(subject)
-        .where(and(naEscola, eq(subject.id, id)))
+        .where(and(atSchool, eq(subject.id, id)))
         .returning({ id: subject.id });
       return row ?? null;
     },
@@ -130,12 +130,12 @@ export function createAcademicRepository(db: DbHandle, tenant: TenantContext) {
      * possíveis faria a secretaria montar grade para série que a escola não
      * oferece.
      */
-    async seriesEmUso(academicYear: number) {
+    async gradeLevelsInUse(academicYear: number) {
       return db
         .select({
           stage: classroom.stage,
           gradeLevel: classroom.gradeLevel,
-          turmas: count(classroom.id),
+          classrooms: count(classroom.id),
         })
         .from(classroom)
         .where(

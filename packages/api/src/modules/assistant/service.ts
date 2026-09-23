@@ -32,7 +32,7 @@ export const DEFAULT_SETTINGS = {
 
 export interface AssistantDeps {
   now: () => Date;
-  chave: string | undefined;
+  key: string | undefined;
   /** Constrói o cliente com a credencial já decifrada. Injetado para testar. */
   modelo: (config: {
     baseUrl: string;
@@ -58,8 +58,8 @@ export interface AssistantDeps {
 export function buildInstruction(input: {
   escola: string;
   papel: AppRole;
-  nome: string;
-  fatos: string;
+  name: string;
+  facts: string;
 }): string {
   const comoTratar: Record<AppRole, string> = {
     owner: "responde pela escola inteira",
@@ -70,7 +70,7 @@ export function buildInstruction(input: {
 
   return [
     `Você é o Astro, assistente do Órbita Edu, dentro da escola ${input.escola}.`,
-    `Está falando com ${input.nome}, que ${comoTratar[input.papel]}.`,
+    `Está falando com ${input.name}, que ${comoTratar[input.papel]}.`,
     "",
     "Responda em português do Brasil, em no máximo cinco frases, com o número na frente.",
     "Use SOMENTE os fatos abaixo. Se a resposta não estiver neles, diga que não tem esse dado",
@@ -78,7 +78,7 @@ export function buildInstruction(input: {
     "Não repita nome de aluno que não esteja nos fatos.",
     "",
     "Fatos disponíveis agora:",
-    input.fatos,
+    input.facts,
   ].join("\n");
 }
 
@@ -121,7 +121,7 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
           ...DEFAULT_SETTINGS,
           credencialGravada: false,
           credentialOpens: false,
-          chaveDoServidor: !!deps.chave,
+          serverKey: !!deps.key,
         };
       }
 
@@ -139,9 +139,9 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
          * lá, íntegro, e não abre mais. A tela avisa antes da primeira
          * pergunta, em vez de a escola descobrir por um erro 500.
          */
-        credentialOpens: credentialOpens(gravada, deps.chave),
+        credentialOpens: credentialOpens(gravada, deps.key),
         /** Sem a chave do servidor, gravar credencial é recusado. A tela avisa antes. */
-        chaveDoServidor: !!deps.chave,
+        serverKey: !!deps.key,
       };
     },
 
@@ -174,7 +174,7 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
           patch.apiKeyTag = null;
           patch.apiKeyHint = null;
         } else {
-          const cifrada = encryptCredential(valor, deps.chave);
+          const cifrada = encryptCredential(valor, deps.key);
           patch.apiKeyCipher = cifrada.cipher;
           patch.apiKeyIv = cifrada.iv;
           patch.apiKeyTag = cifrada.authTag;
@@ -216,11 +216,11 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
         ].filter((item): item is string => typeof item === "string");
 
         if (faltando.length > 0) {
-          const lista =
+          const list =
             faltando.length === 1
               ? faltando[0]
               : `${faltando.slice(0, -1).join(", ")} e ${faltando.at(-1)}`;
-          throw new ValidationError(`Para ligar o Astro, falta preencher ${lista}.`);
+          throw new ValidationError(`Para ligar o Astro, falta preencher ${list}.`);
         }
       }
 
@@ -247,7 +247,7 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
 
       const apiKey = decryptCredential(
         { cipher: salva.apiKeyCipher, iv: salva.apiKeyIv, authTag: salva.apiKeyTag },
-        deps.chave,
+        deps.key,
       );
 
       try {
@@ -259,9 +259,9 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
             organizationId: salva.organizationId,
           })
           .listarModelos();
-      } catch (erro) {
-        if (erro instanceof ModelError) throw new ValidationError(erro.message);
-        throw erro;
+      } catch (error) {
+        if (error instanceof ModelError) throw new ValidationError(error.message);
+        throw error;
       }
     },
 
@@ -276,7 +276,7 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
      * direção; professor e aluno recebem o que lhes serve — quantas perguntas
      * ainda cabem hoje — pela própria resposta do Astro.
      */
-    async uso() {
+    async usage() {
       const salva = await configuracaoBruta();
       const teto = {
         perguntas: salva?.dailyLimit ?? DEFAULT_SETTINGS.dailyLimit,
@@ -284,8 +284,8 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
       };
 
       const [hoje, mes] = await Promise.all([
-        repo.usoDesde(inicioDoDia()),
-        repo.usoDesde(inicioDoMes()),
+        repo.usageSince(inicioDoDia()),
+        repo.usageSince(inicioDoMes()),
       ]);
 
       const nivelPerguntas = usageLevel(hoje.perguntas, teto.perguntas);
@@ -293,20 +293,20 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
 
       return {
         ligado: !!salva?.enabled,
-        perguntas: { usadas: hoje.perguntas, teto: teto.perguntas, nivel: nivelPerguntas },
+        perguntas: { usadas: hoje.perguntas, teto: teto.perguntas, level: nivelPerguntas },
         tokens: {
           usados: mes.tokens,
           teto: teto.tokens,
-          nivel: nivelTokens,
+          level: nivelTokens,
           /** Respostas do mês em que o provedor não informou o consumo. */
-          semContagem: mes.semContagem,
+          withoutCount: mes.withoutCount,
         },
-        nivel: worstLevel(nivelPerguntas, nivelTokens) satisfies UsageLevel,
+        level: worstLevel(nivelPerguntas, nivelTokens) satisfies UsageLevel,
       };
     },
 
     /** O que o botão do Astro precisa saber, sem revelar configuração. */
-    async situacao(papel: AppRole) {
+    async situation(papel: AppRole) {
       const salva = await configuracaoBruta();
       const pronto = !!(salva?.enabled && salva.baseUrl && salva.model && salva.apiKeyCipher);
       const liberado =
@@ -315,7 +315,7 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
         (papel === "teacher" && !!salva?.allowTeachers) ||
         (papel === "student" && !!salva?.allowStudents);
 
-      return { disponivel: pronto && liberado, ligado: pronto };
+      return { available: pronto && liberado, ligado: pronto };
     },
 
     /**
@@ -327,14 +327,14 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
      * é um vazamento, não um defeito de tela.
      */
     async perguntar(
-      input: AskInput & { fatos: string },
-      quem: { userId: string; role: AppRole; nome: string; escola: string },
+      input: AskInput & { facts: string },
+      quem: { userId: string; role: AppRole; name: string; escola: string },
     ) {
       const salva = await configuracaoBruta();
       if (!salva?.enabled) throw new NotFoundError("O Astro não está ligado nesta escola.");
 
-      const { disponivel } = await this.situacao(quem.role);
-      if (!disponivel) {
+      const { available } = await this.situation(quem.role);
+      if (!available) {
         throw new ValidationError("Seu perfil não tem acesso ao Astro nesta escola.");
       }
 
@@ -344,7 +344,7 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
         throw new ValidationError("O Astro está ligado, mas a configuração está incompleta.");
       }
 
-      const hoje = await repo.usoDesde(inicioDoDia());
+      const hoje = await repo.usageSince(inicioDoDia());
       if (hoje.perguntas >= salva.dailyLimit) {
         throw new ConflictError(
           `A escola chegou ao limite de ${salva.dailyLimit} perguntas hoje. O contador zera amanhã.`,
@@ -364,7 +364,7 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
        * perguntas que cabiam.
        */
       if (salva.monthlyTokenBudget) {
-        const mes = await repo.usoDesde(inicioDoMes());
+        const mes = await repo.usageSince(inicioDoMes());
         if (mes.tokens >= salva.monthlyTokenBudget) {
           throw new ConflictError(
             `A escola chegou ao orçamento de ${salva.monthlyTokenBudget.toLocaleString("pt-BR")} tokens deste mês. ` +
@@ -377,7 +377,7 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
       try {
         apiKey = decryptCredential(
           { cipher: salva.apiKeyCipher, iv: salva.apiKeyIv, authTag: salva.apiKeyTag },
-          deps.chave,
+          deps.key,
         );
       } catch {
         // Chave do servidor girou: o texto cifrado está íntegro e não abre
@@ -399,8 +399,8 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
       const sistema = buildInstruction({
         escola: quem.escola,
         papel: quem.role,
-        nome: quem.nome,
-        fatos: input.fatos,
+        name: quem.name,
+        facts: input.facts,
       });
 
       try {
@@ -413,11 +413,11 @@ export function createAssistantService(repo: AssistantRepository, deps: Assistan
         await repo.recordUsage({ userId: quem.userId, role: quem.role, tokens });
 
         return { texto, restantesHoje: Math.max(0, salva.dailyLimit - hoje.perguntas - 1) };
-      } catch (erro) {
+      } catch (error) {
         // Falha de provedor vira erro de domínio para sair como 4xx com texto
         // legível, em vez de 500 com pilha. Quem lê é a secretaria.
-        if (erro instanceof ModelError) throw new ValidationError(erro.message);
-        throw erro;
+        if (error instanceof ModelError) throw new ValidationError(error.message);
+        throw error;
       }
     },
   };

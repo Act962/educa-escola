@@ -26,26 +26,26 @@ const INSTITUCIONAL = "institucional";
  */
 export function TargetField({
   id,
-  turmas,
+  classrooms,
   valor,
   aoMudar,
-  rotulo = "Vale para",
+  label = "Vale para",
 }: {
   id: string;
-  turmas: ClassroomOption[];
+  classrooms: ClassroomOption[];
   /** `null` é a escola inteira. */
   valor: string | null;
-  aoMudar: (turmaId: string | null) => void;
-  rotulo?: string;
+  aoMudar: (classroomId: string | null) => void;
+  label?: string;
 }) {
   const opcoes = [
     { label: "Toda a escola", value: INSTITUCIONAL },
-    ...turmas.map((turma) => ({ label: turma.name, value: turma.id })),
+    ...classrooms.map((turma) => ({ label: turma.name, value: turma.id })),
   ];
 
   return (
     <div className="flex min-w-44 flex-col gap-2">
-      <Label htmlFor={id}>{rotulo}</Label>
+      <Label htmlFor={id}>{label}</Label>
       <Select
         value={valor ?? INSTITUCIONAL}
         onValueChange={(v) => aoMudar(!v || v === INSTITUCIONAL ? null : v)}
@@ -73,6 +73,6 @@ export function TargetField({
  * um montando o par `scope`/`classroomId` à mão seria três chances de mandar
  * escopo de turma sem turma, que o servidor recusa com razão.
  */
-export function targetOf(turmaId: string | null): { scope: EventScope; classroomId?: string } {
-  return turmaId ? { scope: "turma", classroomId: turmaId } : { scope: "institucional" };
+export function targetOf(classroomId: string | null): { scope: EventScope; classroomId?: string } {
+  return classroomId ? { scope: "turma", classroomId: classroomId } : { scope: "institucional" };
 }

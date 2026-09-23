@@ -21,7 +21,7 @@ const NATIVOS = ["astro"];
 describe("catálogo de apps do Órbita", () => {
   it("cobre todas as chaves do servidor, menos as que viraram tela nativa", () => {
     const naTela = ORBITA_APPS.map((app) => app.key).sort();
-    const esperadas = [...APP_KEYS].filter((chave) => !NATIVOS.includes(chave)).sort();
+    const esperadas = [...APP_KEYS].filter((key) => !NATIVOS.includes(key)).sort();
 
     expect(naTela).toEqual(esperadas);
   });
@@ -33,23 +33,23 @@ describe("catálogo de apps do Órbita", () => {
   });
 
   it("não repete chave", () => {
-    const chaves = ORBITA_APPS.map((app) => app.key);
-    expect(new Set(chaves).size).toBe(chaves.length);
+    const keys = ORBITA_APPS.map((app) => app.key);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   it("todo app tem nome, resumo e descrição em português", () => {
     for (const app of ORBITA_APPS) {
-      expect(app.nome.length).toBeGreaterThan(0);
-      expect(app.resumo.length).toBeGreaterThan(0);
+      expect(app.name.length).toBeGreaterThan(0);
+      expect(app.summary.length).toBeGreaterThan(0);
       // Descrição é o que a direção lê para decidir se vale o custo — uma
       // frase de verdade, não um rótulo repetido.
       expect(app.descricao.length).toBeGreaterThan(20);
-      expect(app.descricao).not.toBe(app.resumo);
+      expect(app.descricao).not.toBe(app.summary);
     }
   });
 
   it("acha por chave e devolve nulo para o que não existe", () => {
-    expect(orbitaAppFor("linnker")?.nome).toBe("Linnker");
+    expect(orbitaAppFor("linnker")?.name).toBe("Linnker");
     expect(orbitaAppFor("nao-existe")).toBeNull();
   });
 });

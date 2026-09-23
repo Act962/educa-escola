@@ -25,10 +25,10 @@ try {
       ? `[migrate] Nada a aplicar: ${total} migrations já estavam no banco.`
       : `[migrate] ${aplicadas} migration(s) aplicada(s); ${total} no total.`,
   );
-} catch (erro) {
+} catch (error) {
   // O objeto inteiro, não só a mensagem: a causa do Postgres (código, detalhe,
   // posição) está no `cause`, e é ela que diz o que corrigir.
   console.error("[migrate] Falhou. Nenhuma migration deste lote ficou aplicada.");
-  console.error(erro);
+  console.error(error);
   process.exit(1);
 }

@@ -24,7 +24,7 @@ export interface StoredTemplate {
 
 /** Único lugar do módulo que monta query. Ver `classroom/repository.ts`. */
 export function createGateRepository(db: DbHandle, tenant: TenantContext) {
-  const naEscola = eq(student.schoolId, tenant.schoolId);
+  const atSchool = eq(student.schoolId, tenant.schoolId);
 
   /** O cartão que a portaria mostra. Nada de nota, frequência ou responsável. */
   const cartao = {
@@ -59,7 +59,7 @@ export function createGateRepository(db: DbHandle, tenant: TenantContext) {
         .where(
           and(
             eq(studentFaceTemplate.schoolId, tenant.schoolId),
-            naEscola,
+            atSchool,
             sql`${student.status} in ${ENROLLED_STATUSES}`,
           ),
         );
@@ -70,7 +70,7 @@ export function createGateRepository(db: DbHandle, tenant: TenantContext) {
         .select(cartao)
         .from(student)
         .leftJoin(classroom, eq(classroom.id, student.classroomId))
-        .where(and(naEscola, eq(student.id, studentId)))
+        .where(and(atSchool, eq(student.id, studentId)))
         .limit(1);
       return row ?? null;
     },
@@ -80,7 +80,7 @@ export function createGateRepository(db: DbHandle, tenant: TenantContext) {
         .select(cartao)
         .from(student)
         .leftJoin(classroom, eq(classroom.id, student.classroomId))
-        .where(and(naEscola, eq(student.registration, registration)))
+        .where(and(atSchool, eq(student.registration, registration)))
         .limit(1);
       return row ?? null;
     },

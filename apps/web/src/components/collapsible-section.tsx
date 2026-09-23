@@ -16,9 +16,9 @@ import { useCallback, useEffect, useState } from "react";
  */
 export function CollapsibleSection({
   id,
-  titulo,
+  title,
   descricao,
-  resumo,
+  summary,
   aberta,
   aoAlternar,
   acao,
@@ -26,10 +26,10 @@ export function CollapsibleSection({
 }: {
   /** Vira o `id` do elemento: é por ele que a barra de seções rola até aqui. */
   id: string;
-  titulo: string;
+  title: string;
   descricao?: string;
   /** Uma linha que resume o conteúdo quando ele está recolhido. */
-  resumo?: string;
+  summary?: string;
   aberta: boolean;
   aoAlternar: () => void;
   /**
@@ -53,9 +53,9 @@ export function CollapsibleSection({
           aria-controls={conteudo}
           className="flex min-w-0 flex-1 items-center gap-2 text-left"
         >
-          <CardEyebrow>{titulo}</CardEyebrow>
-          {!aberta && resumo ? (
-            <span className="min-w-0 truncate text-apoio text-muted-foreground">{resumo}</span>
+          <CardEyebrow>{title}</CardEyebrow>
+          {!aberta && summary ? (
+            <span className="min-w-0 truncate text-apoio text-muted-foreground">{summary}</span>
           ) : null}
           <ChevronDown
             size={18}
@@ -93,12 +93,12 @@ export function CollapsibleSection({
  * durante a captura de miniatura, o acessor lança. Uma preferência de tela
  * recolhida não vale derrubar a página.
  */
-export function useCollapsibleSections(chave: string, padrao: Record<string, boolean>) {
+export function useCollapsibleSections(key: string, padrao: Record<string, boolean>) {
   const [abertas, setAbertas] = useState(padrao);
 
   useEffect(() => {
     try {
-      const salvo = window.localStorage.getItem(chave);
+      const salvo = window.localStorage.getItem(key);
       if (!salvo) return;
       const lido = JSON.parse(salvo) as Record<string, boolean>;
       // Mescla sobre o padrão: uma seção nova estreia com o padrão dela, em
@@ -107,18 +107,18 @@ export function useCollapsibleSections(chave: string, padrao: Record<string, boo
     } catch {
       // Sem preferência salva, valem os padrões.
     }
-  }, [chave]);
+  }, [key]);
 
   const gravar = useCallback(
     (proximas: Record<string, boolean>) => {
       setAbertas(proximas);
       try {
-        window.localStorage.setItem(chave, JSON.stringify(proximas));
+        window.localStorage.setItem(key, JSON.stringify(proximas));
       } catch {
         // A tela continua funcionando; só não lembra na próxima visita.
       }
     },
-    [chave],
+    [key],
   );
 
   const alternar = useCallback(

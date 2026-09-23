@@ -31,10 +31,10 @@ export interface CalendarDate {
  * É daqui que saem Carnaval, Sexta-feira Santa e Corpus Christi. Vale de 1583
  * a 4099, o que cobre qualquer ano letivo que este sistema vá ver.
  */
-export function easterSunday(ano: number): string {
-  const a = ano % 19;
-  const b = Math.floor(ano / 100);
-  const c = ano % 100;
+export function easterSunday(year: number): string {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
   const d = Math.floor(b / 4);
   const e = b % 4;
   const f = Math.floor((b + 8) / 25);
@@ -45,20 +45,20 @@ export function easterSunday(ano: number): string {
   const l = (32 + 2 * e + 2 * i - h - k) % 7;
   const m = Math.floor((a + 11 * h + 22 * l) / 451);
   const mes = Math.floor((h + l - 7 * m + 114) / 31);
-  const dia = ((h + l - 7 * m + 114) % 31) + 1;
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
 
-  return iso(ano, mes, dia);
+  return iso(year, mes, day);
 }
 
-function iso(ano: number, mes: number, dia: number): string {
-  return `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+function iso(year: number, mes: number, day: number): string {
+  return `${year}-${String(mes).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 /** Soma dias a uma data civil. Meio-dia UTC: o dia nunca vira por fuso. */
-export function addDays(data: string, dias: number): string {
-  const [ano, mes, dia] = data.split("-").map(Number);
-  const d = new Date(Date.UTC(ano ?? 1970, (mes ?? 1) - 1, dia ?? 1, 12));
-  d.setUTCDate(d.getUTCDate() + dias);
+export function addDays(data: string, days: number): string {
+  const [year, mes, day] = data.split("-").map(Number);
+  const d = new Date(Date.UTC(year ?? 1970, (mes ?? 1) - 1, day ?? 1, 12));
+  d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
 
@@ -77,25 +77,25 @@ const umDia = (
  * Consciência Negra feriado nacional. Muitos calendários ainda o trazem como
  * facultativo, e é o erro mais comum desta lista.
  */
-export function nationalHolidays(ano: number): CalendarDate[] {
-  const pascoa = easterSunday(ano);
+export function nationalHolidays(year: number): CalendarDate[] {
+  const pascoa = easterSunday(year);
 
   const fixos: CalendarDate[] = [
-    umDia("Confraternização Universal", iso(ano, 1, 1), "feriado", "nao_letivo", "Lei 662/1949"),
-    umDia("Tiradentes", iso(ano, 4, 21), "feriado", "nao_letivo", "Lei 662/1949"),
-    umDia("Dia do Trabalho", iso(ano, 5, 1), "feriado", "nao_letivo", "Lei 662/1949"),
-    umDia("Independência do Brasil", iso(ano, 9, 7), "feriado", "nao_letivo", "Lei 662/1949"),
-    umDia("Nossa Senhora Aparecida", iso(ano, 10, 12), "feriado", "nao_letivo", "Lei 6.802/1980"),
-    umDia("Finados", iso(ano, 11, 2), "feriado", "nao_letivo", "Lei 662/1949"),
-    umDia("Proclamação da República", iso(ano, 11, 15), "feriado", "nao_letivo", "Lei 662/1949"),
+    umDia("Confraternização Universal", iso(year, 1, 1), "feriado", "nao_letivo", "Lei 662/1949"),
+    umDia("Tiradentes", iso(year, 4, 21), "feriado", "nao_letivo", "Lei 662/1949"),
+    umDia("Dia do Trabalho", iso(year, 5, 1), "feriado", "nao_letivo", "Lei 662/1949"),
+    umDia("Independência do Brasil", iso(year, 9, 7), "feriado", "nao_letivo", "Lei 662/1949"),
+    umDia("Nossa Senhora Aparecida", iso(year, 10, 12), "feriado", "nao_letivo", "Lei 6.802/1980"),
+    umDia("Finados", iso(year, 11, 2), "feriado", "nao_letivo", "Lei 662/1949"),
+    umDia("Proclamação da República", iso(year, 11, 15), "feriado", "nao_letivo", "Lei 662/1949"),
     umDia(
       "Dia Nacional de Zumbi e da Consciência Negra",
-      iso(ano, 11, 20),
+      iso(year, 11, 20),
       "feriado",
       "nao_letivo",
       "Lei 14.759/2023 — feriado nacional desde 2024",
     ),
-    umDia("Natal", iso(ano, 12, 25), "feriado", "nao_letivo", "Lei 662/1949"),
+    umDia("Natal", iso(year, 12, 25), "feriado", "nao_letivo", "Lei 662/1949"),
   ];
 
   const movel = umDia(
@@ -116,8 +116,8 @@ export function nationalHolidays(ano: number): CalendarDate[] {
  * escola brasileira não tem aula neles, então entram como dia não letivo e a
  * origem diz o que são. Escola que der aula na quarta de cinzas apaga a linha.
  */
-export function optionalHolidays(ano: number): CalendarDate[] {
-  const pascoa = easterSunday(ano);
+export function optionalHolidays(year: number): CalendarDate[] {
+  const pascoa = easterSunday(year);
 
   return [
     {
@@ -156,9 +156,9 @@ export function optionalHolidays(ano: number): CalendarDate[] {
  * substituiu "Dia do Índio". O termo anterior é pejorativo e a lei é recente
  * o bastante para muita agenda ainda trazer o antigo.
  */
-export function commemorativeDates(ano: number): CalendarDate[] {
-  const comemorativa = (title: string, mes: number, dia: number, fonte: string) =>
-    umDia(title, iso(ano, mes, dia), "evento", "nenhum", fonte);
+export function commemorativeDates(year: number): CalendarDate[] {
+  const comemorativa = (title: string, mes: number, day: number, fonte: string) =>
+    umDia(title, iso(year, mes, day), "evento", "nenhum", fonte);
 
   return [
     comemorativa("Dia Internacional da Mulher", 3, 8, "Data comemorativa"),
@@ -192,14 +192,14 @@ export function commemorativeDates(ano: number): CalendarDate[] {
  * mas **cada rede define o seu** — por isso vem como sugestão editável e não
  * como verdade. Começa na primeira segunda-feira de julho.
  */
-export function julyBreak(ano: number): CalendarDate {
-  let dia = iso(ano, 7, 1);
-  while (new Date(`${dia}T12:00:00Z`).getUTCDay() !== 1) dia = addDays(dia, 1);
+export function julyBreak(year: number): CalendarDate {
+  let day = iso(year, 7, 1);
+  while (new Date(`${day}T12:00:00Z`).getUTCDay() !== 1) day = addDays(day, 1);
 
   return {
     title: "Recesso escolar de julho",
-    startsOn: dia,
-    endsOn: addDays(dia, 11),
+    startsOn: day,
+    endsOn: addDays(day, 11),
     type: "recesso",
     dayEffect: "nao_letivo",
     fonte: "Sugestão — cada rede define o próprio recesso",
@@ -207,11 +207,11 @@ export function julyBreak(ano: number): CalendarDate {
 }
 
 /** Tudo que o sistema sabe sugerir para um ano letivo. */
-export function brazilianCalendar(ano: number): CalendarDate[] {
+export function brazilianCalendar(year: number): CalendarDate[] {
   return [
-    ...nationalHolidays(ano),
-    ...optionalHolidays(ano),
-    ...commemorativeDates(ano),
-    julyBreak(ano),
+    ...nationalHolidays(year),
+    ...optionalHolidays(year),
+    ...commemorativeDates(year),
+    julyBreak(year),
   ].sort((a, b) => a.startsOn.localeCompare(b.startsOn));
 }

@@ -50,12 +50,12 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
      * isso não aparece — com uma escola de verdade, aparece no primeiro
      * clique.
      */
-    async appendEvents(eventos: NewEvent[]) {
-      if (eventos.length === 0) return 0;
+    async appendEvents(events: NewEvent[]) {
+      if (events.length === 0) return 0;
 
       let gravados = 0;
-      for (let inicio = 0; inicio < eventos.length; inicio += LOTE_DE_EVENTOS) {
-        const lote = eventos.slice(inicio, inicio + LOTE_DE_EVENTOS);
+      for (let start = 0; start < events.length; start += LOTE_DE_EVENTOS) {
+        const lote = events.slice(start, start + LOTE_DE_EVENTOS);
         const inseridos = await db
           .insert(scoreEvent)
           .values(lote.map((evento) => ({ ...evento, schoolId: tenant.schoolId })))
@@ -172,7 +172,7 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
     },
 
     /** Presenças do ano, com a data da aula — é dela que sai a ordem e o ano. */
-    async presencasDoAno(academicYear: number): Promise<TalliedAttendance[]> {
+    async yearAttendance(academicYear: number): Promise<TalliedAttendance[]> {
       return db
         .select({
           id: attendance.id,
@@ -191,7 +191,7 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
         .orderBy(asc(lesson.date));
     },
 
-    async aulasDoAno(academicYear: number): Promise<TalliedLesson[]> {
+    async yearLessons(academicYear: number): Promise<TalliedLesson[]> {
       return db
         .select({
           id: lesson.id,
@@ -216,7 +216,7 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
      * A contagem é do roteiro da turma menos quem tem nota — é a mesma leitura
      * que a publicação faz, então o ponto e a regra não podem discordar.
      */
-    async avaliacoesDoAno(academicYear: number): Promise<TalliedAssessment[]> {
+    async yearAssessments(academicYear: number): Promise<TalliedAssessment[]> {
       const publicadas = await db
         .select({
           id: assessment.id,
@@ -240,7 +240,7 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
 
       const ids = publicadas.map((linha) => linha.id);
 
-      const [comNota, naTurma] = await Promise.all([
+      const [withGrade, inClassroom] = await Promise.all([
         db
           .select({ assessmentId: grade.assessmentId, total: count(grade.id) })
           .from(grade)
@@ -258,12 +258,12 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
           .groupBy(student.classroomId),
       ]);
 
-      const notas = new Map(comNota.map((linha) => [linha.assessmentId, linha.total]));
-      const alunos = new Map(naTurma.map((linha) => [linha.classroomId, linha.total]));
+      const grades = new Map(withGrade.map((linha) => [linha.assessmentId, linha.total]));
+      const alunos = new Map(inClassroom.map((linha) => [linha.classroomId, linha.total]));
 
       return publicadas.map(({ classroomId, ...linha }) => ({
         ...linha,
-        semLancamento: Math.max(0, (alunos.get(classroomId) ?? 0) - (notas.get(linha.id) ?? 0)),
+        semLancamento: Math.max(0, (alunos.get(classroomId) ?? 0) - (grades.get(linha.id) ?? 0)),
       }));
     },
 
@@ -275,7 +275,7 @@ export function createScoreRepository(db: DbHandle, tenant: TenantContext) {
      * aqui faria o extrato de pontos e o boletim discordarem no dia em que um
      * dos dois mudasse.
      */
-    async lancamentosPublicadosDoAno(academicYear: number) {
+    async yearPublishedGrades(academicYear: number) {
       return db
         .select({
           studentId: grade.studentId,

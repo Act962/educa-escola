@@ -35,8 +35,8 @@ export function encryptCredential(valor: string, raw: string | undefined): Encry
   return encrypt(Buffer.from(valor, "utf8"), assistantKey(raw));
 }
 
-export function decryptCredential(dados: Encrypted, raw: string | undefined): string {
-  return decrypt(dados, assistantKey(raw)).toString("utf8");
+export function decryptCredential(data: Encrypted, raw: string | undefined): string {
+  return decrypt(data, assistantKey(raw)).toString("utf8");
 }
 
 /**
@@ -63,11 +63,11 @@ export function credentialHint(valor: string): string {
  * falha nossa. Com ela, a tela avisa antes e diz o que fazer — regravar a
  * credencial.
  */
-export function credentialOpens(dados: Encrypted | null, raw: string | undefined): boolean {
-  if (!dados || !raw) return false;
+export function credentialOpens(data: Encrypted | null, raw: string | undefined): boolean {
+  if (!data || !raw) return false;
 
   try {
-    decryptCredential(dados, raw);
+    decryptCredential(data, raw);
     return true;
   } catch {
     return false;

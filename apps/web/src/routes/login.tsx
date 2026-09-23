@@ -57,7 +57,7 @@ function Login() {
     <div className="grid min-h-svh place-items-center bg-background p-6">
       <Card className="w-full max-w-md">
         <div className="flex flex-col items-center gap-2 text-center">
-          <OrbitaBrand titulo="Órbita Edu" className="w-44 text-primary" />
+          <OrbitaBrand title="Órbita Edu" className="w-44 text-primary" />
           <p className="text-corpo text-muted-foreground">
             Entre com o acesso fornecido pela sua escola.
           </p>

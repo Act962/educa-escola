@@ -53,13 +53,13 @@ describe("percentual", () => {
 });
 
 describe("gerarCsv", () => {
-  const colunas = [
-    { titulo: "Nome", valor: (l: { nome: string; nota: number | null }) => l.nome },
-    { titulo: "Nota", valor: (l: { nome: string; nota: number | null }) => numberCell(l.nota) },
+  const columns = [
+    { title: "Nome", valor: (l: { name: string; nota: number | null }) => l.name },
+    { title: "Nota", valor: (l: { name: string; nota: number | null }) => numberCell(l.nota) },
   ];
 
   it("monta cabeçalho e linhas com ponto e vírgula", () => {
-    const csv = generateCsv(colunas, [{ nome: "Ana", nota: 8.5 }]);
+    const csv = generateCsv(columns, [{ name: "Ana", nota: 8.5 }]);
     const linhas = csv.replace("﻿", "").split("\r\n");
 
     expect(linhas[0]).toBe("Nome;Nota");
@@ -72,18 +72,18 @@ describe("gerarCsv", () => {
    * estranhos.
    */
   it("começa com a marca de ordem de byte", () => {
-    expect(generateCsv(colunas, [])).toMatch(/^﻿/);
+    expect(generateCsv(columns, [])).toMatch(/^﻿/);
   });
 
   it("gera só o cabeçalho quando não há linha", () => {
-    const csv = generateCsv(colunas, []);
+    const csv = generateCsv(columns, []);
     expect(csv.replace("﻿", "")).toBe("Nome;Nota");
   });
 
   it("usa CRLF, que é o que o Excel no Windows espera", () => {
-    const csv = generateCsv(colunas, [
-      { nome: "Ana", nota: 1 },
-      { nome: "Bruno", nota: 2 },
+    const csv = generateCsv(columns, [
+      { name: "Ana", nota: 1 },
+      { name: "Bruno", nota: 2 },
     ]);
     expect(csv.split("\r\n")).toHaveLength(3);
   });

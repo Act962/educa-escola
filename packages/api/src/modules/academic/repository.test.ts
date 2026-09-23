@@ -111,20 +111,22 @@ describe("createAcademicRepository", () => {
       const sete = await createTestClassroom(tx, escola.id, "7º A");
       const bercario = await createTestClassroom(tx, escola.id, "Berçário II");
 
-      for (const [turma, serie] of [
+      for (const [turma, gradeLevel] of [
         [seis, 6],
         [seisB, 6],
         [sete, 7],
       ] as const) {
         await tx
           .update(classroom)
-          .set({ gradeLevel: serie, stage: "fundamental_ii" })
+          .set({ gradeLevel: gradeLevel, stage: "fundamental_ii" })
           .where(eq(classroom.id, turma.id));
       }
 
-      const series = await createAcademicRepository(tx, { schoolId: escola.id }).seriesEmUso(2026);
+      const series = await createAcademicRepository(tx, { schoolId: escola.id }).gradeLevelsInUse(
+        2026,
+      );
 
-      expect(series.map((s) => [s.gradeLevel, s.turmas])).toEqual([
+      expect(series.map((s) => [s.gradeLevel, s.classrooms])).toEqual([
         [6, 2],
         [7, 1],
       ]);

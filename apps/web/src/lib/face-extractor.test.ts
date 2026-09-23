@@ -13,7 +13,7 @@ describe("extrator sem biblioteca", () => {
   });
 
   it("se anuncia como indisponível, para a tela não prometer o que não tem", () => {
-    expect(MISSING_EXTRACTOR.disponivel).toBe(false);
+    expect(MISSING_EXTRACTOR.available).toBe(false);
   });
 });
 
@@ -24,7 +24,7 @@ describe("extrator em uso", () => {
    * vetores incomparáveis — e devolver distância com cara de resposta.
    */
   it("carrega a versão no nome do extrator", () => {
-    expect(faceExtractor.nome).toBe(EXTRACTOR_NAME);
+    expect(faceExtractor.name).toBe(EXTRACTOR_NAME);
     expect(EXTRACTOR_NAME).toMatch(/\d+\.\d+\.\d+/);
   });
 

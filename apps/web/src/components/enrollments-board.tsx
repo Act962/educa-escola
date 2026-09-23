@@ -45,17 +45,17 @@ interface Filtros {
 const COLUNAS = [
   {
     id: "nao_enviado",
-    titulo: "Link não enviado",
+    title: "Link não enviado",
     aceita: ["nao_enviado"],
   },
   {
     id: "aguardando",
-    titulo: "Aguardando família",
+    title: "Aguardando família",
     aceita: ["aguardando", "vencido", "bloqueado", "revogado"],
   },
   {
     id: "ficha_entregue",
-    titulo: "Ficha entregue",
+    title: "Ficha entregue",
     aceita: ["ficha_entregue"],
   },
 ] as const;
@@ -86,8 +86,8 @@ export function EnrollmentsBoard({ filtros }: { filtros: Filtros }) {
         queryClient.invalidateQueries();
         return variaveis;
       },
-      onError: (erro) => {
-        toast.error(erro.message);
+      onError: (error) => {
+        toast.error(error.message);
         setSemFicha(null);
       },
     }),
@@ -108,7 +108,7 @@ export function EnrollmentsBoard({ filtros }: { filtros: Filtros }) {
     setSemFicha(item);
   }
 
-  const pendentes = useQuery(
+  const pending = useQuery(
     trpc.enrollment.list.queryOptions({
       ...filtros,
       status: "pendente",
@@ -126,12 +126,12 @@ export function EnrollmentsBoard({ filtros }: { filtros: Filtros }) {
     }),
   );
 
-  if (pendentes.isLoading || ativas.isLoading) {
+  if (pending.isLoading || ativas.isLoading) {
     return <ListSkeleton rows={5} />;
   }
 
-  const itens = pendentes.data?.items ?? [];
-  const confirmadas = ativas.data?.items ?? [];
+  const itens = pending.data?.items ?? [];
+  const confirmed = ativas.data?.items ?? [];
   const totalConfirmadas = ativas.data?.total ?? 0;
 
   if (itens.length === 0 && totalConfirmadas === 0) {
@@ -163,7 +163,7 @@ export function EnrollmentsBoard({ filtros }: { filtros: Filtros }) {
             }
           >
             <header className="flex items-center justify-between px-1">
-              <h3 className="font-extrabold text-xs">{coluna.titulo}</h3>
+              <h3 className="font-extrabold text-xs">{coluna.title}</h3>
               <span className="rounded-full bg-card px-2.5 py-0.5 font-extrabold text-meta text-muted-foreground">
                 {daColuna.length}
               </span>
@@ -269,16 +269,16 @@ export function EnrollmentsBoard({ filtros }: { filtros: Filtros }) {
           </div>
         ) : null}
 
-        {confirmadas.length === 0 ? (
+        {confirmed.length === 0 ? (
           <p className="px-1 py-3 text-meta text-muted-foreground">Nada aqui.</p>
         ) : (
-          confirmadas.map((item) => <Cartao key={item.id} item={item} confirmada />)
+          confirmed.map((item) => <Cartao key={item.id} item={item} confirmada />)
         )}
 
-        {totalConfirmadas > confirmadas.length ? (
+        {totalConfirmadas > confirmed.length ? (
           <p className="px-1 py-1 text-center text-meta text-muted-foreground">
             {/* Carregar 286 cartões seria um quadro que ninguém lê. */}+{" "}
-            {integerText(totalConfirmadas - confirmadas.length)} confirmadas · veja na lista
+            {integerText(totalConfirmadas - confirmed.length)} confirmadas · veja na lista
           </p>
         ) : null}
       </section>

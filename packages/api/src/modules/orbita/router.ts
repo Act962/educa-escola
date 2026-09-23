@@ -53,7 +53,7 @@ export const orbitaRouter = router({
    * para todo papel, e o aluno tem `app: []`. O que volta é um booleano sobre
    * um app só — a lista do que a escola contratou continua fechada.
    */
-  assistente: schoolProcedure.query(({ ctx }) => serviceFor(ctx).assistenteDisponivel()),
+  assistente: schoolProcedure.query(({ ctx }) => serviceFor(ctx).assistantAvailable()),
 
   events: permitted({ app: ["read"] }).query(({ ctx }) => serviceFor(ctx).events()),
 

@@ -83,7 +83,7 @@ function FolhaDeChamada() {
         );
         queryClient.invalidateQueries();
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -114,7 +114,7 @@ function FolhaDeChamada() {
 
   const { lesson, entries, deadline, requiresJustification } = folha.data;
 
-  const contagem = entries.reduce(
+  const count = entries.reduce(
     (total, linha) => {
       const status = marcacoes[linha.studentId] ?? linha.status;
       total[status] += 1;
@@ -123,7 +123,7 @@ function FolhaDeChamada() {
     { presente: 0, falta: 0, atraso: 0 },
   );
   const totalAlunos = entries.length;
-  const frequencia = totalAlunos === 0 ? null : (contagem.presente + contagem.atraso) / totalAlunos;
+  const attendanceRate = totalAlunos === 0 ? null : (count.presente + count.atraso) / totalAlunos;
 
   const marcar = (studentId: string, status: Presenca) =>
     setMarcacoes((atual) => ({ ...atual, [studentId]: status }));
@@ -257,26 +257,24 @@ function FolhaDeChamada() {
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-field bg-success-soft p-3 text-center">
                 <p className="font-extrabold text-2xl text-success tabular-nums">
-                  {contagem.presente}
+                  {count.presente}
                 </p>
                 <p className="font-bold text-meta text-success">Presentes</p>
               </div>
               <div className="rounded-field bg-danger-soft p-3 text-center">
-                <p className="font-extrabold text-2xl text-danger tabular-nums">{contagem.falta}</p>
+                <p className="font-extrabold text-2xl text-danger tabular-nums">{count.falta}</p>
                 <p className="font-bold text-danger text-meta">Faltas</p>
               </div>
               <div className="rounded-field bg-warning-soft p-3 text-center">
-                <p className="font-extrabold text-2xl text-warning tabular-nums">
-                  {contagem.atraso}
-                </p>
+                <p className="font-extrabold text-2xl text-warning tabular-nums">{count.atraso}</p>
                 <p className="font-bold text-meta text-warning">Atrasos</p>
               </div>
             </div>
 
             <p className="text-corpo text-muted-foreground">
               Frequência da aula:{" "}
-              <strong className="text-foreground">{percentText(frequencia)}</strong> —{" "}
-              {contagem.presente + contagem.atraso} de {totalAlunos}. Atrasos contam como presença.
+              <strong className="text-foreground">{percentText(attendanceRate)}</strong> —{" "}
+              {count.presente + count.atraso} de {totalAlunos}. Atrasos contam como presença.
             </p>
           </Card>
 

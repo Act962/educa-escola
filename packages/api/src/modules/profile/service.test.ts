@@ -11,7 +11,7 @@ const IDENTIDADE = {
   emailVerified: true,
   contaCriadaEm: new Date("2026-01-10T12:00:00Z"),
   role: "owner",
-  naEscolaDesde: new Date("2026-02-01T12:00:00Z"),
+  atSchoolSince: new Date("2026-02-01T12:00:00Z"),
   schoolId: "e1",
   schoolName: "Dom Pedro II",
 };
@@ -20,7 +20,7 @@ function repositorioFalso(overrides: Partial<ProfileRepository> = {}): ProfileRe
   return {
     identity: async () => IDENTIDADE,
     studentBond: async () => null,
-    teacherBond: async () => ({ turmas: 0, disciplinas: 0, aulas: 0 }),
+    teacherBond: async () => ({ classrooms: 0, subjects: 0, lessons: 0 }),
     ...overrides,
   };
 }
@@ -66,12 +66,12 @@ describe("createProfileService", () => {
 
     const perfil = await service.me("u1", "student", 2026);
 
-    expect(perfil.vinculo).toEqual({
+    expect(perfil.affiliation).toEqual({
       tipo: "aluno",
       matricula: "2026-0042",
       turma: "9º C",
       turno: "manha",
-      situacao: "ativo",
+      situation: "ativo",
     });
   });
 
@@ -85,12 +85,12 @@ describe("createProfileService", () => {
 
     const perfil = await service.me("u1", "student", 2026);
 
-    expect(perfil.vinculo).toEqual({
+    expect(perfil.affiliation).toEqual({
       tipo: "aluno",
       matricula: null,
       turma: null,
       turno: null,
-      situacao: null,
+      situation: null,
     });
   });
 
@@ -98,9 +98,9 @@ describe("createProfileService", () => {
     const chamadas: number[] = [];
     const service = createProfileService(
       repositorioFalso({
-        teacherBond: async (_userId, ano) => {
-          chamadas.push(ano);
-          return { turmas: 4, disciplinas: 2, aulas: 160 };
+        teacherBond: async (_userId, year) => {
+          chamadas.push(year);
+          return { classrooms: 4, subjects: 2, lessons: 160 };
         },
       }),
     );
@@ -108,7 +108,12 @@ describe("createProfileService", () => {
     const perfil = await service.me("u1", "teacher", 2025);
 
     expect(chamadas).toEqual([2025]);
-    expect(perfil.vinculo).toEqual({ tipo: "professor", turmas: 4, disciplinas: 2, aulas: 160 });
+    expect(perfil.affiliation).toEqual({
+      tipo: "professor",
+      classrooms: 4,
+      subjects: 2,
+      lessons: 160,
+    });
   });
 
   /** Direção e secretaria não têm ficha de aluno nem carga: o vínculo é o papel. */
@@ -122,7 +127,7 @@ describe("createProfileService", () => {
         },
         teacherBond: async () => {
           consultou = true;
-          return { turmas: 0, disciplinas: 0, aulas: 0 };
+          return { classrooms: 0, subjects: 0, lessons: 0 };
         },
       }),
     );
@@ -130,6 +135,6 @@ describe("createProfileService", () => {
     const perfil = await service.me("u1", "admin", 2026);
 
     expect(consultou).toBe(false);
-    expect(perfil.vinculo).toEqual({ tipo: "gestao" });
+    expect(perfil.affiliation).toEqual({ tipo: "gestao" });
   });
 });

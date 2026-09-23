@@ -39,11 +39,11 @@ const AINDA_PODE = new Set(["pendente", "suspensa"]);
 
 export function situationOf(
   enrollmentStatus: string,
-  jaConfirmadasAntes: number,
+  alreadyConfirmed: number,
   teto: number,
 ): ReferralSituation {
   if (CONFIRMA_O_PREMIO.has(enrollmentStatus)) {
-    return jaConfirmadasAntes < teto ? "confirmada" : "acima_do_teto";
+    return alreadyConfirmed < teto ? "confirmada" : "acima_do_teto";
   }
   return AINDA_PODE.has(enrollmentStatus) ? "pendente" : "sem_efeito";
 }
@@ -51,16 +51,16 @@ export function situationOf(
 export interface TalliedReferral {
   id: string;
   linkId: string;
-  codigo: string;
+  code: string;
   indicanteId: string;
-  indicanteNome: string;
+  referrerName: string;
   enrollmentId: string;
   academicYear: number;
   rewardKind: RewardKind;
   rewardValue: number;
   note: string | null;
   createdAt: Date;
-  situacao: ReferralSituation;
+  situation: ReferralSituation;
 }
 
 type LinhaDeConversao = Awaited<ReturnType<ReferralRepository["listConversions"]>>[number];
@@ -79,22 +79,22 @@ export function tally(linhas: LinhaDeConversao[], teto: number): TalliedReferral
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
     .map((linha) => {
       const antes = confirmadasPorLink.get(linha.linkId) ?? 0;
-      const situacao = situationOf(linha.enrollmentStatus, antes, teto);
-      if (situacao === "confirmada") confirmadasPorLink.set(linha.linkId, antes + 1);
+      const situation = situationOf(linha.enrollmentStatus, antes, teto);
+      if (situation === "confirmada") confirmadasPorLink.set(linha.linkId, antes + 1);
 
       return {
         id: linha.id,
         linkId: linha.linkId,
-        codigo: linha.codigo,
+        code: linha.code,
         indicanteId: linha.indicanteId,
-        indicanteNome: linha.indicanteNome,
+        referrerName: linha.referrerName,
         enrollmentId: linha.enrollmentId,
         academicYear: linha.academicYear,
         rewardKind: linha.rewardKind,
         rewardValue: linha.rewardValue,
         note: linha.note,
         createdAt: linha.createdAt,
-        situacao,
+        situation,
       };
     });
 }
@@ -107,23 +107,19 @@ export function tally(linhas: LinhaDeConversao[], teto: number): TalliedReferral
  * nada, e é justamente o número que alguém levaria para o boleto.
  */
 export function summarize(indicacoes: TalliedReferral[]) {
-  const confirmadas = indicacoes.filter((i) => i.situacao === "confirmada");
+  const confirmed = indicacoes.filter((i) => i.situation === "confirmada");
 
   return {
-    confirmadas: confirmadas.length,
-    pendentes: indicacoes.filter((i) => i.situacao === "pendente").length,
+    confirmed: confirmed.length,
+    pending: indicacoes.filter((i) => i.situation === "pendente").length,
     // Teto de 100%: a escola pode configurar 40% com teto de 3, e três
     // indicações confirmadas dariam 120% — mensalidade negativa.
     percentual: Math.min(
       100,
-      confirmadas
-        .filter((i) => i.rewardKind === "percentual")
-        .reduce((s, i) => s + i.rewardValue, 0),
+      confirmed.filter((i) => i.rewardKind === "percentual").reduce((s, i) => s + i.rewardValue, 0),
     ),
     /** Em centavos, como está guardado. */
-    centavos: confirmadas
-      .filter((i) => i.rewardKind === "valor")
-      .reduce((s, i) => s + i.rewardValue, 0),
+    cents: confirmed.filter((i) => i.rewardKind === "valor").reduce((s, i) => s + i.rewardValue, 0),
   };
 }
 
@@ -157,7 +153,7 @@ export function createReferralService(
         programa,
         familias,
         indicacoes,
-        resumo: summarize(indicacoes),
+        summary: summarize(indicacoes),
       };
     },
 
@@ -180,7 +176,7 @@ export function createReferralService(
       const existente = await repo.findLinkByStudent(studentIdAlvo);
       if (existente) return { link: existente, aluno };
 
-      const codigo = generateCode(aluno.name, await repo.codesInUse(), options.aleatorio);
+      const code = generateCode(aluno.name, await repo.codesInUse(), options.aleatorio);
 
       const expiresAt =
         programa.linkExpiresInDays > 0
@@ -189,7 +185,7 @@ export function createReferralService(
 
       const link = await repo.createLink({
         studentId: studentIdAlvo,
-        code: codigo,
+        code: code,
         expiresAt,
         createdByUserId: options.actor.userId,
       });
@@ -203,7 +199,7 @@ export function createReferralService(
       const aluno = await repo.findStudentByUser(userId);
 
       if (!programa.enabled || !aluno) {
-        return { programa, aluno: null, link: null, indicacoes: [], resumo: null };
+        return { programa, aluno: null, link: null, indicacoes: [], summary: null };
       }
 
       const link = await repo.findLinkByStudent(aluno.id);
@@ -214,7 +210,7 @@ export function createReferralService(
           )
         : [];
 
-      return { programa, aluno, link, indicacoes, resumo: summarize(indicacoes) };
+      return { programa, aluno, link, indicacoes, summary: summarize(indicacoes) };
     },
 
     /**
@@ -229,9 +225,9 @@ export function createReferralService(
         throw new ValidationError("O programa de indicações está desligado.");
       }
 
-      const codigo = normalizeCode(input.code);
-      const link = await repo.findLinkByCode(codigo);
-      if (!link) throw new NotFoundError(`Não existe o código de indicação ${codigo}.`);
+      const code = normalizeCode(input.code);
+      const link = await repo.findLinkByCode(code);
+      if (!link) throw new NotFoundError(`Não existe o código de indicação ${code}.`);
 
       if (link.revokedAt) throw new ValidationError("Este código de indicação foi revogado.");
       if (link.expiresAt && link.expiresAt < options.now()) {
@@ -258,14 +254,14 @@ export function createReferralService(
           note: input.note,
           registeredByUserId: options.actor.userId,
         });
-      } catch (erro) {
+      } catch (error) {
         // O único em (escola, matrícula) é quem garante que uma matrícula
         // premia uma indicação só. Traduzir aqui evita um 500 numa ação que a
         // secretaria lê como "já registrei isso".
-        if (violatesUnique(erro, "referral_conversion_enrollment_uidx")) {
+        if (violatesUnique(error, "referral_conversion_enrollment_uidx")) {
           throw new ConflictError("Esta matrícula já está ligada a uma indicação.");
         }
-        throw erro;
+        throw error;
       }
     },
 

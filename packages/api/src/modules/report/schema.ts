@@ -11,7 +11,7 @@ export const reportYearInput = z.object({
 });
 
 export const exportInput = reportYearInput.extend({
-  chave: z.enum(REPORT_KEYS),
+  key: z.enum(REPORT_KEYS),
 });
 
 export type ExportInput = z.infer<typeof exportInput>;

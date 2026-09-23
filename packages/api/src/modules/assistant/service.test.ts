@@ -46,7 +46,7 @@ function fakeRepo(over: Partial<AssistantRepository> = {}): AssistantRepository 
   return {
     find: async () => null,
     save: async (patch) => ({ ...configurada(), ...patch }) as never,
-    usoDesde: async () => ({ perguntas: 0, tokens: 0, semContagem: 0 }),
+    usageSince: async () => ({ perguntas: 0, tokens: 0, withoutCount: 0 }),
     recordUsage: async () => ({ id: "u" }),
     ...over,
   };
@@ -68,18 +68,18 @@ const servico = (
   opcoes: {
     repo?: Partial<AssistantRepository>;
     modelo?: LanguageModel;
-    semChaveDoServidor?: boolean;
+    withoutServerKey?: boolean;
   } = {},
 ) =>
   createAssistantService(fakeRepo(opcoes.repo ?? {}), {
     now: () => AGORA,
-    chave: opcoes.semChaveDoServidor ? undefined : CHAVE,
+    key: opcoes.withoutServerKey ? undefined : CHAVE,
     modelo: () => opcoes.modelo ?? modeloQueResponde(),
   });
 
 const comConfiguracao = (over: Partial<Linha> = {}) => ({ find: async () => configurada(over) });
 
-const quem = { userId: "u1", role: "owner" as const, nome: "Marina", escola: "Dom Pedro II" };
+const quem = { userId: "u1", role: "owner" as const, name: "Marina", escola: "Dom Pedro II" };
 
 const BASE = {
   enabled: false,
@@ -109,11 +109,11 @@ describe("configuracao", () => {
    */
   it("não devolve a credencial, nem cifrada", async () => {
     const visao = await servico({ repo: comConfiguracao() }).configuracao();
-    const chaves = Object.keys(visao);
+    const keys = Object.keys(visao);
 
-    expect(chaves).not.toContain("apiKeyCipher");
-    expect(chaves).not.toContain("apiKeyIv");
-    expect(chaves).not.toContain("apiKeyTag");
+    expect(keys).not.toContain("apiKeyCipher");
+    expect(keys).not.toContain("apiKeyIv");
+    expect(keys).not.toContain("apiKeyTag");
     expect(JSON.stringify(visao)).not.toContain(CREDENCIAL.cipher);
   });
 
@@ -127,10 +127,10 @@ describe("configuracao", () => {
   it("avisa quando o servidor não tem a chave de cifragem", async () => {
     const visao = await servico({
       repo: comConfiguracao(),
-      semChaveDoServidor: true,
+      withoutServerKey: true,
     }).configuracao();
 
-    expect(visao.chaveDoServidor).toBe(false);
+    expect(visao.serverKey).toBe(false);
   });
 
   it("devolve o padrão quando a escola nunca configurou", async () => {
@@ -194,27 +194,27 @@ describe("salvar", () => {
   });
 
   it("recusa gravar credencial sem a chave do servidor", async () => {
-    const s = servico({ semChaveDoServidor: true });
+    const s = servico({ withoutServerKey: true });
 
-    const erro: Error = await s
+    const error: Error = await s
       .salvar({ ...BASE, apiKey: "sk-alguma-coisa" }, "u1")
       .then(() => new Error("não deveria ter gravado"))
       .catch((e: Error) => e);
 
-    expect(erro.message).toContain("ASSISTANT_ENCRYPTION_KEY");
+    expect(error.message).toContain("ASSISTANT_ENCRYPTION_KEY");
     // A instrução tem de dizer só o que falta, e incluir o reinício: o `.env`
     // é lido na subida, e sem isso a pessoa acrescenta a linha e vê o mesmo
     // erro de novo.
-    expect(erro.message).toContain("apps/web/.env");
-    expect(erro.message).toMatch(/reinicie/i);
+    expect(error.message).toContain("apps/web/.env");
+    expect(error.message).toMatch(/reinicie/i);
     // `printf` e não `echo … >>`: arquivo `.env` sem quebra de linha no fim
     // faz o `>>` colar a variável nova no fim da anterior, e as duas ficam
     // inválidas — com o mesmo erro de antes, o que faz quem seguiu a
     // instrução concluir que a instrução é que estava errada.
-    expect(erro.message).toContain("printf");
-    expect(erro.message).not.toMatch(/echo "ASSISTANT/);
-    expect(erro.message).not.toContain("turbo.json");
-    expect(erro.message).not.toContain("packages/env");
+    expect(error.message).toContain("printf");
+    expect(error.message).not.toMatch(/echo "ASSISTANT/);
+    expect(error.message).not.toContain("turbo.json");
+    expect(error.message).not.toContain("packages/env");
   });
 
   /** Ligar sem as três peças deixaria um botão que só sabe dar erro. */
@@ -236,7 +236,7 @@ describe("situacao", () => {
   it("fechado enquanto a configuração estiver incompleta", async () => {
     const s = servico({ repo: comConfiguracao({ model: null }) });
 
-    expect(await s.situacao("owner")).toEqual({ disponivel: false, ligado: false });
+    expect(await s.situation("owner")).toEqual({ available: false, ligado: false });
   });
 
   /**
@@ -245,14 +245,14 @@ describe("situacao", () => {
    */
   it("respeita a liberação por papel que a escola configurou", async () => {
     const fechado = servico({ repo: comConfiguracao() });
-    expect((await fechado.situacao("student")).disponivel).toBe(false);
-    expect((await fechado.situacao("teacher")).disponivel).toBe(true);
+    expect((await fechado.situation("student")).available).toBe(false);
+    expect((await fechado.situation("teacher")).available).toBe(true);
 
     const aberto = servico({ repo: comConfiguracao({ allowStudents: true }) });
-    expect((await aberto.situacao("student")).disponivel).toBe(true);
+    expect((await aberto.situation("student")).available).toBe(true);
 
     const semProfessor = servico({ repo: comConfiguracao({ allowTeachers: false }) });
-    expect((await semProfessor.situacao("teacher")).disponivel).toBe(false);
+    expect((await semProfessor.situation("teacher")).available).toBe(false);
   });
 
   /** Direção e secretaria sempre entram: são elas que configuram. */
@@ -261,8 +261,8 @@ describe("situacao", () => {
       repo: comConfiguracao({ allowTeachers: false, allowStudents: false }),
     });
 
-    expect((await s.situacao("owner")).disponivel).toBe(true);
-    expect((await s.situacao("admin")).disponivel).toBe(true);
+    expect((await s.situation("owner")).available).toBe(true);
+    expect((await s.situation("admin")).available).toBe(true);
   });
 });
 
@@ -271,7 +271,7 @@ describe("perguntar", () => {
     const s = servico({ repo: comConfiguracao({ enabled: false }) });
 
     await expect(
-      s.perguntar({ pergunta: "quantos alunos?", fatos: "x" }, quem),
+      s.perguntar({ pergunta: "quantos alunos?", facts: "x" }, quem),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
@@ -279,7 +279,7 @@ describe("perguntar", () => {
     const s = servico({ repo: comConfiguracao() });
 
     await expect(
-      s.perguntar({ pergunta: "quantos alunos?", fatos: "x" }, { ...quem, role: "student" }),
+      s.perguntar({ pergunta: "quantos alunos?", facts: "x" }, { ...quem, role: "student" }),
     ).rejects.toThrow(/não tem acesso/);
   });
 
@@ -288,12 +288,12 @@ describe("perguntar", () => {
     const s = servico({
       repo: {
         find: async () => configurada({ dailyLimit: 5 }),
-        usoDesde: async () => ({ perguntas: 5, tokens: 0, semContagem: 0 }),
+        usageSince: async () => ({ perguntas: 5, tokens: 0, withoutCount: 0 }),
       },
     });
 
     await expect(
-      s.perguntar({ pergunta: "quantos alunos?", fatos: "x" }, quem),
+      s.perguntar({ pergunta: "quantos alunos?", facts: "x" }, quem),
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
@@ -302,14 +302,14 @@ describe("perguntar", () => {
     const s = servico({
       repo: {
         find: async () => configurada(),
-        usoDesde: async (desde) => {
+        usageSince: async (desde) => {
           janelas.push(desde);
-          return { perguntas: 0, tokens: 0, semContagem: 0 };
+          return { perguntas: 0, tokens: 0, withoutCount: 0 };
         },
       },
     });
 
-    await s.perguntar({ pergunta: "quantos alunos?", fatos: "x" }, quem);
+    await s.perguntar({ pergunta: "quantos alunos?", facts: "x" }, quem);
 
     expect(janelas[0]?.getHours()).toBe(0);
     expect(janelas[0]?.getDate()).toBe(10);
@@ -320,7 +320,7 @@ describe("perguntar", () => {
     const s = servico({
       repo: {
         find: async () => configurada({ dailyLimit: 10 }),
-        usoDesde: async () => ({ perguntas: 3, tokens: 0, semContagem: 0 }),
+        usageSince: async () => ({ perguntas: 3, tokens: 0, withoutCount: 0 }),
         recordUsage: async (data) => {
           registros.push(data);
           return { id: "u" };
@@ -328,7 +328,7 @@ describe("perguntar", () => {
       },
     });
 
-    const saida = await s.perguntar({ pergunta: "quantos alunos?", fatos: "x" }, quem);
+    const saida = await s.perguntar({ pergunta: "quantos alunos?", facts: "x" }, quem);
 
     expect(saida.restantesHoje).toBe(6);
     expect(registros[0]).toMatchObject({ userId: "u1", role: "owner", tokens: 42 });
@@ -350,7 +350,7 @@ describe("perguntar", () => {
       },
     });
 
-    await s.perguntar({ pergunta: "a Júlia está reprovada?", fatos: "x" }, quem);
+    await s.perguntar({ pergunta: "a Júlia está reprovada?", facts: "x" }, quem);
 
     expect(JSON.stringify(registros[0])).not.toContain("Júlia");
   });
@@ -365,7 +365,7 @@ describe("perguntar", () => {
     };
     const s = servico({ repo: comConfiguracao(), modelo: quebrado });
 
-    await expect(s.perguntar({ pergunta: "oi", fatos: "x" }, quem)).rejects.toBeInstanceOf(
+    await expect(s.perguntar({ pergunta: "oi", facts: "x" }, quem)).rejects.toBeInstanceOf(
       ValidationError,
     );
   });
@@ -389,7 +389,7 @@ describe("perguntar", () => {
       modelo: quebrado,
     });
 
-    await expect(s.perguntar({ pergunta: "oi", fatos: "x" }, quem)).rejects.toThrow();
+    await expect(s.perguntar({ pergunta: "oi", facts: "x" }, quem)).rejects.toThrow();
     expect(registrou).toBe(false);
   });
 
@@ -401,7 +401,7 @@ describe("perguntar", () => {
     };
     const s = servico({ repo: comConfiguracao(), modelo: ecoa });
 
-    const saida = await s.perguntar({ pergunta: "oi", fatos: "Alunos: 10." }, quem);
+    const saida = await s.perguntar({ pergunta: "oi", facts: "Alunos: 10." }, quem);
 
     expect(saida.texto).toContain("Alunos: 10.");
     expect(saida.texto).not.toContain("sk-de-teste");
@@ -419,8 +419,8 @@ describe("montarInstrucao", () => {
     const texto = buildInstruction({
       escola: "Dom Pedro II",
       papel: "student",
-      nome: "Ana",
-      fatos: "Sua frequência: 93,7%.",
+      name: "Ana",
+      facts: "Sua frequência: 93,7%.",
     });
 
     expect(texto).toContain("Sua frequência: 93,7%.");
@@ -429,10 +429,10 @@ describe("montarInstrucao", () => {
   });
 
   it("diz ao modelo o que cada papel enxerga", () => {
-    expect(buildInstruction({ escola: "E", papel: "teacher", nome: "R", fatos: "" })).toContain(
+    expect(buildInstruction({ escola: "E", papel: "teacher", name: "R", facts: "" })).toContain(
       "apenas as próprias turmas",
     );
-    expect(buildInstruction({ escola: "E", papel: "student", nome: "A", fatos: "" })).toContain(
+    expect(buildInstruction({ escola: "E", papel: "student", name: "A", facts: "" })).toContain(
       "apenas o que é dele",
     );
   });
@@ -592,11 +592,11 @@ describe("chave de cifragem girada", () => {
   it("a pergunta recusa com instrução, não com erro do crypto", async () => {
     const s = servico({ repo: comChaveAntiga() });
 
-    await expect(s.perguntar({ pergunta: "oi", fatos: "x" }, quem)).rejects.toBeInstanceOf(
+    await expect(s.perguntar({ pergunta: "oi", facts: "x" }, quem)).rejects.toBeInstanceOf(
       ValidationError,
     );
 
-    await expect(s.perguntar({ pergunta: "oi", fatos: "x" }, quem)).rejects.toThrow(
+    await expect(s.perguntar({ pergunta: "oi", facts: "x" }, quem)).rejects.toThrow(
       /Regrave a credencial/,
     );
   });
@@ -610,11 +610,11 @@ describe("chave de cifragem girada", () => {
 describe("orçamento de tokens", () => {
   /** Janela do dia e janela do mês são consultas distintas sobre a mesma tabela. */
   const repoComUso = (
-    porJanela: (desde: Date) => { perguntas: number; tokens: number; semContagem: number },
+    porJanela: (desde: Date) => { perguntas: number; tokens: number; withoutCount: number },
     linha: Partial<Linha> = {},
   ): Partial<AssistantRepository> => ({
     find: async () => configurada(linha),
-    usoDesde: async (desde) => porJanela(desde),
+    usageSince: async (desde) => porJanela(desde),
   });
 
   const ehDoMes = (desde: Date) => desde.getDate() === 1;
@@ -624,13 +624,13 @@ describe("orçamento de tokens", () => {
       repo: repoComUso(
         (desde) =>
           ehDoMes(desde)
-            ? { perguntas: 80, tokens: 50_000, semContagem: 0 }
-            : { perguntas: 4, tokens: 2_400, semContagem: 0 },
+            ? { perguntas: 80, tokens: 50_000, withoutCount: 0 }
+            : { perguntas: 4, tokens: 2_400, withoutCount: 0 },
         { monthlyTokenBudget: 50_000 },
       ),
     });
 
-    await expect(s.perguntar({ pergunta: "quantos alunos?", fatos: "x" }, quem)).rejects.toThrow(
+    await expect(s.perguntar({ pergunta: "quantos alunos?", facts: "x" }, quem)).rejects.toThrow(
       /orçamento de 50.000 tokens/,
     );
   });
@@ -641,11 +641,11 @@ describe("orçamento de tokens", () => {
    */
   it("sem orçamento declarado, só o teto diário barra", async () => {
     const s = servico({
-      repo: repoComUso(() => ({ perguntas: 1, tokens: 9_000_000, semContagem: 0 })),
+      repo: repoComUso(() => ({ perguntas: 1, tokens: 9_000_000, withoutCount: 0 })),
       modelo: modeloQueResponde(),
     });
 
-    await expect(s.perguntar({ pergunta: "quantos alunos?", fatos: "x" }, quem)).resolves.toEqual({
+    await expect(s.perguntar({ pergunta: "quantos alunos?", facts: "x" }, quem)).resolves.toEqual({
       texto: "Resposta.",
       restantesHoje: 198,
     });
@@ -656,17 +656,17 @@ describe("orçamento de tokens", () => {
       repo: repoComUso(
         (desde) =>
           ehDoMes(desde)
-            ? { perguntas: 300, tokens: 96_000, semContagem: 7 }
-            : { perguntas: 10, tokens: 6_000, semContagem: 0 },
+            ? { perguntas: 300, tokens: 96_000, withoutCount: 7 }
+            : { perguntas: 10, tokens: 6_000, withoutCount: 0 },
         { dailyLimit: 200, monthlyTokenBudget: 100_000 },
       ),
     });
 
-    expect(await s.uso()).toEqual({
+    expect(await s.usage()).toEqual({
       ligado: true,
-      perguntas: { usadas: 10, teto: 200, nivel: "ok" },
-      tokens: { usados: 96_000, teto: 100_000, nivel: "critico", semContagem: 7 },
-      nivel: "critico",
+      perguntas: { usadas: 10, teto: 200, level: "ok" },
+      tokens: { usados: 96_000, teto: 100_000, level: "critico", withoutCount: 7 },
+      level: "critico",
     });
   });
 
@@ -674,11 +674,11 @@ describe("orçamento de tokens", () => {
   it("uso responde com o padrão quando a escola nunca configurou", async () => {
     const s = servico({ repo: { find: async () => null } });
 
-    expect(await s.uso()).toEqual({
+    expect(await s.usage()).toEqual({
       ligado: false,
-      perguntas: { usadas: 0, teto: DEFAULT_SETTINGS.dailyLimit, nivel: "ok" },
-      tokens: { usados: 0, teto: null, nivel: "ok", semContagem: 0 },
-      nivel: "ok",
+      perguntas: { usadas: 0, teto: DEFAULT_SETTINGS.dailyLimit, level: "ok" },
+      tokens: { usados: 0, teto: null, level: "ok", withoutCount: 0 },
+      level: "ok",
     });
   });
 });

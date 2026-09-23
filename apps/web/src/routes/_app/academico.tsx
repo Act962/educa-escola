@@ -27,9 +27,9 @@ export const Route = createFileRoute("/_app/academico")({
 });
 
 const TIPOS = {
-  obrigatoria: { rotulo: "Obrigatória", variante: "info" },
-  eletiva: { rotulo: "Eletiva", variante: "secondary" },
-  complementar: { rotulo: "Complementar", variante: "secondary" },
+  obrigatoria: { label: "Obrigatória", variante: "info" },
+  eletiva: { label: "Eletiva", variante: "secondary" },
+  complementar: { label: "Complementar", variante: "secondary" },
 } as const;
 
 /**
@@ -44,9 +44,9 @@ function Academico() {
   const queryClient = useQueryClient();
   const { year } = useSchoolContext();
   const [nova, setNova] = useState("");
-  const [editando, setEditando] = useState<{ id: string; nome: string } | null>(null);
+  const [editando, setEditando] = useState<{ id: string; name: string } | null>(null);
 
-  const disciplinas = useQuery(trpc.academic.subjects.queryOptions());
+  const subjects = useQuery(trpc.academic.subjects.queryOptions());
   const grade = useQuery(trpc.academic.curriculum.queryOptions({ academicYear: year }));
 
   const recarregar = () => queryClient.invalidateQueries({ queryKey: [["academic"]] });
@@ -123,21 +123,21 @@ function Academico() {
           </Alert>
         ) : null}
 
-        {disciplinas.isLoading ? (
+        {subjects.isLoading ? (
           <ListSkeleton rows={3} />
-        ) : disciplinas.isError ? (
+        ) : subjects.isError ? (
           <ErrorState
             title="Não foi possível carregar as disciplinas"
             description="Atualize a página em instantes."
           />
-        ) : disciplinas.data?.length === 0 ? (
+        ) : subjects.data?.length === 0 ? (
           <EmptyState
             title="Nenhuma disciplina no catálogo"
             description="Crie as disciplinas antes de montar a grade de cada série."
           />
         ) : (
           <ul className="flex flex-col">
-            {disciplinas.data?.map((disciplina) => (
+            {subjects.data?.map((disciplina) => (
               <li
                 key={disciplina.id}
                 className="flex flex-wrap items-center gap-3 border-border border-t py-2.5 text-corpo first:border-t-0"
@@ -145,15 +145,15 @@ function Academico() {
                 {editando?.id === disciplina.id ? (
                   <>
                     <Input
-                      value={editando.nome}
-                      onChange={(e) => setEditando({ id: disciplina.id, nome: e.target.value })}
+                      value={editando.name}
+                      onChange={(e) => setEditando({ id: disciplina.id, name: e.target.value })}
                       className="max-w-64"
                       aria-label={`Novo nome de ${disciplina.name}`}
                     />
                     <Button
                       size="sm"
-                      onClick={() => renomear.mutate({ id: disciplina.id, name: editando.nome })}
-                      disabled={renomear.isPending || editando.nome.trim().length < 2}
+                      onClick={() => renomear.mutate({ id: disciplina.id, name: editando.name })}
+                      disabled={renomear.isPending || editando.name.trim().length < 2}
                     >
                       <Check size={16} strokeWidth={1.8} aria-hidden />
                       Salvar
@@ -166,13 +166,13 @@ function Academico() {
                   <>
                     <span className="min-w-0 flex-1 truncate font-bold">{disciplina.name}</span>
                     <Badge variant={TIPOS[disciplina.kind].variante}>
-                      {TIPOS[disciplina.kind].rotulo}
+                      {TIPOS[disciplina.kind].label}
                     </Badge>
                     <Button
                       variant="ghost"
                       size="icon-sm"
                       aria-label={`Renomear ${disciplina.name}`}
-                      onClick={() => setEditando({ id: disciplina.id, nome: disciplina.name })}
+                      onClick={() => setEditando({ id: disciplina.id, name: disciplina.name })}
                     >
                       <Pencil size={16} strokeWidth={1.8} aria-hidden />
                     </Button>
@@ -214,17 +214,17 @@ function Academico() {
           />
         </Card>
       ) : (
-        grade.data?.map((serie) => (
+        grade.data?.map((gradeLevel) => (
           <SerieDaGrade
-            key={`${serie.stage}-${serie.gradeLevel}`}
-            serie={serie}
-            ano={year}
-            disciplinas={disciplinas.data ?? []}
+            key={`${gradeLevel.stage}-${gradeLevel.gradeLevel}`}
+            gradeLevel={gradeLevel}
+            year={year}
+            subjects={subjects.data ?? []}
             aoPor={(subjectId, weeklyHours) =>
               por.mutate({
                 academicYear: year,
-                stage: serie.stage,
-                gradeLevel: serie.gradeLevel,
+                stage: gradeLevel.stage,
+                gradeLevel: gradeLevel.gradeLevel,
                 subjectId,
                 weeklyHours,
               })
@@ -239,71 +239,71 @@ function Academico() {
 }
 
 interface SerieProps {
-  serie: {
+  gradeLevel: {
     stage: Stage;
     gradeLevel: number;
-    turmas: number;
-    aulasPorSemana: number;
-    disciplinas: {
+    classrooms: number;
+    lessonsPerWeek: number;
+    subjects: {
       id: string;
       subjectId: string;
-      nome: string;
+      name: string;
       sigla: string | null;
       tipo: string;
-      aulasPorSemana: number;
+      lessonsPerWeek: number;
     }[];
   };
-  ano: number;
-  disciplinas: { id: string; name: string }[];
+  year: number;
+  subjects: { id: string; name: string }[];
   aoPor: (subjectId: string, weeklyHours: number) => void;
   aoTirar: (id: string) => void;
   ocupado: boolean;
 }
 
 /** A grade de uma série: o que ela cursa e quantas aulas de cada coisa. */
-function SerieDaGrade({ serie, disciplinas, aoPor, aoTirar, ocupado }: SerieProps) {
+function SerieDaGrade({ gradeLevel, subjects, aoPor, aoTirar, ocupado }: SerieProps) {
   const [escolhida, setEscolhida] = useState("");
-  const [aulas, setAulas] = useState("2");
+  const [lessons, setAulas] = useState("2");
 
-  const jaNaGrade = new Set(serie.disciplinas.map((d) => d.subjectId));
-  const disponiveis = disciplinas.filter((d) => !jaNaGrade.has(d.id));
+  const jaNaGrade = new Set(gradeLevel.subjects.map((d) => d.subjectId));
+  const disponiveis = subjects.filter((d) => !jaNaGrade.has(d.id));
 
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline gap-3">
         <CardEyebrow>
-          {serie.gradeLevel}º ano · {STAGE_LABEL[serie.stage]}
+          {gradeLevel.gradeLevel}º ano · {STAGE_LABEL[gradeLevel.stage]}
         </CardEyebrow>
         <span className="text-meta text-muted-foreground">
-          {integerText(serie.turmas)} turma{serie.turmas > 1 ? "s" : ""}
+          {integerText(gradeLevel.classrooms)} turma{gradeLevel.classrooms > 1 ? "s" : ""}
         </span>
         <span className="ml-auto font-bold text-corpo">
-          {integerText(serie.aulasPorSemana)} aulas por semana
+          {integerText(gradeLevel.lessonsPerWeek)} aulas por semana
         </span>
       </div>
 
-      {serie.disciplinas.length === 0 ? (
+      {gradeLevel.subjects.length === 0 ? (
         <EmptyState
           title="Grade em branco"
           description="Acrescente as disciplinas que esta série cursa."
         />
       ) : (
         <ul className="flex flex-col">
-          {serie.disciplinas.map((disciplina) => (
+          {gradeLevel.subjects.map((disciplina) => (
             <li
               key={disciplina.id}
               className="flex items-center gap-3 border-border border-t py-2.5 text-corpo first:border-t-0"
             >
               <BookOpen size={16} strokeWidth={1.7} aria-hidden className="text-muted-foreground" />
-              <span className="min-w-0 flex-1 truncate font-bold">{disciplina.nome}</span>
+              <span className="min-w-0 flex-1 truncate font-bold">{disciplina.name}</span>
               <span className="text-muted-foreground">
-                {integerText(disciplina.aulasPorSemana)} aula
-                {disciplina.aulasPorSemana > 1 ? "s" : ""}/semana
+                {integerText(disciplina.lessonsPerWeek)} aula
+                {disciplina.lessonsPerWeek > 1 ? "s" : ""}/semana
               </span>
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label={`Tirar ${disciplina.nome} da grade`}
+                aria-label={`Tirar ${disciplina.name} da grade`}
                 onClick={() => aoTirar(disciplina.id)}
                 disabled={ocupado}
               >
@@ -317,7 +317,9 @@ function SerieDaGrade({ serie, disciplinas, aoPor, aoTirar, ocupado }: SerieProp
       {disponiveis.length > 0 ? (
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex min-w-48 flex-1 flex-col gap-2">
-            <Label htmlFor={`disciplina-${serie.gradeLevel}-${serie.stage}`}>Acrescentar</Label>
+            <Label htmlFor={`disciplina-${gradeLevel.gradeLevel}-${gradeLevel.stage}`}>
+              Acrescentar
+            </Label>
             {/* `items` é exigência do Base UI: sem ele o gatilho mostra o
                 valor cru (o id) em vez do nome da disciplina. */}
             <Select
@@ -325,7 +327,7 @@ function SerieDaGrade({ serie, disciplinas, aoPor, aoTirar, ocupado }: SerieProp
               onValueChange={(valor) => setEscolhida(valor ?? "")}
               items={disponiveis.map((d) => ({ label: d.name, value: d.id }))}
             >
-              <SelectTrigger id={`disciplina-${serie.gradeLevel}-${serie.stage}`}>
+              <SelectTrigger id={`disciplina-${gradeLevel.gradeLevel}-${gradeLevel.stage}`}>
                 <SelectValue placeholder="Escolha a disciplina" />
               </SelectTrigger>
               <SelectContent>
@@ -338,20 +340,22 @@ function SerieDaGrade({ serie, disciplinas, aoPor, aoTirar, ocupado }: SerieProp
             </Select>
           </div>
           <div className="flex w-32 flex-col gap-2">
-            <Label htmlFor={`aulas-${serie.gradeLevel}-${serie.stage}`}>Aulas/semana</Label>
+            <Label htmlFor={`aulas-${gradeLevel.gradeLevel}-${gradeLevel.stage}`}>
+              Aulas/semana
+            </Label>
             <Input
-              id={`aulas-${serie.gradeLevel}-${serie.stage}`}
+              id={`aulas-${gradeLevel.gradeLevel}-${gradeLevel.stage}`}
               type="number"
               min={1}
               max={40}
-              value={aulas}
+              value={lessons}
               onChange={(evento) => setAulas(evento.target.value)}
             />
           </div>
           <Button
             variant="secondary"
             onClick={() => {
-              aoPor(escolhida, Number(aulas) || 1);
+              aoPor(escolhida, Number(lessons) || 1);
               setEscolhida("");
             }}
             disabled={ocupado || !escolhida}

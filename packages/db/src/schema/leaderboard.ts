@@ -62,9 +62,9 @@ export const schoolLeaderboardEntry = pgTable(
     /** 0 a 300: cem por cada um dos três indicadores. */
     points: integer("points").notNull(),
     /** Os três indicadores, de 0 a 100, para a escola saber onde melhorar. */
-    chamadaNoPrazo: integer("chamada_no_prazo").notNull(),
-    notasSemPendencia: integer("notas_sem_pendencia").notNull(),
-    frequenciaMedia: integer("frequencia_media").notNull(),
+    attendanceOnTime: integer("chamada_no_prazo").notNull(),
+    gradesWithoutPending: integer("notas_sem_pendencia").notNull(),
+    averageAttendance: integer("frequencia_media").notNull(),
     computedAt: timestamp("computed_at").defaultNow().notNull(),
   },
   (table) => [index("leaderboard_entry_ano_idx").on(table.academicYear, table.points)],

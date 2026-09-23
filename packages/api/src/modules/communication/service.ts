@@ -30,7 +30,7 @@ export interface CommunicationListItem {
   leram: number;
   confirmaram: number;
   /** Taxa de leitura de 0 a 1. `null` em rascunho — ninguém podia ler. */
-  taxaDeLeitura: number | null;
+  readRate: number | null;
 }
 
 export function createCommunicationService(repo: CommunicationRepository) {
@@ -65,7 +65,7 @@ export function createCommunicationService(repo: CommunicationRepository) {
             publico,
             leram,
             confirmaram: recibo?.confirmaram ?? 0,
-            taxaDeLeitura: publico && publico > 0 ? leram / publico : null,
+            readRate: publico && publico > 0 ? leram / publico : null,
           };
         }),
       );

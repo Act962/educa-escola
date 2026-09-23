@@ -44,7 +44,7 @@ function Boletim() {
     );
   }
 
-  const disciplinas = boletim.data?.subjects ?? [];
+  const subjects = boletim.data?.subjects ?? [];
 
   return (
     <>
@@ -69,7 +69,7 @@ function Boletim() {
         <Card>
           <ListSkeleton rows={4} />
         </Card>
-      ) : disciplinas.length === 0 ? (
+      ) : subjects.length === 0 ? (
         <Card>
           <EmptyState
             title="Nenhuma nota publicada"
@@ -77,8 +77,8 @@ function Boletim() {
           />
         </Card>
       ) : (
-        disciplinas.map((disciplina) => {
-          const situacao = gradeSituationBadge(disciplina.situation);
+        subjects.map((disciplina) => {
+          const situation = gradeSituationBadge(disciplina.situation);
           const pesoTotal = disciplina.entries.reduce((soma, item) => soma + item.weight, 0);
 
           return (
@@ -89,7 +89,7 @@ function Boletim() {
                   <CardDescription>média {gradeText(disciplina.average)}</CardDescription>
                 </div>
                 <CardAction>
-                  <Badge variant={situacao.tone}>{situacao.label}</Badge>
+                  <Badge variant={situation.tone}>{situation.label}</Badge>
                 </CardAction>
               </CardHeader>
 

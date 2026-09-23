@@ -80,7 +80,7 @@ function Alunos() {
   const [atRisk, setAtRisk] = useState(false);
   const [page, setPage] = useState(0);
   /** O aluno cujo painel de identificação está aberto. */
-  const [rosto, setRosto] = useState<{ id: string; nome: string } | null>(null);
+  const [rosto, setRosto] = useState<{ id: string; name: string } | null>(null);
 
   /**
    * Todo filtro volta para a primeira página.
@@ -228,7 +228,7 @@ function Alunos() {
             </TableHeader>
             <TableBody>
               {itens.map((aluno) => {
-                const situacao = studentStatusBadge(aluno.status);
+                const situation = studentStatusBadge(aluno.status);
                 const alerta = aluno.belowMinimumAttendance;
 
                 return (
@@ -267,7 +267,7 @@ function Alunos() {
                       {alerta ? (
                         <Badge variant="danger">Alerta de frequência</Badge>
                       ) : (
-                        <Badge variant={situacao.tone}>{situacao.label}</Badge>
+                        <Badge variant={situation.tone}>{situation.label}</Badge>
                       )}
                     </TableCell>
                     {/*
@@ -281,7 +281,7 @@ function Alunos() {
                         variant="secondary"
                         size="sm"
                         className="min-h-8 px-3 text-meta"
-                        onClick={() => setRosto({ id: aluno.id, nome: aluno.name })}
+                        onClick={() => setRosto({ id: aluno.id, name: aluno.name })}
                       >
                         <ScanFace size={16} strokeWidth={1.7} aria-hidden />
                         Rosto
@@ -338,7 +338,7 @@ function Alunos() {
       <Sheet open={!!rosto} onOpenChange={(aberto) => !aberto && setRosto(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>{rosto?.nome}</SheetTitle>
+            <SheetTitle>{rosto?.name}</SheetTitle>
           </SheetHeader>
           {rosto ? <FaceIdentification studentId={rosto.id} /> : null}
         </SheetContent>

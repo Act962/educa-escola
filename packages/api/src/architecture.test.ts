@@ -78,13 +78,13 @@ describe("regras de arquitetura", () => {
         const fonte = readFileSync(file, "utf8");
         return [...fonte.matchAll(fabrica)]
           .filter(([, , params]) => !(params ?? "").includes("tenant"))
-          .map(([, nome]) => `${rel(file)}::${nome}`);
+          .map(([, name]) => `${rel(file)}::${name}`);
       });
 
     // Subconjunto, e não igualdade: a lista precisa sobreviver a um branch em
     // que o módulo citado ainda não existe. O que este teste guarda é a
     // consulta nova que ninguém autorizou, não a linha velha que sobrou.
-    expect(semTenant.filter((chave) => !CONSULTAS_SEM_TENANT.includes(chave))).toEqual([]);
+    expect(semTenant.filter((key) => !CONSULTAS_SEM_TENANT.includes(key))).toEqual([]);
   });
 
   /**

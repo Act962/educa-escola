@@ -71,15 +71,15 @@ describe("regras em vigor", () => {
    * mentir — e este teste é o que impede.
    */
   it("lê a frequência mínima da mesma constante que o boletim usa", () => {
-    const regra = regrasEmVigor().find((r) => r.chave === "frequencia_minima");
+    const regra = regrasEmVigor().find((r) => r.key === "frequencia_minima");
 
     expect(regra?.valor).toBe(`${Math.round(MINIMUM_ATTENDANCE_RATE * 100)}% das aulas dadas`);
   });
 
   it("não repete chave", () => {
-    const chaves = regrasEmVigor().map((r) => r.chave);
+    const keys = regrasEmVigor().map((r) => r.key);
 
-    expect(new Set(chaves).size).toBe(chaves.length);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   /** Toda regra precisa dizer onde mora, senão a tela vira folclore. */

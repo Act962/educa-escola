@@ -28,11 +28,11 @@ type Estado =
   | {
       tipo: "liberado";
       cartao: Cartao;
-      hora: Date;
+      time: Date;
       metodo: "rosto" | "carteirinha";
       direction: "entrada" | "saida";
     }
-  | { tipo: "recusado"; titulo: string; detalhe: string };
+  | { tipo: "recusado"; title: string; detail: string };
 
 /** Quanto tempo o resultado fica na tela antes de voltar a hibernar. */
 const TEMPO_DO_CARTAO_MS = 4000;
@@ -64,7 +64,7 @@ const INTERVALO_DA_LEITURA_MS = 300;
  */
 const PACIENCIA_MS = 6000;
 
-const hora = (d: Date) =>
+const time = (d: Date) =>
   d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }).replace(":", "h");
 
 /**
@@ -120,7 +120,7 @@ export function GateKiosk({
    */
   const esperandoSairRef = useRef(false);
 
-  const situacao = useQuery({ ...trpc.gate.situacao.queryOptions(), refetchInterval: 30_000 });
+  const situation = useQuery({ ...trpc.gate.situation.queryOptions(), refetchInterval: 30_000 });
 
   /**
    * O lote de moldes.
@@ -141,28 +141,28 @@ export function GateKiosk({
         setEstado({
           tipo: "liberado",
           cartao: { ...saida.aluno, classroomName: saida.aluno.classroomName ?? null },
-          hora: new Date(saida.occurredAt),
+          time: new Date(saida.occurredAt),
           metodo: saida.method === "rosto" ? "rosto" : "carteirinha",
           direction: saida.direction,
         });
         // O contador do rodapé acabou de mudar. Esperar o próximo intervalo
         // deixaria a portaria mostrando "0 na escola" logo depois de liberar
         // alguém — e quem está no portão lê isso como defeito.
-        queryClient.invalidateQueries({ queryKey: trpc.gate.situacao.queryKey() });
+        queryClient.invalidateQueries({ queryKey: trpc.gate.situation.queryKey() });
       },
-      onError: (erro) =>
-        setEstado({ tipo: "recusado", titulo: "Procure a secretaria", detalhe: erro.message }),
+      onError: (error) =>
+        setEstado({ tipo: "recusado", title: "Procure a secretaria", detail: error.message }),
     }),
   );
 
-  const porMatricula = useMutation(
-    trpc.gate.porMatricula.mutationOptions({
+  const byRegistration = useMutation(
+    trpc.gate.byRegistration.mutationOptions({
       onSuccess: (saida) => {
         if (!saida.encontrado) {
           setEstado({
             tipo: "recusado",
-            titulo: "Carteirinha não reconhecida",
-            detalhe: "Chame a secretaria.",
+            title: "Carteirinha não reconhecida",
+            detail: "Chame a secretaria.",
           });
           return;
         }
@@ -330,13 +330,13 @@ export function GateKiosk({
       ocupado = true;
       try {
         const comecou = performance.now();
-        const descritor = await faceExtractor.extrair(videoRef.current);
+        const descriptor = await faceExtractor.extrair(videoRef.current);
         if (!vivo) return;
         setMsDaLeitura(Math.round(performance.now() - comecou));
 
-        if (descritor) {
-          const veredito = identify(descritor, moldes);
-          if (veredito.tipo === "reconhecido") {
+        if (descriptor) {
+          const verdict = identify(descriptor, moldes);
+          if (verdict.tipo === "reconhecido") {
             // Só volta a ler quando o quadro esvaziar.
             esperandoSairRef.current = true;
 
@@ -360,14 +360,14 @@ export function GateKiosk({
               // carteirinha resolve em dois segundos.
               setEstado({
                 tipo: "recusado",
-                titulo: "Não foi possível confirmar",
-                detalhe: "Passe a carteirinha no leitor.",
+                title: "Não foi possível confirmar",
+                detail: "Passe a carteirinha no leitor.",
               });
               return;
             }
 
             registrar.mutate({
-              studentId: veredito.studentId,
+              studentId: verdict.studentId,
               direction: sentido,
               method: "rosto",
               deviceLabel,
@@ -383,11 +383,11 @@ export function GateKiosk({
           // reconhecido repetiria a recusa em laço, na cara da pessoa.
           esperandoSairRef.current = true;
           setEstado(
-            descritor
+            descriptor
               ? {
                   tipo: "recusado",
-                  titulo: "Não identificado",
-                  detalhe: "Passe a carteirinha no leitor.",
+                  title: "Não identificado",
+                  detail: "Passe a carteirinha no leitor.",
                 }
               : { tipo: "hibernando" },
           );
@@ -418,10 +418,10 @@ export function GateKiosk({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          const campo = leitorRef.current;
-          const valor = campo?.value.trim();
-          if (campo) campo.value = "";
-          if (valor) porMatricula.mutate({ registration: valor });
+          const field = leitorRef.current;
+          const valor = field?.value.trim();
+          if (field) field.value = "";
+          if (valor) byRegistration.mutate({ registration: valor });
         }}
       >
         <input
@@ -444,9 +444,9 @@ export function GateKiosk({
       <footer className="flex flex-wrap items-center justify-between gap-3 rounded-card bg-kiosk-soft px-5 py-3 text-kiosk-foreground/70">
         <span className="flex items-center gap-2 text-card">
           <Users size={19} strokeWidth={1.7} aria-hidden />
-          {situacao.data?.dentro ?? 0} na escola agora
+          {situation.data?.dentro ?? 0} na escola agora
         </span>
-        <span className="text-card tabular-nums">{hora(agora)}</span>
+        <span className="text-card tabular-nums">{time(agora)}</span>
         {/* Só aparece quando o rosto está ligado: número solto no rodapé de
             uma portaria que só usa carteirinha seria ruído. */}
         {rostoLigado && msDaLeitura !== null ? (
@@ -543,7 +543,7 @@ function Palco({
           </p>
           <p className="mt-3 flex items-center justify-center gap-2 text-card text-success">
             <Check size={20} strokeWidth={2.2} aria-hidden />
-            {hora(estado.hora)} · {estado.metodo}
+            {time(estado.time)} · {estado.metodo}
           </p>
         </div>
       ) : estado.tipo === "recusado" ? (
@@ -555,9 +555,9 @@ function Palco({
               aria-hidden
               className="mr-2 inline align-[-3px]"
             />
-            {estado.titulo}
+            {estado.title}
           </p>
-          <p className="mt-2 text-3xl text-kiosk-foreground">{estado.detalhe}</p>
+          <p className="mt-2 text-3xl text-kiosk-foreground">{estado.detail}</p>
         </div>
       ) : estado.tipo === "lendo" ? (
         <p className="text-card text-kiosk-foreground/70">Lendo…</p>

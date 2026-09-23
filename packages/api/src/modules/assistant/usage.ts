@@ -28,11 +28,11 @@ export type UsageLevel = "ok" | "atencao" | "critico" | "esgotado";
  * Um teto nulo é "a escola não disse quanto aceita gastar", e pintar isso de
  * vermelho seria inventar um limite que ninguém escolheu.
  */
-export function usageLevel(usado: number, teto: number | null | undefined): UsageLevel {
+export function usageLevel(used: number, teto: number | null | undefined): UsageLevel {
   if (!teto || teto <= 0) return "ok";
-  if (usado >= teto) return "esgotado";
+  if (used >= teto) return "esgotado";
 
-  const fracao = usado / teto;
+  const fracao = used / teto;
   if (fracao >= CRITICAL_THRESHOLD) return "critico";
   if (fracao >= WARNING_THRESHOLD) return "atencao";
   return "ok";
@@ -51,7 +51,7 @@ export function worstLevel(a: UsageLevel, b: UsageLevel): UsageLevel {
  * barra além do trilho quebra o desenho em vez de comunicar o excesso. O
  * excesso aparece no número ao lado, que não é limitado.
  */
-export function usagePercent(usado: number, teto: number | null | undefined): number | null {
+export function usagePercent(used: number, teto: number | null | undefined): number | null {
   if (!teto || teto <= 0) return null;
-  return Math.min(100, Math.round((usado / teto) * 100));
+  return Math.min(100, Math.round((used / teto) * 100));
 }

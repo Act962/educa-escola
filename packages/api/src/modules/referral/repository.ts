@@ -36,8 +36,8 @@ export function createReferralRepository(db: DbHandle, tenant: TenantContext) {
     enrollmentStatus: enrollment.status,
     academicYear: enrollment.academicYear,
     indicanteId: referralLink.studentId,
-    indicanteNome: student.name,
-    codigo: referralLink.code,
+    referrerName: student.name,
+    code: referralLink.code,
   };
 
   return {

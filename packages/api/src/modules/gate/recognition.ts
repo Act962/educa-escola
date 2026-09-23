@@ -57,13 +57,13 @@ export const MINIMUM_MARGIN = 0.05;
 
 export interface KnownTemplate {
   studentId: string;
-  descritor: readonly number[];
+  descriptor: readonly number[];
 }
 
 export type Verdict =
   | { tipo: "reconhecido"; studentId: string; distance: number }
-  | { tipo: "ninguem"; melhorDistancia: number | null }
-  | { tipo: "ambiguo"; melhorDistancia: number; diferenca: number };
+  | { tipo: "ninguem"; bestDistance: number | null }
+  | { tipo: "ambiguo"; bestDistance: number; diferenca: number };
 
 /**
  * Procura o rosto entre os moldes conhecidos.
@@ -82,7 +82,7 @@ export function identify(
   let segundo = Number.POSITIVE_INFINITY;
 
   for (const molde of conhecidos) {
-    const d = distance(rosto, molde.descritor);
+    const d = distance(rosto, molde.descriptor);
     if (!melhor || d < melhor.d) {
       segundo = melhor?.d ?? segundo;
       melhor = { studentId: molde.studentId, d };
@@ -92,12 +92,12 @@ export function identify(
   }
 
   if (!melhor || melhor.d > limiar) {
-    return { tipo: "ninguem", melhorDistancia: melhor?.d ?? null };
+    return { tipo: "ninguem", bestDistance: melhor?.d ?? null };
   }
 
   const diferenca = segundo - melhor.d;
   if (Number.isFinite(segundo) && segundo <= limiar && diferenca < MINIMUM_MARGIN) {
-    return { tipo: "ambiguo", melhorDistancia: melhor.d, diferenca };
+    return { tipo: "ambiguo", bestDistance: melhor.d, diferenca };
   }
 
   return { tipo: "reconhecido", studentId: melhor.studentId, distance: melhor.d };

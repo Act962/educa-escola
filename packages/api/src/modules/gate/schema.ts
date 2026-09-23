@@ -7,10 +7,10 @@ import { z } from "zod";
  * hostil manda um vetor gigante e a comparação varre a escola inteira contra
  * ele. O piso de 64 recusa o que não é descritor de extrator nenhum.
  */
-export const descritor = z.array(z.number().finite()).min(64).max(1024);
+export const descriptor = z.array(z.number().finite()).min(64).max(1024);
 
 export const identifyInput = z.object({
-  descritor,
+  descriptor,
   extractor: z.string().trim().min(1).max(60),
 });
 
@@ -36,7 +36,7 @@ export const recordEntryInput = z.object({
 
 export const enrollTemplateInput = z.object({
   studentId: z.string().min(1),
-  descritor,
+  descriptor,
   extractor: z.string().trim().min(1).max(60),
 });
 
@@ -52,7 +52,7 @@ export type EnrollTemplateInput = z.infer<typeof enrollTemplateInput>;
  * `Date` faria o fuso do tablet decidir de que dia é a lista.
  */
 export const entriesInput = z.object({
-  dia: z
+  day: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Use o formato AAAA-MM-DD")
     .optional(),

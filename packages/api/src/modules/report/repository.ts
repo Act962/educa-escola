@@ -19,7 +19,7 @@ export function createReportRepository(db: DbHandle, tenant: TenantContext) {
 
   return {
     /** Quantos alunos por turma e turno, e quantos estão na sala. */
-    async alunosPorTurma(academicYear: number) {
+    async studentsByClassroom(academicYear: number) {
       return db
         .select({
           classroomId: classroom.id,
@@ -58,7 +58,7 @@ export function createReportRepository(db: DbHandle, tenant: TenantContext) {
     },
 
     /** Presenças e faltas por turma, para a frequência média de cada uma. */
-    async frequenciaPorTurma(academicYear: number) {
+    async attendanceByClassroom(academicYear: number) {
       return db
         .select({
           classroomId: classroom.id,
@@ -87,7 +87,7 @@ export function createReportRepository(db: DbHandle, tenant: TenantContext) {
      * Serve ao indicador "alunos em risco", que é um número. A lista de quem
      * está em risco já existe em `/alunos`, com o recorte e a permissão dela.
      */
-    async frequenciaPorAluno(academicYear: number) {
+    async attendanceByStudent(academicYear: number) {
       return db
         .select({
           studentId: attendance.studentId,
@@ -109,13 +109,13 @@ export function createReportRepository(db: DbHandle, tenant: TenantContext) {
     },
 
     /** Carga de cada docente no ano: aulas dadas e quantas sem chamada. */
-    async cargaPorDocente(academicYear: number, hoje: string) {
+    async loadByTeacher(academicYear: number, hoje: string) {
       return db
         .select({
           teacherId: user.id,
           teacherName: user.name,
-          turmas: countDistinct(lesson.classroomId),
-          aulas: count(lesson.id),
+          classrooms: countDistinct(lesson.classroomId),
+          lessons: count(lesson.id),
           semChamada: sql<number>`count(*) filter (
             where ${lesson.attendanceRecordedAt} is null and ${lesson.date} < ${hoje}
           )`.mapWith(Number),

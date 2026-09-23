@@ -23,7 +23,7 @@ function Chamada() {
   const trpc = useTRPC();
   const agenda = useQuery(trpc.lesson.myAgenda.queryOptions());
 
-  const aulas = agenda.data?.lessons ?? [];
+  const lessons = agenda.data?.lessons ?? [];
   const atrasadas = agenda.data?.overdue ?? [];
 
   return (
@@ -82,14 +82,14 @@ function Chamada() {
 
         {agenda.isLoading ? (
           <ListSkeleton rows={3} />
-        ) : aulas.length === 0 ? (
+        ) : lessons.length === 0 ? (
           <EmptyState
             title="Nenhuma aula hoje"
             description="Sua grade não tem aula neste dia. Nada a registrar."
           />
         ) : (
           <ul className="flex flex-col gap-2">
-            {aulas.map((aula) => (
+            {lessons.map((aula) => (
               <li key={aula.id}>
                 <Link
                   to="/chamada/$lessonId"

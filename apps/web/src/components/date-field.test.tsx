@@ -6,35 +6,35 @@ import { DateField } from "./date-field";
 function montar(props: Partial<Parameters<typeof DateField>[0]> = {}) {
   const onChange = vi.fn();
   render(<DateField id="data" label="Data" value="" onChange={onChange} {...props} />);
-  return { onChange, campo: screen.getByLabelText("Data") as HTMLInputElement };
+  return { onChange, field: screen.getByLabelText("Data") as HTMLInputElement };
 }
 
 describe("DateField", () => {
   it("mostra a data ISO no formato brasileiro", () => {
-    const { campo } = montar({ value: "2026-09-07" });
-    expect(campo.value).toBe("07/09/2026");
+    const { field } = montar({ value: "2026-09-07" });
+    expect(field.value).toBe("07/09/2026");
   });
 
   /** A pessoa digita oito dígitos seguidos; as barras são problema nosso. */
   it("põe as barras sozinho e devolve ISO", () => {
-    const { onChange, campo } = montar();
+    const { onChange, field } = montar();
 
-    fireEvent.change(campo, { target: { value: "07092026" } });
+    fireEvent.change(field, { target: { value: "07092026" } });
     expect(onChange).toHaveBeenCalledWith("2026-09-07");
   });
 
   it("devolve nulo enquanto a data está incompleta", () => {
-    const { onChange, campo } = montar();
+    const { onChange, field } = montar();
 
-    fireEvent.change(campo, { target: { value: "0709" } });
+    fireEvent.change(field, { target: { value: "0709" } });
     expect(onChange).toHaveBeenCalledWith(null);
   });
 
   /** 31/02 digitado agora e recusado três campos depois esconde o erro. */
   it("avisa na hora que a data não existe", () => {
-    const { campo } = montar();
+    const { field } = montar();
 
-    fireEvent.change(campo, { target: { value: "31022026" } });
+    fireEvent.change(field, { target: { value: "31022026" } });
     expect(screen.getByText(/não existe no calendário/)).toBeInTheDocument();
   });
 

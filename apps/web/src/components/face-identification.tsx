@@ -58,8 +58,8 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
 
   const abrir = useMutation(
     trpc.photo.read.mutationOptions({
-      onSuccess: (dados) => setFoto(dados.dataUrl),
-      onError: (erro) => toast.error(erro.message),
+      onSuccess: (data) => setFoto(data.dataUrl),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -71,12 +71,12 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
    * criança que volta para a secretaria é a coisa que este fluxo existe para
    * evitar.
    */
-  const cadastrarMolde = useMutation(
-    trpc.gate.cadastrarMolde.mutationOptions({
+  const enrollTemplate = useMutation(
+    trpc.gate.enrollTemplate.mutationOptions({
       // Falhar aqui não desfaz a foto: ela vale por si, e a portaria atende
       // pela carteirinha. O aviso diz o que ficou de fora.
-      onError: (erro) =>
-        toast.warning(`Foto salva, mas o rosto não entrou na portaria: ${erro.message}`),
+      onError: (error) =>
+        toast.warning(`Foto salva, mas o rosto não entrou na portaria: ${error.message}`),
     }),
   );
 
@@ -98,17 +98,17 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
     setGravando(true);
     try {
       await salvar.mutateAsync({ studentId, dataUrl });
-    } catch (erro) {
-      toast.error(erro instanceof Error ? erro.message : "Não foi possível salvar a foto.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar a foto.");
       setGravando(false);
       return;
     }
 
     if (codigos) {
       try {
-        await cadastrarMolde.mutateAsync({
+        await enrollTemplate.mutateAsync({
           studentId,
-          descritor: codigos,
+          descriptor: codigos,
           extractor: EXTRACTOR_NAME,
         });
         toast.success("Foto e rosto cadastrados. A portaria já reconhece.");
@@ -139,7 +139,7 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
         setLinkDaAutorizacao(saida.url);
         queryClient.invalidateQueries();
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -163,7 +163,7 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
         setQuemAutorizou("");
         queryClient.invalidateQueries();
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -175,7 +175,7 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
         setFoto(null);
         queryClient.invalidateQueries();
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -188,7 +188,7 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
     );
   }
 
-  const dados = status.data;
+  const data = status.data;
   /*
    * A matrícula vem do servidor, não de quem renderiza.
    *
@@ -197,7 +197,7 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
    * usa. Consentimento pende da matrícula, e quem sabe qual é ela é quem
    * respondeu o status.
    */
-  const enrollmentId = dados.enrollmentId;
+  const enrollmentId = data.enrollmentId;
 
   if (modo === "capturando") {
     return (
@@ -212,7 +212,7 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
   if (modo === "revogando") {
     return (
       <Revogacao
-        nome={dados.studentName}
+        name={data.studentName}
         enviando={revogar.isPending}
         onFechar={() => setModo("resumo")}
         onRevogar={(reason) => revogar.mutate({ studentId, reason })}
@@ -227,23 +227,23 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
           <CardEyebrow>Identificação</CardEyebrow>
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Entrada na escola</h2>
         </div>
-        {dados.photo ? (
+        {data.photo ? (
           <Badge variant="success">Foto cadastrada</Badge>
-        ) : dados.authorized ? (
+        ) : data.authorized ? (
           <Badge variant="warning">Falta capturar</Badge>
         ) : (
           <Badge variant="neutral">Pela carteirinha</Badge>
         )}
       </div>
 
-      {!dados.authorized ? (
+      {!data.authorized ? (
         <>
           <Alert>
             <Lock size={18} strokeWidth={1.7} aria-hidden />
             <AlertTitle>
-              {dados.consent?.revokedAt
+              {data.consent?.revokedAt
                 ? "A autorização foi revogada"
-                : dados.consent
+                : data.consent
                   ? "A família não autorizou a identificação facial"
                   : "Falta a autorização do responsável"}
             </AlertTitle>
@@ -365,7 +365,7 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
               </Button>
               <Button
                 onClick={() => {
-                  setQuemAutorizou(dados.guardianName ?? "");
+                  setQuemAutorizou(data.guardianName ?? "");
                   setRegistrando(true);
                 }}
               >
@@ -375,7 +375,7 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
             </div>
           )}
 
-          <Carteirinha nome={dados.studentName} registration={dados.registration} />
+          <Carteirinha name={data.studentName} registration={data.registration} />
         </>
       ) : (
         <>
@@ -384,10 +384,10 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
               {foto ? (
                 <img
                   src={foto}
-                  alt={`Foto de ${dados.studentName}`}
+                  alt={`Foto de ${data.studentName}`}
                   className="size-full object-cover"
                 />
-              ) : dados.photo ? (
+              ) : data.photo ? (
                 <div className="flex flex-col items-center gap-2 p-4 text-center">
                   <UserRound
                     size={30}
@@ -413,14 +413,14 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
             </div>
 
             <dl className="flex min-w-48 flex-1 flex-col gap-2.5">
-              <Linha rotulo="Autorizado por">{dados.consent?.actorName ?? "—"}</Linha>
-              <Linha rotulo="Termo">{dados.consent?.termVersion ?? "—"}</Linha>
-              <Linha rotulo="Autorizado em">{dateTimeText(dados.consent?.grantedAt)}</Linha>
-              {dados.photo ? (
+              <Linha label="Autorizado por">{data.consent?.actorName ?? "—"}</Linha>
+              <Linha label="Termo">{data.consent?.termVersion ?? "—"}</Linha>
+              <Linha label="Autorizado em">{dateTimeText(data.consent?.grantedAt)}</Linha>
+              {data.photo ? (
                 <>
-                  <Linha rotulo="Capturada em">{dateTimeText(dados.photo.capturedAt)}</Linha>
-                  <Linha rotulo="Na catraca">
-                    {dados.photo.syncedAt ? "sincronizada" : "aguardando envio"}
+                  <Linha label="Capturada em">{dateTimeText(data.photo.capturedAt)}</Linha>
+                  <Linha label="Na catraca">
+                    {data.photo.syncedAt ? "sincronizada" : "aguardando envio"}
                   </Linha>
                 </>
               ) : null}
@@ -436,9 +436,9 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => setModo("capturando")}>
               <Camera size={18} strokeWidth={1.7} aria-hidden />
-              {dados.photo ? "Recapturar" : "Capturar foto"}
+              {data.photo ? "Recapturar" : "Capturar foto"}
             </Button>
-            {dados.photo || dados.consent ? (
+            {data.photo || data.consent ? (
               <Button variant="warning" onClick={() => setModo("revogando")}>
                 <Trash2 size={18} strokeWidth={1.7} aria-hidden />
                 Revogar
@@ -451,10 +451,10 @@ export function FaceIdentification({ studentId }: { studentId: string }) {
   );
 }
 
-function Linha({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+function Linha({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <dt className="text-meta text-muted-foreground">{rotulo}</dt>
+      <dt className="text-meta text-muted-foreground">{label}</dt>
       <dd className="font-bold text-apoio">{children}</dd>
     </div>
   );
@@ -466,14 +466,14 @@ function Linha({ rotulo, children }: { rotulo: string; children: React.ReactNode
  * Recusar a face não pode barrar criança na porta da escola — é isso que faz o
  * consentimento ser de verdade opcional, e não uma formalidade.
  */
-function Carteirinha({ nome, registration }: { nome: string; registration: string }) {
+function Carteirinha({ name, registration }: { name: string; registration: string }) {
   return (
     <div className="flex flex-wrap items-center gap-4 rounded-card bg-muted p-4">
       <div className="grid size-24 place-items-center rounded-field bg-card">
         <IdCard size={38} strokeWidth={1.3} aria-hidden />
       </div>
       <div className="flex-1">
-        <p className="font-bold text-corpo">{nome} entra pela carteirinha</p>
+        <p className="font-bold text-corpo">{name} entra pela carteirinha</p>
         <p className="mt-1 text-meta text-muted-foreground">
           A catraca lê o QR, que carrega o número de matrícula.
         </p>
@@ -494,10 +494,10 @@ function Captura({
 }: {
   enviando: boolean;
   onCancelar: () => void;
-  onCapturar: (dataUrl: string, descritor: number[] | null) => void;
+  onCapturar: (dataUrl: string, descriptor: number[] | null) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [erro, setErro] = useState<string | null>(null);
+  const [error, setErro] = useState<string | null>(null);
   const [previa, setPrevia] = useState<string | null>(null);
   const [codigos, setCodigos] = useState<number[] | null>(null);
   const [lendoRosto, setLendoRosto] = useState(false);
@@ -596,10 +596,10 @@ function Captura({
         </p>
       </div>
 
-      {erro ? (
+      {error ? (
         <div className="flex flex-col items-center gap-3 rounded-card bg-warning-soft p-6 text-center">
           <CameraOff size={26} strokeWidth={1.7} className="text-warning" aria-hidden />
-          <p className="font-bold text-corpo">{erro}</p>
+          <p className="font-bold text-corpo">{error}</p>
           <p className="max-w-sm text-apoio text-muted-foreground">
             Autorize o uso da câmera no navegador. Em rede, a página precisa estar em HTTPS — a
             câmera não abre em conexão comum.
@@ -663,7 +663,7 @@ function Captura({
             {enviando ? "Salvando…" : "Usar esta foto"}
           </Button>
         ) : (
-          <Button disabled={Boolean(erro)} onClick={() => void capturar()}>
+          <Button disabled={Boolean(error)} onClick={() => void capturar()}>
             <Camera size={18} strokeWidth={1.7} aria-hidden />
             Capturar
           </Button>
@@ -674,12 +674,12 @@ function Captura({
 }
 
 function Revogacao({
-  nome,
+  name,
   enviando,
   onFechar,
   onRevogar,
 }: {
-  nome: string;
+  name: string;
   enviando: boolean;
   onFechar: () => void;
   onRevogar: (motivo: Motivo) => void;
@@ -690,7 +690,7 @@ function Revogacao({
     <Card className="flex flex-col gap-4">
       <div>
         <CardEyebrow>Identificação</CardEyebrow>
-        <h2 className="font-extrabold text-base tracking-[-0.2px]">Revogar de {nome}</h2>
+        <h2 className="font-extrabold text-base tracking-[-0.2px]">Revogar de {name}</h2>
       </div>
 
       <div className="flex flex-col gap-2 rounded-card bg-danger-soft p-4">

@@ -132,13 +132,13 @@ describe("createClienteCompativel", () => {
       respondeCom({ error: { message: "input was: Alunos ativos 289, Júlia com 67%" } }, 400),
     );
 
-    const erro: Error = await createCompatibleClient(config)
+    const error: Error = await createCompatibleClient(config)
       .responder(pedido)
       .then(() => new Error("não deveria ter respondido"))
       .catch((e: Error) => e);
 
-    expect(erro.message).not.toContain("Júlia");
-    expect(erro.message).not.toContain("289");
+    expect(error.message).not.toContain("Júlia");
+    expect(error.message).not.toContain("289");
   });
 
   /**
@@ -155,13 +155,13 @@ describe("createClienteCompativel", () => {
       ),
     );
 
-    const erro: Error = await createCompatibleClient(config)
+    const error: Error = await createCompatibleClient(config)
       .responder(pedido)
       .then(() => new Error("não deveria ter respondido"))
       .catch((e: Error) => e);
 
-    expect(erro.message).toContain("invalid_api_key");
-    expect(erro.message).not.toContain("Júlia");
+    expect(error.message).toContain("invalid_api_key");
+    expect(error.message).not.toContain("Júlia");
   });
 
   /** Campo grande ali não é código, é texto — e texto pode ecoar requisição. */
@@ -190,14 +190,14 @@ describe("createClienteCompativel", () => {
       }),
     );
 
-    const erro: ModelError = await createCompatibleClient(config)
+    const error: ModelError = await createCompatibleClient(config)
       .responder(pedido)
       .then(() => new ModelError("não deveria ter respondido", false))
       .catch((e: ModelError) => e);
 
-    expect(erro).toBeInstanceOf(ModelError);
-    expect(erro.daConfiguracao).toBe(true);
-    expect(erro.message).toMatch(/Confira o endereço/);
+    expect(error).toBeInstanceOf(ModelError);
+    expect(error.daConfiguracao).toBe(true);
+    expect(error.message).toMatch(/Confira o endereço/);
   });
 
   it("diz quando o modelo simplesmente não respondeu a tempo", async () => {
@@ -237,10 +237,10 @@ describe("listarModelos", () => {
     });
     vi.stubGlobal("fetch", fetchFalso);
 
-    const lista = await createCompatibleClient(config).listarModelos();
+    const list = await createCompatibleClient(config).listarModelos();
 
     expect(fetchFalso.mock.calls[0]?.[0]).toBe("https://api.exemplo.com/v1/models");
-    expect(lista).toEqual(["gpt-4o", "gpt-4o-mini", "o4-mini"]);
+    expect(list).toEqual(["gpt-4o", "gpt-4o-mini", "o4-mini"]);
   });
 
   it("leva credencial e organização na consulta", async () => {

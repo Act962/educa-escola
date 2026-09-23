@@ -306,15 +306,15 @@ export interface DemoStudent {
  * conferência do link pede exatamente este dado.
  */
 export function birthDateOf(registration: string, classroomName: string, year: number): string {
-  const serie = Number.parseInt(classroomName, 10);
-  const idade = (Number.isNaN(serie) ? 6 : serie) + 5;
+  const gradeLevel = Number.parseInt(classroomName, 10);
+  const idade = (Number.isNaN(gradeLevel) ? 6 : gradeLevel) + 5;
   const sequencial = Number.parseInt(registration.slice(-4), 10) || 1;
 
   const mes = ((sequencial * 5) % 12) + 1;
-  const dia = ((sequencial * 7) % 28) + 1;
+  const day = ((sequencial * 7) % 28) + 1;
 
   const dois = (valor: number) => String(valor).padStart(2, "0");
-  return `${year - idade}-${dois(mes)}-${dois(dia)}`;
+  return `${year - idade}-${dois(mes)}-${dois(day)}`;
 }
 
 export interface DemoClassroom {
@@ -330,7 +330,7 @@ export interface DemoClassroom {
  * São as que aparecem em `DEMO.md`: mexer em nome, matrícula ou frequência
  * daqui desalinha o roteiro da apresentação.
  */
-const TURMAS_DO_ROTEIRO: DemoClassroom[] = [
+const SCRIPTED_CLASSROOMS: DemoClassroom[] = [
   {
     name: "8º A",
     shift: "manha",
@@ -664,8 +664,8 @@ function comAptidaoDoRoteiro(turma: DemoClassroom): DemoClassroom {
       const lancadas = escritas.filter((nota): nota is number => nota !== null);
       if (lancadas.length === 0) return aluno;
 
-      const media = lancadas.reduce((soma, nota) => soma + nota, 0) / lancadas.length;
-      return { ...aluno, aptitude: media };
+      const average = lancadas.reduce((soma, nota) => soma + nota, 0) / lancadas.length;
+      return { ...aluno, aptitude: average };
     }),
   };
 }
@@ -677,16 +677,16 @@ function comAptidaoDoRoteiro(turma: DemoClassroom): DemoClassroom {
  * professores — quem vem antes escolhe primeiro.
  */
 export function buildClassrooms(): DemoClassroom[] {
-  const scripted = new Map(TURMAS_DO_ROTEIRO.map((turma) => [turma.name, turma]));
+  const scripted = new Map(SCRIPTED_CLASSROOMS.map((turma) => [turma.name, turma]));
   const generated: DemoClassroom[] = [];
   let matricula = 1000;
   let indice = 0;
   let sizeIndex = 0;
   let freqIndex = 0;
 
-  for (const serie of SERIES) {
+  for (const gradeLevel of SERIES) {
     for (const [letraIndex, letra] of LETRAS.entries()) {
-      const name = `${serie}º ${letra}`;
+      const name = `${gradeLevel}º ${letra}`;
       if (scripted.has(name)) continue;
 
       // A turma C estuda à tarde; as demais, de manhã.
@@ -696,15 +696,15 @@ export function buildClassrooms(): DemoClassroom[] {
 
       const students: DemoStudent[] = [];
       for (let seat = 0; seat < size; seat += 1) {
-        const nome = nomeDoAluno(indice);
-        const sobrenome = nome.split(" ").pop() as string;
+        const name = nomeDoAluno(indice);
+        const sobrenome = name.split(" ").pop() as string;
         indice += 1;
         matricula += 1;
         const attendance = FREQUENCIAS[freqIndex % FREQUENCIAS.length] as number;
         freqIndex += 1;
 
         students.push({
-          name: nome,
+          name: name,
           registration: `${DEMO_YEAR}-${matricula}`,
           guardian: `${RESPONSAVEIS[(matricula + seat) % RESPONSAVEIS.length]} ${sobrenome}`,
           attendance,
@@ -724,7 +724,7 @@ export function buildClassrooms(): DemoClassroom[] {
     }
   }
 
-  return [...TURMAS_DO_ROTEIRO.map(comAptidaoDoRoteiro), ...generated];
+  return [...SCRIPTED_CLASSROOMS.map(comAptidaoDoRoteiro), ...generated];
 }
 
 // ---------------------------------------------------------------------------
@@ -771,8 +771,8 @@ export function scoreFor(
   const porDisciplina = (((seatIndex + subjectIndex * 5) % 7) - 3) * 0.35;
   const porAvaliacao = ((assessmentIndex * 3 + seatIndex) % 5) * 0.2 - 0.4;
 
-  const bruto = aptidao + porDisciplina + porAvaliacao;
-  return Math.min(10, Math.max(2, Math.round(bruto * 2) / 2));
+  const raw = aptidao + porDisciplina + porAvaliacao;
+  return Math.min(10, Math.max(2, Math.round(raw * 2) / 2));
 }
 
 /**

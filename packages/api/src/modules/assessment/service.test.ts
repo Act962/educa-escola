@@ -13,7 +13,7 @@ import {
 
 type Assessment = Awaited<ReturnType<AssessmentRepository["listByClassroom"]>>[number];
 
-const AVALIACOES: Assessment[] = [
+const ASSESSMENTS: Assessment[] = [
   {
     id: "prova-1",
     name: "Prova 1",
@@ -49,8 +49,8 @@ function repositories(options: { grades: GradeEntry[]; missing?: number }) {
   const publicadas: string[] = [];
 
   const assessments = {
-    listByClassroom: async () => AVALIACOES,
-    findById: async () => AVALIACOES[1] as Assessment,
+    listByClassroom: async () => ASSESSMENTS,
+    findById: async () => ASSESSMENTS[1] as Assessment,
     listGrades: async () =>
       guardado
         .filter((entry) => entry.score !== null)

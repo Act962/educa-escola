@@ -16,8 +16,8 @@ const ALFABETO = "ABCDEFGHJKLMNPQRTUVWXYZ2346789";
 const COMPRIMENTO = 6;
 
 /** Duas letras do nome, para a família reconhecer o próprio código. */
-function prefixoDe(nome: string): string {
-  const letras = nome
+function prefixoDe(name: string): string {
+  const letras = name
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toUpperCase()
@@ -45,28 +45,28 @@ function sorteia(tamanho: number, aleatorio: () => number): string {
  * justamente o que aperta o espaço.
  */
 export function generateCode(
-  nome: string,
-  emUso: ReadonlySet<string>,
+  name: string,
+  inUse: ReadonlySet<string>,
   aleatorio: () => number = Math.random,
 ): string {
-  const prefixo = prefixoDe(nome);
+  const prefixo = prefixoDe(name);
 
   for (let tentativa = 0; tentativa < 20; tentativa += 1) {
     const candidato = prefixo + sorteia(COMPRIMENTO - prefixo.length, aleatorio);
-    if (!emUso.has(candidato)) return candidato;
+    if (!inUse.has(candidato)) return candidato;
   }
 
   for (let tentativa = 0; tentativa < 100; tentativa += 1) {
     const candidato = sorteia(COMPRIMENTO, aleatorio);
-    if (!emUso.has(candidato)) return candidato;
+    if (!inUse.has(candidato)) return candidato;
   }
 
   throw new Error("Não foi possível gerar um código de indicação livre.");
 }
 
 /** "  ma-4k2z " -> "MA4K2Z". O código chega copiado, com o que vier junto. */
-export function normalizeCode(bruto: string): string {
-  return bruto
+export function normalizeCode(raw: string): string {
+  return raw
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "")
     .slice(0, 24);

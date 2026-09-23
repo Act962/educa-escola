@@ -8,9 +8,9 @@ type Evento = Awaited<ReturnType<CalendarRepository["listEvents"]>>[number];
 
 export interface YearView {
   /** `null` quando o ano letivo ainda não foi definido. */
-  ano: { startsOn: string; endsOn: string; minimumSchoolDays: number } | null;
+  year: { startsOn: string; endsOn: string; minimumSchoolDays: number } | null;
   /** A contagem da **escola**: só o que vale para todo mundo. */
-  contagem: SchoolDayCount | null;
+  count: SchoolDayCount | null;
   /**
    * A contagem da turma filtrada: institucional mais o que é só dela.
    *
@@ -18,8 +18,8 @@ export interface YearView {
    * substituí-la, porque são dois números que a direção precisa ver juntos —
    * o oficial, que a secretaria de educação cobra, e o real daquela turma.
    */
-  contagemDaTurma: SchoolDayCount | null;
-  eventos: Evento[];
+  classroomCount: SchoolDayCount | null;
+  events: Evento[];
 }
 
 /**
@@ -30,7 +30,7 @@ export interface YearView {
  * entrasse na conta geral, a escola apareceria devendo dias letivos que só uma
  * turma deve, e a direção iria repor aula para todo mundo.
  */
-const institucionais = (eventos: Evento[]) => eventos.filter((e) => e.scope === "institucional");
+const institucionais = (events: Evento[]) => events.filter((e) => e.scope === "institucional");
 
 export function createCalendarService(repo: CalendarRepository) {
   /**
@@ -65,30 +65,30 @@ export function createCalendarService(repo: CalendarRepository) {
      * vez de mostrar um total que ninguém pode usar.
      */
     async year(academicYear: number, classroomId?: string): Promise<YearView> {
-      const [ano, eventos] = await Promise.all([
+      const [year, events] = await Promise.all([
         repo.findYear(academicYear),
         repo.listEvents(academicYear, classroomId),
       ]);
 
-      if (!ano) return { ano: null, contagem: null, contagemDaTurma: null, eventos };
+      if (!year) return { year: null, count: null, classroomCount: null, events };
 
-      const periodo = {
-        startsOn: ano.startsOn,
-        endsOn: ano.endsOn,
-        minimo: ano.minimumSchoolDays,
+      const period = {
+        startsOn: year.startsOn,
+        endsOn: year.endsOn,
+        minimo: year.minimumSchoolDays,
       };
 
       return {
-        ano: {
-          startsOn: ano.startsOn,
-          endsOn: ano.endsOn,
-          minimumSchoolDays: ano.minimumSchoolDays,
+        year: {
+          startsOn: year.startsOn,
+          endsOn: year.endsOn,
+          minimumSchoolDays: year.minimumSchoolDays,
         },
-        contagem: countSchoolDays({ ...periodo, eventos: institucionais(eventos) }),
+        count: countSchoolDays({ ...period, events: institucionais(events) }),
         // `eventos` já vem recortado pelo repositório: institucional mais o
         // que é da turma. Por isso a conta da turma é sobre a lista inteira.
-        contagemDaTurma: classroomId ? countSchoolDays({ ...periodo, eventos }) : null,
-        eventos,
+        classroomCount: classroomId ? countSchoolDays({ ...period, events }) : null,
+        events,
       };
     },
 
@@ -102,17 +102,17 @@ export function createCalendarService(repo: CalendarRepository) {
      * nada — o tipo de dado que faz a pessoa desconfiar do sistema inteiro.
      */
     async createEvent(input: CreateEventInput, userId: string) {
-      const ano = await repo.findYear(input.academicYear);
-      if (!ano) {
+      const year = await repo.findYear(input.academicYear);
+      if (!year) {
         throw new ValidationError(
           "Defina o período do ano letivo antes de criar eventos no calendário.",
         );
       }
 
       const endsOn = input.endsOn ?? input.startsOn;
-      if (input.startsOn < ano.startsOn || endsOn > ano.endsOn) {
+      if (input.startsOn < year.startsOn || endsOn > year.endsOn) {
         throw new ValidationError(
-          `O evento precisa estar entre ${ano.startsOn} e ${ano.endsOn}, que é o ano letivo de ${input.academicYear}.`,
+          `O evento precisa estar entre ${year.startsOn} e ${year.endsOn}, que é o ano letivo de ${input.academicYear}.`,
         );
       }
 
@@ -129,7 +129,7 @@ export function createCalendarService(repo: CalendarRepository) {
      * de que a pessoa se arrepende.
      */
     async sugestoes(academicYear: number) {
-      const [ano, existentes] = await Promise.all([
+      const [year, existentes] = await Promise.all([
         repo.findYear(academicYear),
         repo.listEvents(academicYear),
       ]);
@@ -142,7 +142,7 @@ export function createCalendarService(repo: CalendarRepository) {
         // Fora do período letivo não entra: 1º de janeiro e o Natal caem
         // fora de quase todo ano letivo, e um evento que não conta para nada
         // é linha que a escola vê e não usa.
-        foraDoPeriodo: ano ? data.startsOn < ano.startsOn || data.endsOn > ano.endsOn : true,
+        outsidePeriod: year ? data.startsOn < year.startsOn || data.endsOn > year.endsOn : true,
       }));
     },
 
@@ -155,13 +155,13 @@ export function createCalendarService(repo: CalendarRepository) {
      * entraram, 3 ficaram de fora" em vez de só "pronto".
      */
     async importar(academicYear: number, userId: string) {
-      const ano = await repo.findYear(academicYear);
-      if (!ano) {
+      const year = await repo.findYear(academicYear);
+      if (!year) {
         throw new ValidationError("Defina o período do ano letivo antes de importar o calendário.");
       }
 
       const sugestoes = await this.sugestoes(academicYear);
-      const aCriar = sugestoes.filter((s) => !s.jaExiste && !s.foraDoPeriodo);
+      const aCriar = sugestoes.filter((s) => !s.jaExiste && !s.outsidePeriod);
 
       for (const data of aCriar) {
         await repo.createEvent({
@@ -182,7 +182,7 @@ export function createCalendarService(repo: CalendarRepository) {
       return {
         criados: aCriar.length,
         jaExistiam: sugestoes.filter((s) => s.jaExiste).length,
-        foraDoPeriodo: sugestoes.filter((s) => !s.jaExiste && s.foraDoPeriodo).length,
+        outsidePeriod: sugestoes.filter((s) => !s.jaExiste && s.outsidePeriod).length,
       };
     },
 
@@ -197,15 +197,15 @@ export function createCalendarService(repo: CalendarRepository) {
       const atual = await repo.findEvent(input.id);
       if (!atual) throw new NotFoundError("Evento não encontrado");
 
-      const ano = await repo.findYear(atual.academicYear);
-      if (!ano) {
+      const year = await repo.findYear(atual.academicYear);
+      if (!year) {
         throw new ValidationError("O ano letivo deste evento não está mais definido.");
       }
 
       const endsOn = input.endsOn ?? input.startsOn;
-      if (input.startsOn < ano.startsOn || endsOn > ano.endsOn) {
+      if (input.startsOn < year.startsOn || endsOn > year.endsOn) {
         throw new ValidationError(
-          `O evento precisa estar entre ${ano.startsOn} e ${ano.endsOn}, que é o ano letivo de ${atual.academicYear}.`,
+          `O evento precisa estar entre ${year.startsOn} e ${year.endsOn}, que é o ano letivo de ${atual.academicYear}.`,
         );
       }
 

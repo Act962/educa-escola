@@ -49,7 +49,7 @@ export function AstroSettings() {
         toast.success("Astro atualizado.");
         await queryClient.invalidateQueries({ queryKey: [["assistant"]] });
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -81,7 +81,7 @@ function Formulario({
     apiKeyHint: string | null;
     credencialGravada: boolean;
     credentialOpens: boolean;
-    chaveDoServidor: boolean;
+    serverKey: boolean;
     maxTokens: number;
     dailyLimit: number;
     monthlyTokenBudget: number | null;
@@ -103,11 +103,11 @@ function Formulario({
 
   const buscarModelos = useMutation(
     trpc.assistant.buscarModelos.mutationOptions({
-      onSuccess: (lista) => {
-        setModelosDoProvedor(lista);
-        toast.success(`${lista.length} modelos encontrados.`);
+      onSuccess: (list) => {
+        setModelosDoProvedor(list);
+        toast.success(`${list.length} modelos encontrados.`);
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -211,7 +211,7 @@ function Formulario({
         consulta o banco — recebe os mesmos números do painel de quem perguntou.
       </p>
 
-      {atual.chaveDoServidor ? null : (
+      {atual.serverKey ? null : (
         <Alert variant="warning">
           <TriangleAlert size={18} strokeWidth={1.8} aria-hidden />
           <AlertTitle>O servidor não tem a chave de cifragem</AlertTitle>
@@ -234,7 +234,7 @@ function Formulario({
         não abre mais. Sem este aviso a escola só descobre na primeira
         pergunta — e descobre como erro.
       */}
-      {atual.chaveDoServidor && atual.credencialGravada && !atual.credentialOpens ? (
+      {atual.serverKey && atual.credencialGravada && !atual.credentialOpens ? (
         <Alert variant="danger">
           <TriangleAlert size={18} strokeWidth={1.8} aria-hidden />
           <AlertTitle>A credencial gravada não abre com a chave atual</AlertTitle>
@@ -291,15 +291,15 @@ function Formulario({
                     form.setFieldValue("modeloDigitado", campos.modeloDigitado);
                     setModelosDoProvedor(null);
                   }}
-                  items={PROVIDERS.map((p) => ({ value: p.id, label: p.nome }))}
+                  items={PROVIDERS.map((p) => ({ value: p.id, label: p.name }))}
                 >
                   <SelectTrigger id={field.name} className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PROVIDERS.map((provedor) => (
-                      <SelectItem key={provedor.id} value={provedor.id}>
-                        {provedor.nome}
+                    {PROVIDERS.map((provider) => (
+                      <SelectItem key={provider.id} value={provider.id}>
+                        {provider.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -315,14 +315,14 @@ function Formulario({
 
           <form.Subscribe
             selector={(estado) => ({
-              provedor: estado.values.providerLabel,
+              provider: estado.values.providerLabel,
               digitado: estado.values.modeloDigitado,
             })}
           >
-            {({ provedor, digitado }) => {
+            {({ provider, digitado }) => {
               // A lista buscada no provedor vence a curada: ela é de hoje, a
               // outra é do dia em que o arquivo foi escrito.
-              const sugeridos = modelosDoProvedor ?? providerFor(provedor).modelos;
+              const sugeridos = modelosDoProvedor ?? providerFor(provider).modelos;
 
               // O modelo salvo entra na lista mesmo que o provedor não o
               // tenha devolvido. Sem isto, o `Select` exibiria outro valor e
@@ -397,9 +397,9 @@ function Formulario({
                             : "Sugestões. Salve a credencial para buscar a lista real."}
                       </p>
 
-                      {field.state.meta.errors.map((erro) => (
-                        <p key={erro?.message} className="text-danger text-meta">
-                          {erro?.message}
+                      {field.state.meta.errors.map((error) => (
+                        <p key={error?.message} className="text-danger text-meta">
+                          {error?.message}
                         </p>
                       ))}
                     </div>
@@ -431,9 +431,9 @@ function Formulario({
                 Precisa aceitar <code>/chat/completions</code>. Serve OpenAI, Azure, Groq, Together,
                 OpenRouter e Ollama. Não serve a API nativa da Anthropic nem a do Gemini.
               </p>
-              {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-danger text-meta">
-                  {erro?.message}
+              {field.state.meta.errors.map((error) => (
+                <p key={error?.message} className="text-danger text-meta">
+                  {error?.message}
                 </p>
               ))}
             </div>
@@ -482,12 +482,12 @@ function Formulario({
                 id={field.name}
                 type="password"
                 autoComplete="off"
-                disabled={!atual.chaveDoServidor}
+                disabled={!atual.serverKey}
                 value={field.state.value}
                 onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
                 placeholder={
-                  !atual.chaveDoServidor
+                  !atual.serverKey
                     ? "Configure ASSISTANT_ENCRYPTION_KEY no servidor primeiro"
                     : atual.credencialGravada
                       ? "Deixe em branco para manter a atual"
@@ -524,9 +524,9 @@ function Formulario({
                 <p className="text-meta text-muted-foreground">
                   Teto da escola inteira. Zera à meia-noite.
                 </p>
-                {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-danger text-meta">
-                    {erro?.message}
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-danger text-meta">
+                    {error?.message}
                   </p>
                 ))}
               </div>
@@ -549,9 +549,9 @@ function Formulario({
                 <p className="text-meta text-muted-foreground">
                   Em tokens. Resposta mais longa custa mais.
                 </p>
-                {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-danger text-meta">
-                    {erro?.message}
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-danger text-meta">
+                    {error?.message}
                   </p>
                 ))}
               </div>
@@ -581,9 +581,9 @@ function Formulario({
                   Ao alcançá-lo, o Astro para de responder até o dia 1º. O consumo aparece na barra
                   lateral. Conta só o que o provedor informa.
                 </p>
-                {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-danger text-meta">
-                    {erro?.message}
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-danger text-meta">
+                    {error?.message}
                   </p>
                 ))}
               </div>

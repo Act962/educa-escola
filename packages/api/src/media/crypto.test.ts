@@ -9,14 +9,14 @@ const FOTO = Buffer.from("conteúdo binário de uma foto", "utf8");
 
 describe("encrypt / decrypt", () => {
   it("fecha e abre o mesmo conteúdo", () => {
-    const cifrado = encrypt(FOTO, CHAVE);
-    expect(decrypt(cifrado, CHAVE).toString("utf8")).toBe(FOTO.toString("utf8"));
+    const encrypted = encrypt(FOTO, CHAVE);
+    expect(decrypt(encrypted, CHAVE).toString("utf8")).toBe(FOTO.toString("utf8"));
   });
 
   it("o texto cifrado não contém o original", () => {
-    const cifrado = encrypt(FOTO, CHAVE);
-    expect(cifrado.cipher).not.toContain("foto");
-    expect(Buffer.from(cifrado.cipher, "base64").toString("utf8")).not.toContain("foto");
+    const encrypted = encrypt(FOTO, CHAVE);
+    expect(encrypted.cipher).not.toContain("foto");
+    expect(Buffer.from(encrypted.cipher, "base64").toString("utf8")).not.toContain("foto");
   });
 
   /** Reusar IV com a mesma chave quebra o GCM — por isso ele é sorteado. */
@@ -29,8 +29,8 @@ describe("encrypt / decrypt", () => {
   });
 
   it("chave errada não abre", () => {
-    const cifrado = encrypt(FOTO, CHAVE);
-    expect(() => decrypt(cifrado, randomBytes(32))).toThrow();
+    const encrypted = encrypt(FOTO, CHAVE);
+    expect(() => decrypt(encrypted, randomBytes(32))).toThrow();
   });
 
   /**
@@ -38,17 +38,17 @@ describe("encrypt / decrypt", () => {
    * trocar a foto de uma criança pela de outra passaria despercebido.
    */
   it("texto cifrado adulterado é recusado", () => {
-    const cifrado = encrypt(FOTO, CHAVE);
-    const bytes = Buffer.from(cifrado.cipher, "base64");
+    const encrypted = encrypt(FOTO, CHAVE);
+    const bytes = Buffer.from(encrypted.cipher, "base64");
     bytes[0] = (bytes[0] ?? 0) ^ 0xff;
 
-    expect(() => decrypt({ ...cifrado, cipher: bytes.toString("base64") }, CHAVE)).toThrow();
+    expect(() => decrypt({ ...encrypted, cipher: bytes.toString("base64") }, CHAVE)).toThrow();
   });
 
   it("etiqueta adulterada é recusada", () => {
-    const cifrado = encrypt(FOTO, CHAVE);
+    const encrypted = encrypt(FOTO, CHAVE);
     expect(() =>
-      decrypt({ ...cifrado, authTag: randomBytes(16).toString("base64") }, CHAVE),
+      decrypt({ ...encrypted, authTag: randomBytes(16).toString("base64") }, CHAVE),
     ).toThrow();
   });
 });

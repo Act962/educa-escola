@@ -143,7 +143,7 @@ export function pointsFor(key: RuleKey): number {
 
 export interface Level {
   ordem: number;
-  nome: string;
+  name: string;
   /** Pontos necessários para entrar neste nível. */
   minimo: number;
 }
@@ -156,24 +156,24 @@ export interface Level {
  * aqui o primeiro degrau é um lugar de onde se parte, não um castigo.
  */
 export const LEVELS = [
-  { ordem: 1, nome: "Decolagem", minimo: 0 },
-  { ordem: 2, nome: "Órbita baixa", minimo: 150 },
-  { ordem: 3, nome: "Órbita alta", minimo: 400 },
-  { ordem: 4, nome: "Estação", minimo: 800 },
-  { ordem: 5, nome: "Espaço profundo", minimo: 1500 },
+  { ordem: 1, name: "Decolagem", minimo: 0 },
+  { ordem: 2, name: "Órbita baixa", minimo: 150 },
+  { ordem: 3, name: "Órbita alta", minimo: 400 },
+  { ordem: 4, name: "Estação", minimo: 800 },
+  { ordem: 5, name: "Espaço profundo", minimo: 1500 },
 ] as const satisfies readonly Level[];
 
 /** O nível de quem tem estes pontos. Ponto negativo não existe, mas não quebra. */
-export function levelOf(pontos: number): Level {
+export function levelOf(points: number): Level {
   let atual: Level = LEVELS[0];
-  for (const nivel of LEVELS) {
-    if (pontos >= nivel.minimo) atual = nivel;
+  for (const level of LEVELS) {
+    if (points >= level.minimo) atual = level;
   }
   return atual;
 }
 
 /** Quanto falta para o próximo nível, e qual é. `null` no último. */
-export function nextLevel(pontos: number): { nivel: Level; faltam: number } | null {
-  const seguinte = LEVELS.find((nivel) => nivel.minimo > pontos);
-  return seguinte ? { nivel: seguinte, faltam: seguinte.minimo - pontos } : null;
+export function nextLevel(points: number): { level: Level; faltam: number } | null {
+  const seguinte = LEVELS.find((level) => level.minimo > points);
+  return seguinte ? { level: seguinte, faltam: seguinte.minimo - points } : null;
 }

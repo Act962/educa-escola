@@ -6,11 +6,11 @@ import type { TenantContext } from "../../trpc/tenant";
 
 /** Único lugar do módulo que monta query. Recebe `(db, tenant)`. */
 export function createAssistantRepository(db: DbHandle, tenant: TenantContext) {
-  const naEscola = eq(assistantSettings.schoolId, tenant.schoolId);
+  const atSchool = eq(assistantSettings.schoolId, tenant.schoolId);
 
   return {
     async find() {
-      const [row] = await db.select().from(assistantSettings).where(naEscola).limit(1);
+      const [row] = await db.select().from(assistantSettings).where(atSchool).limit(1);
       return row ?? null;
     },
 
@@ -43,18 +43,18 @@ export function createAssistantRepository(db: DbHandle, tenant: TenantContext) {
      * intacto sem estar é pior que orçamento nenhum. A tela nomeia quantas
      * respostas ficaram de fora em vez de deixar a conta parecer exata.
      */
-    async usoDesde(desde: Date) {
+    async usageSince(desde: Date) {
       const [row] = await db
         .select({
           perguntas: sql<number>`count(*)::int`,
           tokens: sql<number>`coalesce(sum(${assistantUsage.tokens}), 0)::int`,
-          semContagem: sql<number>`count(*) filter (where ${assistantUsage.tokens} is null)::int`,
+          withoutCount: sql<number>`count(*) filter (where ${assistantUsage.tokens} is null)::int`,
         })
         .from(assistantUsage)
         .where(
           and(eq(assistantUsage.schoolId, tenant.schoolId), gte(assistantUsage.askedAt, desde)),
         );
-      return row ?? { perguntas: 0, tokens: 0, semContagem: 0 };
+      return row ?? { perguntas: 0, tokens: 0, withoutCount: 0 };
     },
 
     async recordUsage(data: { userId: string; role: string; tokens: number | null }) {
