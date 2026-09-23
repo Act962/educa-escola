@@ -3,7 +3,7 @@ import { Card, CardEyebrow } from "@educa-escola/ui/components/card";
 import { Input } from "@educa-escola/ui/components/input";
 import { Label } from "@educa-escola/ui/components/label";
 import { Skeleton } from "@educa-escola/ui/components/skeleton";
-import { OrbitaMarca } from "@educa-escola/ui/integra/orbita";
+import { OrbitaBrand } from "@educa-escola/ui/integra/orbita";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Check, TriangleAlert } from "lucide-react";
@@ -65,7 +65,7 @@ function ConviteDeProfessor() {
   return (
     <div className="grid min-h-svh place-items-center bg-background p-4">
       <div className="flex w-full max-w-md flex-col items-center gap-5">
-        <OrbitaMarca titulo="Órbita Edu" className="w-36 text-primary" />
+        <OrbitaBrand title="Órbita Edu" className="w-36 text-primary" />
 
         {convite.isLoading ? (
           <Card className="flex w-full flex-col gap-3">
