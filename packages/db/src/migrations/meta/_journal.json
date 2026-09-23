@@ -152,15 +152,15 @@
     {
       "idx": 21,
       "version": "7",
-      "when": 1790130297080,
-      "tag": "0021_whatsapp",
+      "when": 1790105153515,
+      "tag": "0021_gray_dakota_north",
       "breakpoints": true
     },
     {
       "idx": 22,
       "version": "7",
-      "when": 1790161276312,
-      "tag": "0022_cota-do-whatsapp",
+      "when": 1790162301105,
+      "tag": "0022_whatsapp",
       "breakpoints": true
     }
   ]

@@ -1,7 +1,8 @@
 import { toSchoolDate } from "../../dates";
-import { NotFoundError } from "../../errors";
+import { ConflictError, NotFoundError } from "../../errors";
+import { conviteDeProfessorFor, gerarToken, hashToken, prazoDe } from "./convite";
 import type { TeacherRepository } from "./repository";
-import type { TeacherFilters } from "./schema";
+import type { ConvidarProfessorInput, TeacherFilters } from "./schema";
 
 /**
  * Como a direção enxerga o corpo docente.
@@ -51,8 +52,76 @@ export function situationOf(input: {
   return total >= PENDING_FOR_OVERDUE ? "atrasado" : "atencao";
 }
 
-export function createTeacherService(repo: TeacherRepository) {
+/**
+ * O que o cadastro de professor precisa de fora.
+ *
+ * `criarConta` é injetada e não chamada direto porque criar usuário é do
+ * Better Auth, e o serviço precisa rodar em teste sem subir autenticação —
+ * mesma razão do repositório vir por parâmetro.
+ */
+export interface DepsDoCorpoDocente {
+  now: () => Date;
+  linkBaseUrl: string;
+  actor: { userId: string };
+  criarConta: (input: {
+    name: string;
+    email: string;
+    password: string;
+  }) => Promise<{ userId: string }>;
+}
+
+export function createTeacherService(repo: TeacherRepository, deps?: DepsDoCorpoDocente) {
+  /** As dependências só fazem falta no convite; a leitura não usa nenhuma. */
+  function exigirDeps(): DepsDoCorpoDocente {
+    if (!deps) throw new Error("O serviço foi montado sem as dependências do convite.");
+    return deps;
+  }
+
   return {
+    /** As disciplinas da escola, para a secretaria marcar no cadastro. */
+    disciplinas: () => repo.listSubjects(),
+
+    /**
+     * Cadastra um professor: cria o convite e devolve o endereço.
+     *
+     * **A escola nunca conhece a senha.** O que sai daqui é um link; quem
+     * escolhe a senha é o professor, ao abri-lo. Enquanto não houver envio
+     * automático, o endereço aparece uma vez para a secretaria copiar — mesma
+     * costura do link de matrícula.
+     */
+    async convidar(input: ConvidarProfessorInput) {
+      const d = exigirDeps();
+      const email = input.email.trim().toLowerCase();
+
+      const jaEstá = await repo.memberByEmail(email);
+      if (jaEstá) {
+        throw new ConflictError("Este e-mail já tem acesso a esta escola.");
+      }
+
+      /*
+       * Um convite vivo por e-mail.
+       *
+       * Dois links válidos para a mesma pessoa é a receita para a secretaria
+       * mandar o antigo e o professor abrir o novo — ou o contrário. O
+       * anterior é revogado, e o endereço que vale é sempre o último emitido.
+       */
+      const aberto = await repo.openInviteFor(email);
+      const agora = d.now();
+      if (aberto) await repo.revokeInvite(aberto.id, agora);
+
+      const token = gerarToken();
+      await repo.createInvite({
+        name: input.name.trim(),
+        email,
+        tokenHash: hashToken(token),
+        subjectIds: input.subjectIds,
+        expiresAt: prazoDe(agora, input.expiryDays),
+        createdByUserId: d.actor.userId,
+      });
+
+      return { url: conviteDeProfessorFor(d.linkBaseUrl, token), email };
+    },
+
     /**
      * A lista do corpo docente com o que cada um está devendo.
      *

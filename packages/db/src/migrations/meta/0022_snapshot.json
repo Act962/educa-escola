@@ -1,6 +1,6 @@
 {
-  "id": "06a8b11d-dea1-493b-9b2a-ca5bcc92bffe",
-  "prevId": "ea4358a2-dea3-4a8f-b9ae-4f5c7aa78bda",
+  "id": "d3490c7b-b3ce-4e86-8db0-3185d4e647d9",
+  "prevId": "20d51e20-c75e-44dc-a4fe-0ad328b9df66",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -135,8 +135,12 @@
           "name": "assessment_school_id_school_id_fk",
           "tableFrom": "assessment",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -144,8 +148,12 @@
           "name": "assessment_classroom_id_classroom_id_fk",
           "tableFrom": "assessment",
           "tableTo": "classroom",
-          "columnsFrom": ["classroom_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "classroom_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -153,8 +161,12 @@
           "name": "assessment_subject_id_subject_id_fk",
           "tableFrom": "assessment",
           "tableTo": "subject",
-          "columnsFrom": ["subject_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "subject_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -162,8 +174,12 @@
           "name": "assessment_teacher_id_user_id_fk",
           "tableFrom": "assessment",
           "tableTo": "user",
-          "columnsFrom": ["teacher_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "teacher_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -267,8 +283,12 @@
           "name": "attendance_school_id_school_id_fk",
           "tableFrom": "attendance",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -276,8 +296,12 @@
           "name": "attendance_lesson_id_lesson_id_fk",
           "tableFrom": "attendance",
           "tableTo": "lesson",
-          "columnsFrom": ["lesson_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "lesson_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -285,8 +309,12 @@
           "name": "attendance_student_id_student_id_fk",
           "tableFrom": "attendance",
           "tableTo": "student",
-          "columnsFrom": ["student_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -439,8 +467,12 @@
           "name": "curriculum_school_id_school_id_fk",
           "tableFrom": "curriculum",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -448,8 +480,12 @@
           "name": "curriculum_subject_id_subject_id_fk",
           "tableFrom": "curriculum",
           "tableTo": "subject",
-          "columnsFrom": ["subject_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "subject_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -552,8 +588,12 @@
           "name": "grade_school_id_school_id_fk",
           "tableFrom": "grade",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -561,8 +601,12 @@
           "name": "grade_assessment_id_assessment_id_fk",
           "tableFrom": "grade",
           "tableTo": "assessment",
-          "columnsFrom": ["assessment_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "assessment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -570,8 +614,12 @@
           "name": "grade_student_id_student_id_fk",
           "tableFrom": "grade",
           "tableTo": "student",
-          "columnsFrom": ["student_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -737,8 +785,12 @@
           "name": "lesson_school_id_school_id_fk",
           "tableFrom": "lesson",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -746,8 +798,12 @@
           "name": "lesson_classroom_id_classroom_id_fk",
           "tableFrom": "lesson",
           "tableTo": "classroom",
-          "columnsFrom": ["classroom_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "classroom_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -755,8 +811,12 @@
           "name": "lesson_subject_id_subject_id_fk",
           "tableFrom": "lesson",
           "tableTo": "subject",
-          "columnsFrom": ["subject_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "subject_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -764,8 +824,12 @@
           "name": "lesson_teacher_id_user_id_fk",
           "tableFrom": "lesson",
           "tableTo": "user",
-          "columnsFrom": ["teacher_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "teacher_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -917,8 +981,12 @@
           "name": "student_school_id_school_id_fk",
           "tableFrom": "student",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -926,8 +994,12 @@
           "name": "student_classroom_id_classroom_id_fk",
           "tableFrom": "student",
           "tableTo": "classroom",
-          "columnsFrom": ["classroom_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "classroom_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -935,8 +1007,12 @@
           "name": "student_user_id_user_id_fk",
           "tableFrom": "student",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1046,8 +1122,12 @@
           "name": "subject_school_id_school_id_fk",
           "tableFrom": "subject",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1177,8 +1257,12 @@
           "name": "assistant_settings_school_id_school_id_fk",
           "tableFrom": "assistant_settings",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1186,8 +1270,12 @@
           "name": "assistant_settings_updated_by_user_id_user_id_fk",
           "tableFrom": "assistant_settings",
           "tableTo": "user",
-          "columnsFrom": ["updated_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "updated_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1268,8 +1356,12 @@
           "name": "assistant_usage_school_id_school_id_fk",
           "tableFrom": "assistant_usage",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1277,8 +1369,12 @@
           "name": "assistant_usage_user_id_user_id_fk",
           "tableFrom": "assistant_usage",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1422,8 +1518,12 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1526,8 +1626,12 @@
           "name": "invitation_organization_id_organization_id_fk",
           "tableFrom": "invitation",
           "tableTo": "organization",
-          "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1535,8 +1639,12 @@
           "name": "invitation_inviter_id_user_id_fk",
           "tableFrom": "invitation",
           "tableTo": "user",
-          "columnsFrom": ["inviter_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "inviter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1620,8 +1728,12 @@
           "name": "member_organization_id_organization_id_fk",
           "tableFrom": "member",
           "tableTo": "organization",
-          "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1629,8 +1741,12 @@
           "name": "member_user_id_user_id_fk",
           "tableFrom": "member",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1689,7 +1805,9 @@
         "organization_slug_unique": {
           "name": "organization_slug_unique",
           "nullsNotDistinct": false,
-          "columns": ["slug"]
+          "columns": [
+            "slug"
+          ]
         }
       },
       "policies": {},
@@ -1778,8 +1896,12 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1789,7 +1911,9 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": ["token"]
+          "columns": [
+            "token"
+          ]
         }
       },
       "policies": {},
@@ -1853,7 +1977,9 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": [
+            "email"
+          ]
         }
       },
       "policies": {},
@@ -2011,8 +2137,12 @@
           "name": "academic_calendar_school_id_school_id_fk",
           "tableFrom": "academic_calendar",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2182,8 +2312,12 @@
           "name": "calendar_event_school_id_school_id_fk",
           "tableFrom": "calendar_event",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2191,8 +2325,12 @@
           "name": "calendar_event_classroom_id_classroom_id_fk",
           "tableFrom": "calendar_event",
           "tableTo": "classroom",
-          "columnsFrom": ["classroom_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "classroom_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2362,8 +2500,12 @@
           "name": "communication_school_id_school_id_fk",
           "tableFrom": "communication",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2371,8 +2513,12 @@
           "name": "communication_classroom_id_classroom_id_fk",
           "tableFrom": "communication",
           "tableTo": "classroom",
-          "columnsFrom": ["classroom_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "classroom_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2380,8 +2526,12 @@
           "name": "communication_created_by_user_id_user_id_fk",
           "tableFrom": "communication",
           "tableTo": "user",
-          "columnsFrom": ["created_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2477,8 +2627,12 @@
           "name": "communication_receipt_school_id_school_id_fk",
           "tableFrom": "communication_receipt",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2486,8 +2640,12 @@
           "name": "communication_receipt_communication_id_communication_id_fk",
           "tableFrom": "communication_receipt",
           "tableTo": "communication",
-          "columnsFrom": ["communication_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "communication_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2495,8 +2653,12 @@
           "name": "communication_receipt_user_id_user_id_fk",
           "tableFrom": "communication_receipt",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2719,8 +2881,12 @@
           "name": "enrollment_school_id_school_id_fk",
           "tableFrom": "enrollment",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2728,8 +2894,12 @@
           "name": "enrollment_student_id_student_id_fk",
           "tableFrom": "enrollment",
           "tableTo": "student",
-          "columnsFrom": ["student_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2737,8 +2907,12 @@
           "name": "enrollment_classroom_id_classroom_id_fk",
           "tableFrom": "enrollment",
           "tableTo": "classroom",
-          "columnsFrom": ["classroom_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "classroom_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2746,8 +2920,12 @@
           "name": "enrollment_created_by_user_id_user_id_fk",
           "tableFrom": "enrollment",
           "tableTo": "user",
-          "columnsFrom": ["created_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2755,8 +2933,12 @@
           "name": "enrollment_updated_by_user_id_user_id_fk",
           "tableFrom": "enrollment",
           "tableTo": "user",
-          "columnsFrom": ["updated_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "updated_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2895,8 +3077,12 @@
           "name": "enrollment_consent_school_id_school_id_fk",
           "tableFrom": "enrollment_consent",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2904,8 +3090,12 @@
           "name": "enrollment_consent_enrollment_id_enrollment_id_fk",
           "tableFrom": "enrollment_consent",
           "tableTo": "enrollment",
-          "columnsFrom": ["enrollment_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "enrollment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2913,8 +3103,12 @@
           "name": "enrollment_consent_invite_id_enrollment_invite_id_fk",
           "tableFrom": "enrollment_consent",
           "tableTo": "enrollment_invite",
-          "columnsFrom": ["invite_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "invite_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2922,8 +3116,12 @@
           "name": "enrollment_consent_registered_by_user_id_user_id_fk",
           "tableFrom": "enrollment_consent",
           "tableTo": "user",
-          "columnsFrom": ["registered_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "registered_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3024,8 +3222,12 @@
           "name": "enrollment_event_school_id_school_id_fk",
           "tableFrom": "enrollment_event",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3033,8 +3235,12 @@
           "name": "enrollment_event_enrollment_id_enrollment_id_fk",
           "tableFrom": "enrollment_event",
           "tableTo": "enrollment",
-          "columnsFrom": ["enrollment_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "enrollment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3042,8 +3248,12 @@
           "name": "enrollment_event_actor_user_id_user_id_fk",
           "tableFrom": "enrollment_event",
           "tableTo": "user",
-          "columnsFrom": ["actor_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3167,8 +3377,12 @@
           "name": "enrollment_guardian_school_id_school_id_fk",
           "tableFrom": "enrollment_guardian",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3176,8 +3390,12 @@
           "name": "enrollment_guardian_enrollment_id_enrollment_id_fk",
           "tableFrom": "enrollment_guardian",
           "tableTo": "enrollment",
-          "columnsFrom": ["enrollment_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "enrollment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3361,8 +3579,12 @@
           "name": "enrollment_invite_school_id_school_id_fk",
           "tableFrom": "enrollment_invite",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3370,8 +3592,12 @@
           "name": "enrollment_invite_enrollment_id_enrollment_id_fk",
           "tableFrom": "enrollment_invite",
           "tableTo": "enrollment",
-          "columnsFrom": ["enrollment_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "enrollment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3379,8 +3605,12 @@
           "name": "enrollment_invite_created_by_user_id_user_id_fk",
           "tableFrom": "enrollment_invite",
           "tableTo": "user",
-          "columnsFrom": ["created_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3509,8 +3739,12 @@
           "name": "student_photo_school_id_school_id_fk",
           "tableFrom": "student_photo",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3518,8 +3752,12 @@
           "name": "student_photo_student_id_student_id_fk",
           "tableFrom": "student_photo",
           "tableTo": "student",
-          "columnsFrom": ["student_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3527,9 +3765,279 @@
           "name": "student_photo_captured_by_user_id_user_id_fk",
           "tableFrom": "student_photo",
           "tableTo": "user",
-          "columnsFrom": ["captured_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "captured_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.teacher_invite": {
+      "name": "teacher_invite",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "school_id": {
+          "name": "school_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject_ids": {
+          "name": "subject_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consumed_at": {
+          "name": "consumed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "teacher_invite_token_hash_uidx": {
+          "name": "teacher_invite_token_hash_uidx",
+          "columns": [
+            {
+              "expression": "token_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "teacher_invite_school_idx": {
+          "name": "teacher_invite_school_idx",
+          "columns": [
+            {
+              "expression": "school_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "teacher_invite_school_id_school_id_fk": {
+          "name": "teacher_invite_school_id_school_id_fk",
+          "tableFrom": "teacher_invite",
+          "tableTo": "school",
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "teacher_invite_created_by_user_id_user_id_fk": {
+          "name": "teacher_invite_created_by_user_id_user_id_fk",
+          "tableFrom": "teacher_invite",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.teacher_subject": {
+      "name": "teacher_subject",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "school_id": {
+          "name": "school_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject_id": {
+          "name": "subject_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "teacher_subject_uidx": {
+          "name": "teacher_subject_uidx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "teacher_subject_school_idx": {
+          "name": "teacher_subject_school_idx",
+          "columns": [
+            {
+              "expression": "school_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "teacher_subject_school_id_school_id_fk": {
+          "name": "teacher_subject_school_id_school_id_fk",
+          "tableFrom": "teacher_subject",
+          "tableTo": "school",
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "teacher_subject_user_id_user_id_fk": {
+          "name": "teacher_subject_user_id_user_id_fk",
+          "tableFrom": "teacher_subject",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "teacher_subject_subject_id_subject_id_fk": {
+          "name": "teacher_subject_subject_id_subject_id_fk",
+          "tableFrom": "teacher_subject",
+          "tableTo": "subject",
+          "columnsFrom": [
+            "subject_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -3669,8 +4177,12 @@
           "name": "school_entry_school_id_school_id_fk",
           "tableFrom": "school_entry",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3678,8 +4190,12 @@
           "name": "school_entry_student_id_student_id_fk",
           "tableFrom": "school_entry",
           "tableTo": "student",
-          "columnsFrom": ["student_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3687,8 +4203,12 @@
           "name": "school_entry_operator_user_id_user_id_fk",
           "tableFrom": "school_entry",
           "tableTo": "user",
-          "columnsFrom": ["operator_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "operator_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3696,8 +4216,12 @@
           "name": "school_entry_deleted_by_user_id_user_id_fk",
           "tableFrom": "school_entry",
           "tableTo": "user",
-          "columnsFrom": ["deleted_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "deleted_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3818,8 +4342,12 @@
           "name": "student_face_template_school_id_school_id_fk",
           "tableFrom": "student_face_template",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3827,8 +4355,12 @@
           "name": "student_face_template_student_id_student_id_fk",
           "tableFrom": "student_face_template",
           "tableTo": "student",
-          "columnsFrom": ["student_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3836,8 +4368,12 @@
           "name": "student_face_template_enrolled_by_user_id_user_id_fk",
           "tableFrom": "student_face_template",
           "tableTo": "user",
-          "columnsFrom": ["enrolled_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "enrolled_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3930,8 +4466,12 @@
           "name": "school_leaderboard_entry_school_id_school_id_fk",
           "tableFrom": "school_leaderboard_entry",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4036,8 +4576,12 @@
           "name": "school_leaderboard_opt_in_school_id_school_id_fk",
           "tableFrom": "school_leaderboard_opt_in",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4209,8 +4753,12 @@
           "name": "orbita_app_install_school_id_school_id_fk",
           "tableFrom": "orbita_app_install",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4218,8 +4766,12 @@
           "name": "orbita_app_install_installed_by_user_id_user_id_fk",
           "tableFrom": "orbita_app_install",
           "tableTo": "user",
-          "columnsFrom": ["installed_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "installed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4307,8 +4859,12 @@
           "name": "orbita_event_school_id_school_id_fk",
           "tableFrom": "orbita_event",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4316,8 +4872,12 @@
           "name": "orbita_event_actor_user_id_user_id_fk",
           "tableFrom": "orbita_event",
           "tableTo": "user",
-          "columnsFrom": ["actor_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4385,8 +4945,12 @@
           "name": "orbita_workspace_school_id_school_id_fk",
           "tableFrom": "orbita_workspace",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4394,8 +4958,12 @@
           "name": "orbita_workspace_connected_by_user_id_user_id_fk",
           "tableFrom": "orbita_workspace",
           "tableTo": "user",
-          "columnsFrom": ["connected_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "connected_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4510,8 +5078,12 @@
           "name": "referral_conversion_school_id_school_id_fk",
           "tableFrom": "referral_conversion",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4519,8 +5091,12 @@
           "name": "referral_conversion_link_id_referral_link_id_fk",
           "tableFrom": "referral_conversion",
           "tableTo": "referral_link",
-          "columnsFrom": ["link_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "link_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4528,8 +5104,12 @@
           "name": "referral_conversion_enrollment_id_enrollment_id_fk",
           "tableFrom": "referral_conversion",
           "tableTo": "enrollment",
-          "columnsFrom": ["enrollment_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "enrollment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4537,8 +5117,12 @@
           "name": "referral_conversion_registered_by_user_id_user_id_fk",
           "tableFrom": "referral_conversion",
           "tableTo": "user",
-          "columnsFrom": ["registered_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "registered_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4652,8 +5236,12 @@
           "name": "referral_link_school_id_school_id_fk",
           "tableFrom": "referral_link",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4661,8 +5249,12 @@
           "name": "referral_link_student_id_student_id_fk",
           "tableFrom": "referral_link",
           "tableTo": "student",
-          "columnsFrom": ["student_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4670,8 +5262,12 @@
           "name": "referral_link_created_by_user_id_user_id_fk",
           "tableFrom": "referral_link",
           "tableTo": "user",
-          "columnsFrom": ["created_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4769,8 +5365,12 @@
           "name": "referral_program_school_id_school_id_fk",
           "tableFrom": "referral_program",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4886,8 +5486,12 @@
           "name": "classroom_school_id_school_id_fk",
           "tableFrom": "classroom",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4942,8 +5546,12 @@
           "name": "school_id_organization_id_fk",
           "tableFrom": "school",
           "tableTo": "organization",
-          "columnsFrom": ["id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5078,8 +5686,12 @@
           "name": "score_balance_school_id_school_id_fk",
           "tableFrom": "score_balance",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5248,8 +5860,12 @@
           "name": "score_event_school_id_school_id_fk",
           "tableFrom": "score_event",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5467,8 +6083,12 @@
           "name": "whatsapp_account_school_id_school_id_fk",
           "tableFrom": "whatsapp_account",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5476,8 +6096,12 @@
           "name": "whatsapp_account_created_by_user_id_user_id_fk",
           "tableFrom": "whatsapp_account",
           "tableTo": "user",
-          "columnsFrom": ["created_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5650,8 +6274,12 @@
           "name": "whatsapp_message_school_id_school_id_fk",
           "tableFrom": "whatsapp_message",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5659,8 +6287,12 @@
           "name": "whatsapp_message_account_id_whatsapp_account_id_fk",
           "tableFrom": "whatsapp_message",
           "tableTo": "whatsapp_account",
-          "columnsFrom": ["account_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5668,8 +6300,12 @@
           "name": "whatsapp_message_template_id_whatsapp_template_id_fk",
           "tableFrom": "whatsapp_message",
           "tableTo": "whatsapp_template",
-          "columnsFrom": ["template_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "template_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5677,8 +6313,12 @@
           "name": "whatsapp_message_sent_by_user_id_user_id_fk",
           "tableFrom": "whatsapp_message",
           "tableTo": "user",
-          "columnsFrom": ["sent_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "sent_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5860,8 +6500,12 @@
           "name": "whatsapp_template_school_id_school_id_fk",
           "tableFrom": "whatsapp_template",
           "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "school_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5869,8 +6513,12 @@
           "name": "whatsapp_template_account_id_whatsapp_account_id_fk",
           "tableFrom": "whatsapp_template",
           "tableTo": "whatsapp_account",
-          "columnsFrom": ["account_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5878,8 +6526,12 @@
           "name": "whatsapp_template_created_by_user_id_user_id_fk",
           "tableFrom": "whatsapp_template",
           "tableTo": "user",
-          "columnsFrom": ["created_by_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5895,27 +6547,47 @@
     "public.assessment_status": {
       "name": "assessment_status",
       "schema": "public",
-      "values": ["rascunho", "publicada"]
+      "values": [
+        "rascunho",
+        "publicada"
+      ]
     },
     "public.attendance_status": {
       "name": "attendance_status",
       "schema": "public",
-      "values": ["presente", "falta", "atraso"]
+      "values": [
+        "presente",
+        "falta",
+        "atraso"
+      ]
     },
     "public.shift": {
       "name": "shift",
       "schema": "public",
-      "values": ["manha", "tarde", "noite"]
+      "values": [
+        "manha",
+        "tarde",
+        "noite"
+      ]
     },
     "public.student_status": {
       "name": "student_status",
       "schema": "public",
-      "values": ["ativo", "documentacao_pendente", "transferido", "inativo"]
+      "values": [
+        "ativo",
+        "documentacao_pendente",
+        "transferido",
+        "inativo"
+      ]
     },
     "public.subject_kind": {
       "name": "subject_kind",
       "schema": "public",
-      "values": ["obrigatoria", "eletiva", "complementar"]
+      "values": [
+        "obrigatoria",
+        "eletiva",
+        "complementar"
+      ]
     },
     "public.calendar_event_type": {
       "name": "calendar_event_type",
@@ -5935,42 +6607,75 @@
     "public.calendar_scope": {
       "name": "calendar_scope",
       "schema": "public",
-      "values": ["institucional", "segmento", "turma"]
+      "values": [
+        "institucional",
+        "segmento",
+        "turma"
+      ]
     },
     "public.day_effect": {
       "name": "day_effect",
       "schema": "public",
-      "values": ["nenhum", "nao_letivo", "letivo_extra"]
+      "values": [
+        "nenhum",
+        "nao_letivo",
+        "letivo_extra"
+      ]
     },
     "public.communication_audience": {
       "name": "communication_audience",
       "schema": "public",
-      "values": ["toda_a_escola", "professores", "alunos", "turma"]
+      "values": [
+        "toda_a_escola",
+        "professores",
+        "alunos",
+        "turma"
+      ]
     },
     "public.communication_priority": {
       "name": "communication_priority",
       "schema": "public",
-      "values": ["normal", "importante", "urgente"]
+      "values": [
+        "normal",
+        "importante",
+        "urgente"
+      ]
     },
     "public.communication_status": {
       "name": "communication_status",
       "schema": "public",
-      "values": ["rascunho", "publicado", "retificado"]
+      "values": [
+        "rascunho",
+        "publicado",
+        "retificado"
+      ]
     },
     "public.consent_origin": {
       "name": "consent_origin",
       "schema": "public",
-      "values": ["link", "presencial"]
+      "values": [
+        "link",
+        "presencial"
+      ]
     },
     "public.consent_purpose": {
       "name": "consent_purpose",
       "schema": "public",
-      "values": ["termos_matricula", "uso_imagem", "comunicacao", "biometria"]
+      "values": [
+        "termos_matricula",
+        "uso_imagem",
+        "comunicacao",
+        "biometria"
+      ]
     },
     "public.enrollment_actor": {
       "name": "enrollment_actor",
       "schema": "public",
-      "values": ["gestao", "responsavel", "sistema"]
+      "values": [
+        "gestao",
+        "responsavel",
+        "sistema"
+      ]
     },
     "public.enrollment_event_type": {
       "name": "enrollment_event_type",
@@ -5998,37 +6703,66 @@
     "public.enrollment_invite_purpose": {
       "name": "enrollment_invite_purpose",
       "schema": "public",
-      "values": ["ficha", "biometria"]
+      "values": [
+        "ficha",
+        "biometria"
+      ]
     },
     "public.enrollment_kind": {
       "name": "enrollment_kind",
       "schema": "public",
-      "values": ["matricula", "rematricula"]
+      "values": [
+        "matricula",
+        "rematricula"
+      ]
     },
     "public.enrollment_status": {
       "name": "enrollment_status",
       "schema": "public",
-      "values": ["pendente", "ativa", "suspensa", "cancelada", "transferida", "concluida"]
+      "values": [
+        "pendente",
+        "ativa",
+        "suspensa",
+        "cancelada",
+        "transferida",
+        "concluida"
+      ]
     },
     "public.guardian_relationship": {
       "name": "guardian_relationship",
       "schema": "public",
-      "values": ["mae", "pai", "avo", "responsavel_legal", "outro"]
+      "values": [
+        "mae",
+        "pai",
+        "avo",
+        "responsavel_legal",
+        "outro"
+      ]
     },
     "public.gate_direction": {
       "name": "gate_direction",
       "schema": "public",
-      "values": ["entrada", "saida"]
+      "values": [
+        "entrada",
+        "saida"
+      ]
     },
     "public.gate_method": {
       "name": "gate_method",
       "schema": "public",
-      "values": ["rosto", "carteirinha", "manual"]
+      "values": [
+        "rosto",
+        "carteirinha",
+        "manual"
+      ]
     },
     "public.leaderboard_status": {
       "name": "leaderboard_status",
       "schema": "public",
-      "values": ["ativa", "suspensa"]
+      "values": [
+        "ativa",
+        "suspensa"
+      ]
     },
     "public.orbita_event_type": {
       "name": "orbita_event_type",
@@ -6045,62 +6779,113 @@
     "public.orbita_install_status": {
       "name": "orbita_install_status",
       "schema": "public",
-      "values": ["instalando", "instalado", "falhou", "removido"]
+      "values": [
+        "instalando",
+        "instalado",
+        "falhou",
+        "removido"
+      ]
     },
     "public.orbita_workspace_status": {
       "name": "orbita_workspace_status",
       "schema": "public",
-      "values": ["pendente", "ativo", "suspenso"]
+      "values": [
+        "pendente",
+        "ativo",
+        "suspenso"
+      ]
     },
     "public.referral_referer_kind": {
       "name": "referral_referer_kind",
       "schema": "public",
-      "values": ["responsavel", "aluno", "ambos"]
+      "values": [
+        "responsavel",
+        "aluno",
+        "ambos"
+      ]
     },
     "public.referral_reward_kind": {
       "name": "referral_reward_kind",
       "schema": "public",
-      "values": ["percentual", "valor"]
+      "values": [
+        "percentual",
+        "valor"
+      ]
     },
     "public.stage": {
       "name": "stage",
       "schema": "public",
-      "values": ["infantil", "fundamental_i", "fundamental_ii", "medio"]
+      "values": [
+        "infantil",
+        "fundamental_i",
+        "fundamental_ii",
+        "medio"
+      ]
     },
     "public.score_subject_kind": {
       "name": "score_subject_kind",
       "schema": "public",
-      "values": ["aluno", "professor", "escola"]
+      "values": [
+        "aluno",
+        "professor",
+        "escola"
+      ]
     },
     "public.whatsapp_account_status": {
       "name": "whatsapp_account_status",
       "schema": "public",
-      "values": ["rascunho", "conectado", "erro"]
+      "values": [
+        "rascunho",
+        "conectado",
+        "erro"
+      ]
     },
     "public.whatsapp_billing_category": {
       "name": "whatsapp_billing_category",
       "schema": "public",
-      "values": ["servico", "modelo"]
+      "values": [
+        "servico",
+        "modelo"
+      ]
     },
     "public.whatsapp_message_status": {
       "name": "whatsapp_message_status",
       "schema": "public",
-      "values": ["fila", "enviado", "entregue", "lido", "falhou"]
+      "values": [
+        "fila",
+        "enviado",
+        "entregue",
+        "lido",
+        "falhou"
+      ]
     },
     "public.whatsapp_provider": {
       "name": "whatsapp_provider",
       "schema": "public",
-      "values": ["cloud", "memoria"]
+      "values": [
+        "cloud",
+        "memoria"
+      ]
     },
     "public.whatsapp_template_category": {
       "name": "whatsapp_template_category",
       "schema": "public",
-      "values": ["UTILITY", "MARKETING", "AUTHENTICATION"]
+      "values": [
+        "UTILITY",
+        "MARKETING",
+        "AUTHENTICATION"
+      ]
     },
     "public.whatsapp_template_status": {
       "name": "whatsapp_template_status",
       "schema": "public",
-      "values": ["rascunho", "enviado", "aprovado", "recusado", "pausado"]
+      "values": [
+        "rascunho",
+        "enviado",
+        "aprovado",
+        "recusado",
+        "pausado"
+      ]
     }
   },
   "schemas": {},

@@ -67,6 +67,11 @@ describe("regras de arquitetura", () => {
     // O placar entre escolas. `innerJoin` na adesão, e a tabela publicada não
     // tem coluna onde uma pessoa caberia.
     "modules/leaderboard/repository.ts::createLeaderboardLookup",
+    // O convite de professor. Mesmo motivo do de matrícula: não há sessão de
+    // onde tirar o tenant — o professor ainda não tem conta, e criá-la é
+    // justamente o que ele vem fazer. O `schoolId` da linha encontrada é o que
+    // vira o tenant do aceite.
+    "modules/teacher/repository.ts::createTeacherInviteLookup",
   ];
 
   it("toda consulta sem tenant está na allowlist", () => {

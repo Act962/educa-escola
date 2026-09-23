@@ -1,5 +1,5 @@
 {
-  "id": "ea4358a2-dea3-4a8f-b9ae-4f5c7aa78bda",
+  "id": "20d51e20-c75e-44dc-a4fe-0ad328b9df66",
   "prevId": "81c24e73-ab8e-4600-b2cb-08604b0f69df",
   "version": "7",
   "dialect": "postgresql",
@@ -3539,6 +3539,252 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.teacher_invite": {
+      "name": "teacher_invite",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "school_id": {
+          "name": "school_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject_ids": {
+          "name": "subject_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consumed_at": {
+          "name": "consumed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "teacher_invite_token_hash_uidx": {
+          "name": "teacher_invite_token_hash_uidx",
+          "columns": [
+            {
+              "expression": "token_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "teacher_invite_school_idx": {
+          "name": "teacher_invite_school_idx",
+          "columns": [
+            {
+              "expression": "school_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "teacher_invite_school_id_school_id_fk": {
+          "name": "teacher_invite_school_id_school_id_fk",
+          "tableFrom": "teacher_invite",
+          "tableTo": "school",
+          "columnsFrom": ["school_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "teacher_invite_created_by_user_id_user_id_fk": {
+          "name": "teacher_invite_created_by_user_id_user_id_fk",
+          "tableFrom": "teacher_invite",
+          "tableTo": "user",
+          "columnsFrom": ["created_by_user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.teacher_subject": {
+      "name": "teacher_subject",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "school_id": {
+          "name": "school_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject_id": {
+          "name": "subject_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "teacher_subject_uidx": {
+          "name": "teacher_subject_uidx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "teacher_subject_school_idx": {
+          "name": "teacher_subject_school_idx",
+          "columns": [
+            {
+              "expression": "school_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "teacher_subject_school_id_school_id_fk": {
+          "name": "teacher_subject_school_id_school_id_fk",
+          "tableFrom": "teacher_subject",
+          "tableTo": "school",
+          "columnsFrom": ["school_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "teacher_subject_user_id_user_id_fk": {
+          "name": "teacher_subject_user_id_user_id_fk",
+          "tableFrom": "teacher_subject",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "teacher_subject_subject_id_subject_id_fk": {
+          "name": "teacher_subject_subject_id_subject_id_fk",
+          "tableFrom": "teacher_subject",
+          "tableTo": "subject",
+          "columnsFrom": ["subject_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.school_entry": {
       "name": "school_entry",
       "schema": "",
@@ -5259,575 +5505,6 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
-    },
-    "public.whatsapp_account": {
-      "name": "whatsapp_account",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "school_id": {
-          "name": "school_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "provider": {
-          "name": "provider",
-          "type": "whatsapp_provider",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'cloud'"
-        },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phone_number_id": {
-          "name": "phone_number_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "waba_id": {
-          "name": "waba_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "app_id": {
-          "name": "app_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "display_phone_number": {
-          "name": "display_phone_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "verified_name": {
-          "name": "verified_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "quality_rating": {
-          "name": "quality_rating",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "token_cipher": {
-          "name": "token_cipher",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "token_iv": {
-          "name": "token_iv",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "token_tag": {
-          "name": "token_tag",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "token_hint": {
-          "name": "token_hint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "app_secret_cipher": {
-          "name": "app_secret_cipher",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "app_secret_iv": {
-          "name": "app_secret_iv",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "app_secret_tag": {
-          "name": "app_secret_tag",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "whatsapp_account_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'rascunho'"
-        },
-        "last_error": {
-          "name": "last_error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "checked_at": {
-          "name": "checked_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "is_default": {
-          "name": "is_default",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "created_by_user_id": {
-          "name": "created_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "whatsapp_account_school_idx": {
-          "name": "whatsapp_account_school_idx",
-          "columns": [
-            {
-              "expression": "school_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "whatsapp_account_default_idx": {
-          "name": "whatsapp_account_default_idx",
-          "columns": [
-            {
-              "expression": "school_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "is_default",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "whatsapp_account_school_id_school_id_fk": {
-          "name": "whatsapp_account_school_id_school_id_fk",
-          "tableFrom": "whatsapp_account",
-          "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "whatsapp_account_created_by_user_id_user_id_fk": {
-          "name": "whatsapp_account_created_by_user_id_user_id_fk",
-          "tableFrom": "whatsapp_account",
-          "tableTo": "user",
-          "columnsFrom": ["created_by_user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.whatsapp_message": {
-      "name": "whatsapp_message",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "school_id": {
-          "name": "school_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "account_id": {
-          "name": "account_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "template_id": {
-          "name": "template_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "to_phone_e164": {
-          "name": "to_phone_e164",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rendered_text": {
-          "name": "rendered_text",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "whatsapp_message_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'fila'"
-        },
-        "provider_message_id": {
-          "name": "provider_message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sent_by_user_id": {
-          "name": "sent_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "sent_at": {
-          "name": "sent_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "whatsapp_message_school_at_idx": {
-          "name": "whatsapp_message_school_at_idx",
-          "columns": [
-            {
-              "expression": "school_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "whatsapp_message_school_id_school_id_fk": {
-          "name": "whatsapp_message_school_id_school_id_fk",
-          "tableFrom": "whatsapp_message",
-          "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "whatsapp_message_account_id_whatsapp_account_id_fk": {
-          "name": "whatsapp_message_account_id_whatsapp_account_id_fk",
-          "tableFrom": "whatsapp_message",
-          "tableTo": "whatsapp_account",
-          "columnsFrom": ["account_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "whatsapp_message_template_id_whatsapp_template_id_fk": {
-          "name": "whatsapp_message_template_id_whatsapp_template_id_fk",
-          "tableFrom": "whatsapp_message",
-          "tableTo": "whatsapp_template",
-          "columnsFrom": ["template_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "whatsapp_message_sent_by_user_id_user_id_fk": {
-          "name": "whatsapp_message_sent_by_user_id_user_id_fk",
-          "tableFrom": "whatsapp_message",
-          "tableTo": "user",
-          "columnsFrom": ["sent_by_user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.whatsapp_template": {
-      "name": "whatsapp_template",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "school_id": {
-          "name": "school_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "account_id": {
-          "name": "account_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "category": {
-          "name": "category",
-          "type": "whatsapp_template_category",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'UTILITY'"
-        },
-        "language": {
-          "name": "language",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pt_BR'"
-        },
-        "header_text": {
-          "name": "header_text",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "body": {
-          "name": "body",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "footer_text": {
-          "name": "footer_text",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "buttons": {
-          "name": "buttons",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "examples": {
-          "name": "examples",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "status": {
-          "name": "status",
-          "type": "whatsapp_template_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'rascunho'"
-        },
-        "provider_template_id": {
-          "name": "provider_template_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rejection_reason": {
-          "name": "rejection_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "synced_at": {
-          "name": "synced_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by_user_id": {
-          "name": "created_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "whatsapp_template_school_idx": {
-          "name": "whatsapp_template_school_idx",
-          "columns": [
-            {
-              "expression": "school_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "whatsapp_template_school_name_idx": {
-          "name": "whatsapp_template_school_name_idx",
-          "columns": [
-            {
-              "expression": "school_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "name",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "language",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "whatsapp_template_school_id_school_id_fk": {
-          "name": "whatsapp_template_school_id_school_id_fk",
-          "tableFrom": "whatsapp_template",
-          "tableTo": "school",
-          "columnsFrom": ["school_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "whatsapp_template_account_id_whatsapp_account_id_fk": {
-          "name": "whatsapp_template_account_id_whatsapp_account_id_fk",
-          "tableFrom": "whatsapp_template",
-          "tableTo": "whatsapp_account",
-          "columnsFrom": ["account_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "whatsapp_template_created_by_user_id_user_id_fk": {
-          "name": "whatsapp_template_created_by_user_id_user_id_fk",
-          "tableFrom": "whatsapp_template",
-          "tableTo": "user",
-          "columnsFrom": ["created_by_user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -6010,31 +5687,6 @@
       "name": "score_subject_kind",
       "schema": "public",
       "values": ["aluno", "professor", "escola"]
-    },
-    "public.whatsapp_account_status": {
-      "name": "whatsapp_account_status",
-      "schema": "public",
-      "values": ["rascunho", "conectado", "erro"]
-    },
-    "public.whatsapp_message_status": {
-      "name": "whatsapp_message_status",
-      "schema": "public",
-      "values": ["fila", "enviado", "entregue", "lido", "falhou"]
-    },
-    "public.whatsapp_provider": {
-      "name": "whatsapp_provider",
-      "schema": "public",
-      "values": ["cloud", "memoria"]
-    },
-    "public.whatsapp_template_category": {
-      "name": "whatsapp_template_category",
-      "schema": "public",
-      "values": ["UTILITY", "MARKETING", "AUTHENTICATION"]
-    },
-    "public.whatsapp_template_status": {
-      "name": "whatsapp_template_status",
-      "schema": "public",
-      "values": ["rascunho", "enviado", "aprovado", "recusado", "pausado"]
     }
   },
   "schemas": {},

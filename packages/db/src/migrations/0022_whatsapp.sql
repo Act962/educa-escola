@@ -1,4 +1,5 @@
 CREATE TYPE "public"."whatsapp_account_status" AS ENUM('rascunho', 'conectado', 'erro');--> statement-breakpoint
+CREATE TYPE "public"."whatsapp_billing_category" AS ENUM('servico', 'modelo');--> statement-breakpoint
 CREATE TYPE "public"."whatsapp_message_status" AS ENUM('fila', 'enviado', 'entregue', 'lido', 'falhou');--> statement-breakpoint
 CREATE TYPE "public"."whatsapp_provider" AS ENUM('cloud', 'memoria');--> statement-breakpoint
 CREATE TYPE "public"."whatsapp_template_category" AS ENUM('UTILITY', 'MARKETING', 'AUTHENTICATION');--> statement-breakpoint
@@ -25,6 +26,8 @@ CREATE TABLE "whatsapp_account" (
 	"last_error" text,
 	"checked_at" timestamp,
 	"is_default" boolean DEFAULT false NOT NULL,
+	"free_tier_limit" integer,
+	"block_when_exhausted" boolean DEFAULT true NOT NULL,
 	"created_by_user_id" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
@@ -41,6 +44,8 @@ CREATE TABLE "whatsapp_message" (
 	"status" "whatsapp_message_status" DEFAULT 'fila' NOT NULL,
 	"provider_message_id" text,
 	"error" text,
+	"billing_category" "whatsapp_billing_category" DEFAULT 'modelo' NOT NULL,
+	"opened_conversation" boolean DEFAULT false NOT NULL,
 	"sent_by_user_id" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"sent_at" timestamp
@@ -79,5 +84,6 @@ ALTER TABLE "whatsapp_template" ADD CONSTRAINT "whatsapp_template_created_by_use
 CREATE INDEX "whatsapp_account_school_idx" ON "whatsapp_account" USING btree ("school_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "whatsapp_account_default_idx" ON "whatsapp_account" USING btree ("school_id") WHERE is_default;--> statement-breakpoint
 CREATE INDEX "whatsapp_message_school_at_idx" ON "whatsapp_message" USING btree ("school_id","created_at");--> statement-breakpoint
+CREATE INDEX "whatsapp_message_janela_idx" ON "whatsapp_message" USING btree ("account_id","to_phone_e164","billing_category","sent_at");--> statement-breakpoint
 CREATE INDEX "whatsapp_template_school_idx" ON "whatsapp_template" USING btree ("school_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "whatsapp_template_school_name_idx" ON "whatsapp_template" USING btree ("school_id","name","language");

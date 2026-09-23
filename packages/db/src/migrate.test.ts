@@ -81,8 +81,19 @@ afterEach(async () => {
   for (const pasta of pastas.splice(0)) rmSync(pasta, { recursive: true, force: true });
 });
 
+/**
+ * Prazo folgado: estes dois aplicam o lote **inteiro** de migrations num banco
+ * vazio, e o banco de desenvolvimento aqui é gerenciado na nuvem — cada
+ * statement paga ida e volta de rede. Com o padrão de 5s eles passavam quando
+ * havia dez migrations e começaram a estourar sem ninguém mexer neles, que é o
+ * pior tipo de teste instável: falha por crescimento normal do projeto.
+ */
+const PRAZO_DO_LOTE_MS = 60_000;
+
 describe("runMigrations", () => {
-  it("aplica as migrations do projeto num banco vazio, e na segunda vez não faz nada", async () => {
+  it("aplica as migrations do projeto num banco vazio, e na segunda vez não faz nada", {
+    timeout: PRAZO_DO_LOTE_MS,
+  }, async () => {
     const url = await bancoVazio();
 
     const primeira = await runMigrations(url);
@@ -119,7 +130,9 @@ describe("runMigrations", () => {
     expect(tabela?.existe).toBeNull();
   });
 
-  it("serializa execuções simultâneas sem falhar nenhuma", async () => {
+  it("serializa execuções simultâneas sem falhar nenhuma", {
+    timeout: PRAZO_DO_LOTE_MS,
+  }, async () => {
     const url = await bancoVazio();
 
     const [a, b] = await Promise.all([runMigrations(url), runMigrations(url)]);
