@@ -4,6 +4,7 @@ export * from "./auth";
 export * from "./calendar";
 export * from "./communication";
 export * from "./enrollment";
+export * from "./faculty";
 export * from "./gate";
 export * from "./leaderboard";
 export * from "./login-throttle";
