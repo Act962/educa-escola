@@ -41,6 +41,17 @@ function serviceFor(ctx: { db: DbHandle; tenant: TenantContext }) {
 export const whatsappRouter = router({
   visao: permitted({ whatsapp: ["manage"] }).query(({ ctx }) => serviceFor(ctx).visao()),
 
+  /**
+   * A cota gratuita do mês, sozinha.
+   *
+   * `visao` já a traz; esta existe para quem precisa só do número — a fila de
+   * disparo em massa da fase seguinte vai conferi-la antes de cada lote, e
+   * puxar modelos e histórico junto seria pagar por dado que ninguém lê.
+   */
+  consumo: permitted({ whatsapp: ["manage"] })
+    .input(accountId.partial())
+    .query(({ ctx, input }) => serviceFor(ctx).consumo(input.id)),
+
   salvarConta: permitted({ whatsapp: ["manage"] })
     .input(saveAccountInput)
     .mutation(({ ctx, input }) => serviceFor(ctx).salvarConta(input, ctx.membership.userId)),

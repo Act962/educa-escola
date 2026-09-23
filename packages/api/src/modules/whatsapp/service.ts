@@ -1,5 +1,12 @@
 import { ConflictError, NotFoundError, ValidationError } from "../../errors";
 import type { CanalConfig } from "../../messaging/whatsapp";
+import {
+  abreConversa,
+  type ConsumoDoMes,
+  consumoDoMes,
+  inicioDoMesDeCobranca,
+  recadoDaCota,
+} from "../../messaging/whatsapp/billing";
 import { type WhatsAppChannel, WhatsAppError } from "../../messaging/whatsapp/port";
 import {
   type Botao,
@@ -67,6 +74,9 @@ export interface ContaVisivel {
   credencialGravada: boolean;
   credencialAbre: boolean;
   appSecretGravado: boolean;
+  /** `null` é "use o padrão da Meta". Ver `billing.ts`. */
+  freeTierLimit: number | null;
+  blockWhenExhausted: boolean;
 }
 
 function visivel(conta: NonNullable<Conta>, key: string | undefined): ContaVisivel {
@@ -90,6 +100,8 @@ function visivel(conta: NonNullable<Conta>, key: string | undefined): ContaVisiv
     credencialGravada: token !== null,
     credencialAbre: secretOpens(token, key),
     appSecretGravado: conta.appSecretCipher !== null,
+    freeTierLimit: conta.freeTierLimit,
+    blockWhenExhausted: conta.blockWhenExhausted,
   };
 }
 
@@ -157,6 +169,29 @@ export function createWhatsAppService(repo: WhatsAppRepository, deps: WhatsAppDe
   }
 
   /**
+   * O consumo do mês desta conta, com o recado já em português.
+   *
+   * Uma função só, usada pela tela **e** pelo bloqueio do envio: se a barra
+   * dissesse "esgotado" e o envio usasse outra conta, a escola veria vermelho e
+   * a mensagem sairia mesmo assim — ou o contrário, que é pior.
+   */
+  async function consumoDa(conta: NonNullable<Conta>): Promise<ConsumoDoMes & { recado: string }> {
+    const agora = deps.now();
+    const desde = inicioDoMesDeCobranca(agora);
+    const contagem = await repo.countBillingSince(conta.id, desde);
+
+    const consumo = consumoDoMes({
+      conversas: contagem.conversas,
+      mensagensPorModelo: contagem.mensagensPorModelo,
+      teto: conta.freeTierLimit,
+      bloquearAoEsgotar: conta.blockWhenExhausted,
+      agora,
+    });
+
+    return { ...consumo, recado: recadoDaCota(consumo) };
+  }
+
+  /**
    * Erro do canal vira 400, com a frase do canal.
    *
    * Mesma escolha que o Astro faz com `ModelError`, e pela mesma razão: a
@@ -186,8 +221,16 @@ export function createWhatsAppService(repo: WhatsAppRepository, deps: WhatsAppDe
       ]);
 
       const principal = contas.find((c) => c.isDefault) ?? contas[0] ?? null;
+      const consumo = principal ? await consumoDa(principal) : null;
 
       return {
+        /**
+         * A cota gratuita do mês. `null` quando não há número configurado.
+         *
+         * Estimativa nossa, e a tela diz isso: a fatura é da Meta e nós só
+         * sabemos o que mandamos. Ver o cabeçalho de `billing.ts`.
+         */
+        consumo,
         contas: contas.map((c) => visivel(c, deps.key)),
         conta: principal ? visivel(principal, deps.key) : null,
         modelos: modelos.map((linha) => ({
@@ -267,6 +310,12 @@ export function createWhatsAppService(repo: WhatsAppRepository, deps: WhatsAppDe
         phoneNumberId: input.phoneNumberId || null,
         wabaId: input.wabaId || null,
         appId: input.appId || null,
+        // `undefined` não chega ao `set`: campo ausente mantém o que está lá,
+        // e é isso que deixa a tela salvar só o que ela edita.
+        ...(input.freeTierLimit === undefined ? {} : { freeTierLimit: input.freeTierLimit }),
+        ...(input.blockWhenExhausted === undefined
+          ? {}
+          : { blockWhenExhausted: input.blockWhenExhausted }),
         ...segredos,
       };
 
@@ -548,6 +597,10 @@ export function createWhatsAppService(repo: WhatsAppRepository, deps: WhatsAppDe
           templateId: linha.id,
           toPhoneE164: input.para,
           kind: "modelo",
+          // Mensagem por modelo é cobrada por mensagem e **não** sai da cota
+          // gratuita: ela não abre conversa de serviço, abre conversa cobrada.
+          billingCategory: "modelo",
+          openedConversation: false,
           renderedText: texto,
           status: "enviado",
           providerMessageId: aceito.providerMessageId,
@@ -562,6 +615,8 @@ export function createWhatsAppService(repo: WhatsAppRepository, deps: WhatsAppDe
           templateId: linha.id,
           toPhoneE164: input.para,
           kind: "modelo",
+          billingCategory: "modelo",
+          openedConversation: false,
           renderedText: texto,
           status: "falhou",
           error: error instanceof Error ? error.message : "Falha desconhecida.",
@@ -572,11 +627,40 @@ export function createWhatsAppService(repo: WhatsAppRepository, deps: WhatsAppDe
       }
     },
 
-    /** Texto livre. Só chega a quem escreveu para a escola nas últimas 24h. */
+    /**
+     * Texto livre. Só chega a quem escreveu para a escola nas últimas 24h.
+     *
+     * É também o caminho que consome a cota gratuita, e por isso ele decide
+     * **antes de enviar** se esta mensagem abre conversa nova. A decisão é
+     * gravada na linha, e não recalculada na leitura: ela foi tomada com os
+     * dados de um instante que não volta.
+     */
     async enviarTexto(input: SendTextInput, userId: string) {
       const conta = await contaOuFalha();
-      const canal = await canalDa(conta);
 
+      const ultimo = await repo.lastServiceSendTo(conta.id, input.para);
+      const agora = deps.now();
+      const abre = abreConversa(ultimo, agora);
+
+      /**
+       * A cota só barra conversa **nova**.
+       *
+       * Mensagem que pega carona numa janela já aberta não custa nada a mais,
+       * então bloqueá-la seria cortar a conversa pela metade — a família
+       * perguntaria e a escola ficaria muda, sem economizar um centavo.
+       */
+      if (abre) {
+        const consumo = await consumoDa(conta);
+        if (consumo.bloqueado) {
+          throw new ConflictError(
+            `${recadoDaCota(consumo)} Esta mensagem abriria a conversa de número ${
+              consumo.conversas + 1
+            }.`,
+          );
+        }
+      }
+
+      const canal = await canalDa(conta);
       if (!canal.recursos.textoLivre) {
         throw new ValidationError("Este fornecedor não manda texto livre.");
       }
@@ -588,17 +672,23 @@ export function createWhatsAppService(repo: WhatsAppRepository, deps: WhatsAppDe
           accountId: conta.id,
           toPhoneE164: input.para,
           kind: "texto",
+          billingCategory: "servico",
+          openedConversation: abre,
           renderedText: input.texto,
           status: "enviado",
           providerMessageId: aceito.providerMessageId,
           sentByUserId: userId,
-          sentAt: deps.now(),
+          sentAt: agora,
         });
       } catch (error) {
         await repo.insertMessage({
           accountId: conta.id,
           toPhoneE164: input.para,
           kind: "texto",
+          billingCategory: "servico",
+          // Falha não abre janela nem consome cota: a Meta não cobra pelo que
+          // recusou, e contar aqui faria a escola economizar de mentira.
+          openedConversation: false,
           renderedText: input.texto,
           status: "falhou",
           error: error instanceof Error ? error.message : "Falha desconhecida.",
@@ -607,6 +697,11 @@ export function createWhatsAppService(repo: WhatsAppRepository, deps: WhatsAppDe
 
         traduzir(error);
       }
+    },
+
+    /** O consumo do mês, para quem quiser só o número sem a visão inteira. */
+    async consumo(id?: string) {
+      return consumoDa(await contaOuFalha(id));
     },
   };
 }

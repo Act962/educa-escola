@@ -50,6 +50,15 @@ export const saveAccountInput = z.object({
    */
   token: z.string().max(1000).optional(),
   appSecret: z.string().max(400).optional(),
+  /**
+   * O teto de conversas gratuitas do mês. `null` volta ao padrão da Meta.
+   *
+   * `nullish` e não `optional`: ausente mantém o que está gravado, `null`
+   * **apaga** e devolve a conta ao padrão. São duas intenções diferentes, e um
+   * campo só as distingue sem precisar de um botão "voltar ao padrão".
+   */
+  freeTierLimit: z.number().int().min(0).max(1_000_000).nullish(),
+  blockWhenExhausted: z.boolean().optional(),
 });
 
 const botao = z.discriminatedUnion("tipo", [

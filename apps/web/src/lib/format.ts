@@ -188,6 +188,20 @@ export function instantDateText(value: Date | string | null | undefined): string
   return date.toLocaleDateString("pt-BR");
 }
 
+/**
+ * Instante -> "01/10/2026", lido **em UTC**.
+ *
+ * Existe para as bordas do mês de cobrança da Meta, que são meia-noite UTC.
+ * Com `instantDateText`, `2026-10-01T00:00:00Z` vira "30/09" no fuso de São
+ * Paulo — e o painel diria que a cota renova um dia antes do que renova.
+ * Fora desse caso, use `instantDateText`: data de escola é local.
+ */
+export function utcDateText(value: Date | string | null | undefined): string {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  return date.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+}
+
 /** "vence hoje", "em 4 dias", "vencido" — o que a fila precisa dizer. */
 export function deadlineText(value: Date | string | null | undefined, agora = new Date()): string {
   if (!value) return "—";

@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../errors";
+import { CONVERSAS_DE_SERVICO_GRATUITAS } from "../../messaging/whatsapp/billing";
 import { createMemoryChannel, type MemoryChannel } from "../../messaging/whatsapp/memory";
-import { CredencialRecusadaError, type WhatsAppChannel } from "../../messaging/whatsapp/port";
+import {
+  CredencialRecusadaError,
+  ForaDaJanelaError,
+  type WhatsAppChannel,
+} from "../../messaging/whatsapp/port";
 import type { WhatsAppRepository } from "./repository";
 import { encryptSecret } from "./secret";
 import { createWhatsAppService } from "./service";
@@ -47,6 +52,8 @@ const conta = (over: Partial<Conta> = {}): Conta =>
     lastError: null,
     checkedAt: null,
     isDefault: true,
+    freeTierLimit: null,
+    blockWhenExhausted: true,
     createdByUserId: "u1",
     createdAt: AGORA,
     updatedAt: AGORA,
@@ -137,6 +144,30 @@ function fakeRepo(inicial: { contas?: Conta[]; modelos?: Modelo[] } = {}) {
       mensagens.push(nova);
       return nova;
     },
+    /** O dublê repete a regra do repositório: só serviço, e só o que não falhou. */
+    lastServiceSendTo: async (accountId, phone) => {
+      const dela = mensagens.filter(
+        (m) =>
+          m.accountId === accountId &&
+          m.toPhoneE164 === phone &&
+          m.billingCategory === "servico" &&
+          m.status !== "falhou" &&
+          m.sentAt,
+      );
+      return dela.at(-1)?.sentAt ?? null;
+    },
+    countBillingSince: async (accountId, desde) => {
+      const dela = mensagens.filter(
+        (m) =>
+          m.accountId === accountId &&
+          m.status !== "falhou" &&
+          (m.createdAt ?? AGORA).getTime() >= desde.getTime(),
+      );
+      return {
+        conversas: dela.filter((m) => m.openedConversation).length,
+        mensagensPorModelo: dela.filter((m) => m.billingCategory === "modelo").length,
+      };
+    },
     listMessages: async () => mensagens,
   };
 
@@ -146,16 +177,27 @@ function fakeRepo(inicial: { contas?: Conta[]; modelos?: Modelo[] } = {}) {
 function servicoCom(
   estado: ReturnType<typeof fakeRepo>,
   canal: WhatsAppChannel,
-  over: { key?: string; simulacao?: boolean } = {},
+  over: { key?: string; simulacao?: boolean; relogio?: () => Date } = {},
 ) {
   return createWhatsAppService(estado.repo, {
     // `"key" in over` e não `?? CHAVE`: o caso que importa é passar `undefined`
     // de propósito — servidor sem a chave configurada.
     key: "key" in over ? over.key : CHAVE,
     canal: () => canal,
-    now: () => AGORA,
+    now: over.relogio ?? (() => AGORA),
     simulacao: over.simulacao ?? false,
   });
+}
+
+/** Um relógio que anda, para os casos de janela de 24 horas. */
+function relogioEm(inicio: Date) {
+  let agora = inicio;
+  return {
+    agora: () => agora,
+    avancarHoras: (horas: number) => {
+      agora = new Date(agora.getTime() + horas * 60 * 60 * 1000);
+    },
+  };
 }
 
 describe("credencial", () => {
@@ -458,5 +500,164 @@ describe("envio", () => {
     const visao = await servicoCom(estado, createMemoryChannel(), { simulacao: true }).visao();
 
     expect(visao.simulacao).toBe(true);
+  });
+});
+
+describe("a cota gratuita da Meta", () => {
+  const mensagem = { para: "+5586998122039", texto: "Bom dia, a reunião foi confirmada." };
+
+  it("a visão traz o consumo do mês com o teto padrão", async () => {
+    const estado = fakeRepo({ contas: [conta()] });
+    const visao = await servicoCom(estado, createMemoryChannel()).visao();
+
+    expect(visao.consumo).toMatchObject({
+      conversas: 0,
+      teto: CONVERSAS_DE_SERVICO_GRATUITAS,
+      estado: "tranquilo",
+      bloqueado: false,
+    });
+  });
+
+  it("sem número configurado, não há consumo a mostrar", async () => {
+    const visao = await servicoCom(fakeRepo(), createMemoryChannel()).visao();
+    expect(visao.consumo).toBeNull();
+  });
+
+  /**
+   * O ponto da contagem: cinco mensagens para a mesma família em duas horas
+   * são **uma** conversa para a Meta. Contar mensagens faria o painel acusar
+   * cinco, e a escola se conteria por causa de um número inventado por nós.
+   */
+  it("mensagem dentro das 24 horas não abre conversa nova", async () => {
+    const estado = fakeRepo({ contas: [conta()] });
+    const relogio = relogioEm(AGORA);
+    const servico = servicoCom(estado, createMemoryChannel(), { relogio: relogio.agora });
+
+    await servico.enviarTexto(mensagem, "u1");
+    relogio.avancarHoras(2);
+    await servico.enviarTexto({ ...mensagem, texto: "Só confirmando o horário." }, "u1");
+
+    expect(estado.mensagens.map((m) => m.openedConversation)).toEqual([true, false]);
+    expect((await servico.consumo()).conversas).toBe(1);
+  });
+
+  it("passadas as 24 horas, a conversa seguinte é nova", async () => {
+    const estado = fakeRepo({ contas: [conta()] });
+    const relogio = relogioEm(AGORA);
+    const servico = servicoCom(estado, createMemoryChannel(), { relogio: relogio.agora });
+
+    await servico.enviarTexto(mensagem, "u1");
+    relogio.avancarHoras(25);
+    await servico.enviarTexto(mensagem, "u1");
+
+    expect((await servico.consumo()).conversas).toBe(2);
+  });
+
+  it("cada família é uma conversa", async () => {
+    const estado = fakeRepo({ contas: [conta()] });
+    const servico = servicoCom(estado, createMemoryChannel());
+
+    await servico.enviarTexto(mensagem, "u1");
+    await servico.enviarTexto({ ...mensagem, para: "+5586998122040" }, "u1");
+
+    expect((await servico.consumo()).conversas).toBe(2);
+  });
+
+  /**
+   * Mensagem por modelo é cobrada por mensagem e **não** sai desta cota.
+   * Somar as duas faria o painel dizer que a cota acabou quando o que acabou
+   * foi o dinheiro.
+   */
+  it("mensagem por modelo não consome a cota, mas é contada", async () => {
+    const estado = fakeRepo({ contas: [conta()], modelos: [modelo()] });
+    const servico = servicoCom(estado, createMemoryChannel());
+    await servico.enviarParaAprovacao("m1");
+
+    await servico.enviarTeste({ templateId: "m1", para: "+5586998122039", valores: {} }, "u1");
+
+    const consumo = await servico.consumo();
+    expect(consumo.conversas).toBe(0);
+    expect(consumo.mensagensPorModelo).toBe(1);
+    expect(consumo.restantes).toBe(CONVERSAS_DE_SERVICO_GRATUITAS);
+  });
+
+  it("envio que falhou não consome cota", async () => {
+    const estado = fakeRepo({ contas: [conta()] });
+    const canal: WhatsAppChannel = {
+      ...createMemoryChannel(),
+      enviarTexto: async () => {
+        throw new ForaDaJanelaError("Faz mais de 24 horas desde a última mensagem.");
+      },
+    };
+
+    const servico = servicoCom(estado, canal);
+    await expect(servico.enviarTexto(mensagem, "u1")).rejects.toBeInstanceOf(ValidationError);
+
+    expect(estado.mensagens[0]?.status).toBe("falhou");
+    expect((await servico.consumo()).conversas).toBe(0);
+  });
+
+  it("esgotada a cota e com bloqueio ligado, recusa abrir conversa nova", async () => {
+    const estado = fakeRepo({ contas: [conta({ freeTierLimit: 1 })] });
+    const relogio = relogioEm(AGORA);
+    const servico = servicoCom(estado, createMemoryChannel(), { relogio: relogio.agora });
+
+    await servico.enviarTexto(mensagem, "u1");
+    relogio.avancarHoras(25);
+
+    await expect(servico.enviarTexto(mensagem, "u1")).rejects.toBeInstanceOf(ConflictError);
+    // Recusada antes de sair: nada de linha "enviado" no histórico.
+    expect(estado.mensagens).toHaveLength(1);
+  });
+
+  /**
+   * Bloquear quem pega carona cortaria a conversa pela metade — a família
+   * pergunta e a escola fica muda — sem economizar um centavo, porque a
+   * conversa já estava aberta e paga.
+   */
+  it("esgotada a cota, quem pega carona na janela aberta ainda passa", async () => {
+    const estado = fakeRepo({ contas: [conta({ freeTierLimit: 1 })] });
+    const relogio = relogioEm(AGORA);
+    const servico = servicoCom(estado, createMemoryChannel(), { relogio: relogio.agora });
+
+    await servico.enviarTexto(mensagem, "u1");
+    relogio.avancarHoras(3);
+
+    await expect(
+      servico.enviarTexto({ ...mensagem, texto: "Respondendo à sua dúvida." }, "u1"),
+    ).resolves.toBeDefined();
+    expect(estado.mensagens).toHaveLength(2);
+  });
+
+  /** Passar do teto é decisão legítima da escola, desde que consciente. */
+  it("com o bloqueio desligado, a mensagem sai e passa a ser cobrada", async () => {
+    const estado = fakeRepo({
+      contas: [conta({ freeTierLimit: 1, blockWhenExhausted: false })],
+    });
+    const relogio = relogioEm(AGORA);
+    const servico = servicoCom(estado, createMemoryChannel(), { relogio: relogio.agora });
+
+    await servico.enviarTexto(mensagem, "u1");
+    relogio.avancarHoras(25);
+
+    await expect(servico.enviarTexto(mensagem, "u1")).resolves.toBeDefined();
+    const consumo = await servico.consumo();
+    expect(consumo.conversas).toBe(2);
+    expect(consumo.estado).toBe("esgotado");
+    expect(consumo.recado).toContain("cobra");
+  });
+
+  it("o teto da conta pode ser apagado e volta ao padrão", async () => {
+    const estado = fakeRepo({ contas: [conta({ freeTierLimit: 50 })] });
+    const servico = servicoCom(estado, createMemoryChannel());
+
+    expect((await servico.consumo()).teto).toBe(50);
+
+    await servico.salvarConta(
+      { id: "c1", label: "Secretaria", provider: "cloud", freeTierLimit: null },
+      "u1",
+    );
+
+    expect((await servico.consumo()).teto).toBe(CONVERSAS_DE_SERVICO_GRATUITAS);
   });
 });

@@ -1,3 +1,4 @@
+import { CONVERSAS_DE_SERVICO_GRATUITAS } from "@educa-escola/api/messaging/whatsapp/billing";
 import { Alert, AlertDescription, AlertTitle } from "@educa-escola/ui/components/alert";
 import { Badge } from "@educa-escola/ui/components/badge";
 import { Button } from "@educa-escola/ui/components/button";
@@ -82,6 +83,12 @@ export function ContaDoWhatsApp({ visao }: { visao: Visao }) {
       // pré-preenchido com pontinhos convidaria a salvar "••••" como token.
       token: "",
       appSecret: "",
+      // Vazio é "use o padrão da Meta", e é assim que a escola volta atrás.
+      // Um `1000` escrito no campo viraria valor gravado na primeira gravação,
+      // e o dia em que a Meta mudasse o padrão esta escola ficaria para trás.
+      freeTierLimit:
+        conta?.freeTierLimit === null || conta === null ? "" : String(conta.freeTierLimit),
+      blockWhenExhausted: conta?.blockWhenExhausted ?? true,
     },
     validators: {
       onSubmit: z.object({
@@ -92,10 +99,23 @@ export function ContaDoWhatsApp({ visao }: { visao: Visao }) {
         appId: z.string().trim().max(60),
         token: z.string().max(1000),
         appSecret: z.string().max(400),
+        freeTierLimit: z
+          .string()
+          .trim()
+          .refine(
+            (v) => v === "" || (Number.isInteger(Number(v)) && Number(v) >= 0),
+            "Informe um número inteiro, ou deixe em branco para o padrão da Meta",
+          ),
+        blockWhenExhausted: z.boolean(),
       }),
     },
     onSubmit: async ({ value, formApi }) => {
-      await salvar.mutateAsync({ ...value, id: conta?.id });
+      await salvar.mutateAsync({
+        ...value,
+        id: conta?.id,
+        // `null` apaga o teto e devolve a conta ao padrão; um número o fixa.
+        freeTierLimit: value.freeTierLimit.trim() === "" ? null : Number(value.freeTierLimit),
+      });
       // Só os segredos voltam a vazio: o resto continua na tela, porque é o
       // que a pessoa acabou de conferir.
       formApi.reset({ ...value, token: "", appSecret: "" });
@@ -235,6 +255,50 @@ export function ContaDoWhatsApp({ visao }: { visao: Visao }) {
           </form.Field>
         </div>
 
+        <div className="flex flex-col gap-4 rounded-xl bg-muted p-4">
+          <div className="flex flex-col gap-1">
+            <p className="font-semibold text-corpo">Cota gratuita</p>
+            <p className="text-meta text-muted-foreground">
+              A Meta não cobra as primeiras conversas de serviço de cada mês — as que acontecem
+              dentro das 24 horas depois de a família escrever. Mensagem por modelo é cobrada por
+              mensagem e não entra nesta conta.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+            <form.Field name="freeTierLimit">
+              {(field) => (
+                <Campo
+                  label="Conversas gratuitas por mês"
+                  inputMode="numeric"
+                  placeholder={String(CONVERSAS_DE_SERVICO_GRATUITAS)}
+                  ajuda={`Em branco usa o padrão da Meta (${CONVERSAS_DE_SERVICO_GRATUITAS}). Preencha só se o seu contrato for outro.`}
+                  field={field}
+                />
+              )}
+            </form.Field>
+
+            <form.Field name="blockWhenExhausted">
+              {(field) => (
+                <label className="flex items-start gap-2.5 self-end rounded-control bg-card px-4 py-3 text-corpo">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 size-4 accent-primary"
+                    checked={field.state.value}
+                    onChange={(evento) => field.handleChange(evento.target.checked)}
+                  />
+                  <span>
+                    Bloquear conversas novas quando a cota acabar
+                    <span className="block text-meta text-muted-foreground">
+                      Responder a quem já escreveu continua liberado.
+                    </span>
+                  </span>
+                </label>
+              )}
+            </form.Field>
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center gap-2">
           <form.Subscribe selector={(estado) => estado.isSubmitting}>
             {(enviando) => (
@@ -322,12 +386,14 @@ function Campo({
   label,
   ajuda,
   type,
+  inputMode,
   placeholder,
   field,
 }: {
   label: string;
   ajuda: string;
   type?: string;
+  inputMode?: "numeric" | "tel";
   placeholder?: string;
   field: {
     name: string;
@@ -343,6 +409,7 @@ function Campo({
         id={field.name}
         name={field.name}
         type={type}
+        inputMode={inputMode}
         autoComplete={type === "password" ? "off" : undefined}
         placeholder={placeholder}
         value={field.state.value}

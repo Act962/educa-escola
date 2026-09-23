@@ -11,9 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@educa-escola/ui/components/select";
+import { Textarea } from "@educa-escola/ui/components/textarea";
 import { EmptyState } from "@educa-escola/ui/integra/states";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Send } from "lucide-react";
+import { Clock, MessageSquare, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -153,6 +154,8 @@ export function EnviosDoWhatsApp({ visao }: { visao: Visao }) {
         )}
       </div>
 
+      <TextoLivre visao={visao} />
+
       <div className="flex flex-col gap-3">
         <h3 className="font-extrabold text-lg tracking-[-0.3px]">Últimos envios</h3>
 
@@ -186,6 +189,99 @@ export function EnviosDoWhatsApp({ visao }: { visao: Visao }) {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Texto livre: responder a quem escreveu.
+ *
+ * É o caminho que consome a cota gratuita — e o único que a consome. Sem ele na
+ * tela, o painel de cota seria enfeite: mostraria zero para sempre, porque nada
+ * na interface abriria conversa de serviço.
+ *
+ * O aviso das 24 horas fica **acima** do campo, não abaixo do botão. É a
+ * restrição que faz a mensagem sumir sem erro visível para quem mandou, e
+ * ninguém lê rodapé depois de clicar.
+ */
+function TextoLivre({ visao }: { visao: Visao }) {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const [para, setPara] = useState("");
+  const [texto, setTexto] = useState("");
+
+  const bloqueado = visao.consumo?.bloqueado ?? false;
+
+  const enviar = useMutation(
+    trpc.whatsapp.enviarTexto.mutationOptions({
+      onSuccess: async () => {
+        toast.success(
+          visao.simulacao
+            ? "Registrado em simulação — nenhuma mensagem saiu."
+            : "Mensagem enviada.",
+        );
+        setTexto("");
+        await queryClient.invalidateQueries({ queryKey: [["whatsapp"]] });
+      },
+      onError: async (error) => {
+        toast.error(error.message);
+        await queryClient.invalidateQueries({ queryKey: [["whatsapp"]] });
+      },
+    }),
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h3 className="font-extrabold text-lg tracking-[-0.3px]">Responder por texto livre</h3>
+
+      <Alert variant="info">
+        <MessageSquare />
+        <AlertTitle>Só chega a quem escreveu nas últimas 24 horas</AlertTitle>
+        <AlertDescription>
+          É a regra da Meta, não nossa. Fora dessa janela, a conversa só recomeça por um modelo
+          aprovado — e a primeira mensagem de cada janela consome uma conversa da cota gratuita.
+        </AlertDescription>
+      </Alert>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="texto-para">Número de destino</Label>
+        <Input
+          id="texto-para"
+          inputMode="tel"
+          placeholder="(86) 99812-2039"
+          value={para}
+          onChange={(evento) => setPara(evento.target.value)}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="texto-corpo">Mensagem</Label>
+        <Textarea
+          id="texto-corpo"
+          rows={3}
+          maxLength={4000}
+          placeholder="Bom dia! A reunião foi confirmada para quinta, às 19h."
+          value={texto}
+          onChange={(evento) => setTexto(evento.target.value)}
+        />
+      </div>
+
+      <div>
+        <Button
+          variant="outline"
+          disabled={!para || !texto.trim() || enviar.isPending}
+          onClick={() => enviar.mutate({ para, texto })}
+        >
+          <Send />
+          {enviar.isPending ? "Enviando…" : "Enviar resposta"}
+        </Button>
+        {bloqueado ? (
+          <p className="pt-2 text-meta text-warning">
+            A cota do mês acabou: responder a uma conversa já aberta continua funcionando, começar
+            uma nova não.
+          </p>
+        ) : null}
       </div>
     </div>
   );

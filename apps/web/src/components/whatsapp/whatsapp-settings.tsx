@@ -8,6 +8,7 @@ import { FlaskConical } from "lucide-react";
 import { useTRPC } from "@/utils/trpc";
 
 import { ContaDoWhatsApp } from "./conta";
+import { CotaDoMes } from "./cota";
 import { EnviosDoWhatsApp } from "./envios";
 import { ModelosDoWhatsApp } from "./modelos";
 
@@ -76,6 +77,8 @@ export function WhatsAppSettings() {
           </AlertDescription>
         </Alert>
       ) : null}
+
+      {visao.data.consumo ? <CotaDoMes consumo={visao.data.consumo} /> : null}
 
       <Tabs defaultValue="numero">
         <TabsList>

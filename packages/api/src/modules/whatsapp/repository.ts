@@ -1,6 +1,6 @@
 import { whatsappAccount, whatsappMessage, whatsappTemplate } from "@educa-escola/db/schema";
 import type { DbHandle } from "@educa-escola/db/types";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, ne, sql } from "drizzle-orm";
 
 import type { TenantContext } from "../../trpc/tenant";
 
@@ -129,6 +129,67 @@ export function createWhatsAppRepository(db: DbHandle, tenant: TenantContext) {
         .values({ ...values, schoolId: tenant.schoolId })
         .returning();
       return row as NonNullable<typeof row>;
+    },
+
+    /**
+     * O último envio de serviço para este número, nesta conta.
+     *
+     * É o que responde "a janela de 24 horas ainda está aberta?" — a pergunta
+     * que decide se a mensagem consome uma conversa da cota gratuita. Roda
+     * antes de **todo** envio de texto livre, e por isso tem índice próprio.
+     *
+     * O que falhou não conta: mensagem recusada pela Meta não abriu janela
+     * nenhuma, e tratá-la como se tivesse aberto faria a seguinte pegar carona
+     * numa conversa que não existe.
+     */
+    async lastServiceSendTo(accountId: string, phone: string) {
+      const [row] = await db
+        .select({ sentAt: whatsappMessage.sentAt })
+        .from(whatsappMessage)
+        .where(
+          and(
+            eq(whatsappMessage.schoolId, tenant.schoolId),
+            eq(whatsappMessage.accountId, accountId),
+            eq(whatsappMessage.toPhoneE164, phone),
+            eq(whatsappMessage.billingCategory, "servico"),
+            ne(whatsappMessage.status, "falhou"),
+          ),
+        )
+        .orderBy(desc(whatsappMessage.sentAt))
+        .limit(1);
+
+      return row?.sentAt ?? null;
+    },
+
+    /**
+     * O consumo da conta desde um instante: conversas abertas e mensagens por
+     * modelo.
+     *
+     * Os dois saem da mesma varredura porque são a mesma linha — dois `select`
+     * sobre o mesmo intervalo pagariam o índice duas vezes para responder à
+     * mesma pergunta. Mesmo arranjo de `assistant_usage`.
+     *
+     * Conta **conversas**, não mensagens: é a unidade que a Meta cobra. Cinco
+     * mensagens para a mesma família em duas horas são uma conversa lá, e
+     * contá-las como cinco faria o painel acusar um consumo que não houve.
+     */
+    async countBillingSince(accountId: string, desde: Date) {
+      const [row] = await db
+        .select({
+          conversas: sql<number>`count(*) filter (where ${whatsappMessage.openedConversation})::int`,
+          mensagensPorModelo: sql<number>`count(*) filter (where ${whatsappMessage.billingCategory} = 'modelo')::int`,
+        })
+        .from(whatsappMessage)
+        .where(
+          and(
+            eq(whatsappMessage.schoolId, tenant.schoolId),
+            eq(whatsappMessage.accountId, accountId),
+            ne(whatsappMessage.status, "falhou"),
+            gte(whatsappMessage.createdAt, desde),
+          ),
+        );
+
+      return row ?? { conversas: 0, mensagensPorModelo: 0 };
     },
 
     /** As últimas do histórico. A aba mostra as recentes, não o ano inteiro. */

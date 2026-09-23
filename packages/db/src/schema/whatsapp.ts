@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -110,6 +111,27 @@ export const whatsappAccount = pgTable(
      * mensagem sair pelo número errado.
      */
     isDefault: boolean("is_default").default(false).notNull(),
+    /**
+     * O teto de conversas gratuitas do mês. `null` usa o padrão da Meta.
+     *
+     * Coluna anulável, e não um `1000` gravado: o número é da Meta e ela o
+     * muda. Com `null` significando "use a constante", mudar o padrão é uma
+     * linha em `billing.ts` e vale para toda escola no deploy seguinte — só
+     * quem tem contrato diferente carrega valor próprio aqui.
+     */
+    freeTierLimit: integer("free_tier_limit"),
+    /**
+     * Esgotada a cota, o sistema recusa abrir conversa nova.
+     *
+     * Ligado por padrão, e é a escolha conservadora de propósito: a conta é da
+     * escola, e uma escola que descobre o estouro na fatura descobre tarde.
+     * Quem quiser passar do teto desliga aqui, conscientemente — que é
+     * diferente de passar sem perceber.
+     *
+     * **Não vale para mensagem por modelo**: ela é cobrada por mensagem e não
+     * sai desta cota. Bloqueá-la aqui inventaria uma regra que a Meta não tem.
+     */
+    blockWhenExhausted: boolean("block_when_exhausted").default(true).notNull(),
     createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -226,6 +248,16 @@ export const whatsappMessageStatus = pgEnum("whatsapp_message_status", [
  * de número ou sair da matrícula depois. Apontar para a linha faria o histórico
  * mudar de destinatário retroativamente.
  */
+/**
+ * Como a mensagem entra na conta da Meta.
+ *
+ * `servico` é texto livre dentro da janela de atendimento — o que consome a
+ * cota gratuita de mil conversas por mês. `modelo` é mensagem por modelo
+ * aprovado, cobrada por mensagem e fora dessa cota. Somar as duas num contador
+ * só faria o painel dizer que a cota acabou quando o que acabou foi o dinheiro.
+ */
+export const whatsappBillingCategory = pgEnum("whatsapp_billing_category", ["servico", "modelo"]);
+
 export const whatsappMessage = pgTable(
   "whatsapp_message",
   {
@@ -241,9 +273,33 @@ export const whatsappMessage = pgTable(
     providerMessageId: text("provider_message_id"),
     /** A mensagem de erro em português, quando falhou. */
     error: text("error"),
+    billingCategory: whatsappBillingCategory("billing_category").default("modelo").notNull(),
+    /**
+     * Esta mensagem abriu uma conversa de serviço?
+     *
+     * É o que o contador soma. Guardado na linha, e **não recalculado na
+     * leitura**, porque a decisão foi tomada com os dados de um instante que
+     * não volta: a janela daquele número estava aberta ou não quando se
+     * apertou enviar. Recalcular depois mudaria o passado toda vez que a regra
+     * da Meta mudasse.
+     */
+    openedConversation: boolean("opened_conversation").default(false).notNull(),
     sentByUserId: text("sent_by_user_id").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     sentAt: timestamp("sent_at"),
   },
-  (table) => [index("whatsapp_message_school_at_idx").on(table.schoolId, table.createdAt)],
+  (table) => [
+    index("whatsapp_message_school_at_idx").on(table.schoolId, table.createdAt),
+    /**
+     * O índice da janela: "qual foi o último envio de serviço para este
+     * número nesta conta?". É a consulta que roda antes de **todo** envio, e
+     * sem ela o disparo em massa varre a tabela inteira por destinatário.
+     */
+    index("whatsapp_message_janela_idx").on(
+      table.accountId,
+      table.toPhoneE164,
+      table.billingCategory,
+      table.sentAt,
+    ),
+  ],
 );

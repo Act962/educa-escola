@@ -51,6 +51,8 @@ agora, por inércia, uma decisão que ainda está aberta.
    botões e variáveis — e envio para aprovação da Meta pelo próprio sistema.
 6. Envio de teste para um número, com registro do resultado.
 7. Log de envios: para quem, qual modelo, o que o provedor respondeu.
+8. **O contador da cota gratuita** — §12, acrescentado depois da primeira
+   entrega, quando ficou claro que a Meta passaria a cobrar por mensagem.
 
 ### Fica para a fase seguinte
 
@@ -319,7 +321,79 @@ incidente não deve obrigar a recadastrar a outra.
 
 ---
 
-## 12. Riscos
+## 12. A cota gratuita, e por que ela é uma estimativa
+
+A Meta cobra por mensagem, e dá de graça as **primeiras mil conversas de
+serviço de cada mês** — as que acontecem dentro da janela de 24 horas aberta
+por quem escreveu para a escola. Mensagem por modelo é cobrada por mensagem e
+**não** sai dessa cota.
+
+Sem um contador, a escola descobre o estouro na fatura. Com um contador que
+conta a coisa errada, ela se contém à toa. As duas coisas custam caro, e a
+segunda é a mais fácil de construir por engano.
+
+### A unidade é conversa, não mensagem
+
+Cinco mensagens para a mesma família em duas horas são **uma** conversa para a
+Meta. Um painel que contasse mensagens acusaria cinco — e a secretaria pararia
+de responder por causa de um número inventado por nós.
+
+Por isso cada envio decide, **antes de sair**, se abre conversa nova: há envio
+de serviço para aquele número nas últimas 24 horas? A resposta vira a coluna
+`opened_conversation`, e é ela que o contador soma. Gravada, e não recalculada
+na leitura, porque a decisão foi tomada com os dados de um instante que não
+volta.
+
+### Três coisas que nos escapam, e por isso "estimativa"
+
+1. **A janela abre quando a família escreve**, e sem o webhook de entrada nós
+   não vemos essa mensagem. Usamos o nosso próprio último envio como âncora —
+   aproximação que erra para mais.
+2. **O que a Meta aceitou e não entregou** conta para ela e não para nós, até o
+   webhook existir.
+3. **A cota é da conta comercial (WABA)**, não do número. Duas escolas na mesma
+   WABA somariam consumo, e cada uma enxerga só o seu.
+
+A tela diz isso com todas as letras e manda conferir no Gerenciador da Meta.
+Painel que se apresenta como fatura e não é vira discussão com a direção sobre
+um valor que nunca foi nosso.
+
+### O bloqueio
+
+Esgotada a cota, o sistema recusa **abrir conversa nova** — e só isso. Quem
+pega carona numa janela já aberta continua passando: bloqueá-lo cortaria a
+conversa pela metade, com a família perguntando e a escola muda, sem economizar
+um centavo.
+
+Ligado por padrão, e é a escolha conservadora de propósito: a conta é da
+escola, e quem descobre o estouro na fatura descobre tarde. Desligar é decisão
+consciente da direção, que é diferente de passar do teto sem perceber.
+
+O teto fica em `billing.ts` como constante, com uma coluna por conta para quem
+tiver contrato diferente. Vazia, a coluna significa "use o padrão" — e o dia em
+que a Meta mudar o número é uma linha aqui, não uma migração de dado.
+
+### O mês é o da Meta
+
+`inicioDoMesDeCobranca` usa **UTC**, e é a exceção declarada ao `toSchoolDate`
+de `dates.ts`: lá o assunto é dia letivo, que é civil e local; aqui é mês de
+fornecedor. Usar o fuso da escola faria o painel virar três horas depois da
+fatura — e, nessas três horas, mostrar zero restante com a cota nova já
+valendo.
+
+### `[A VALIDAR]` o que ainda não está na conta
+
+- **Modelo de utilidade dentro de janela aberta** a Meta não cobra desde o fim
+  de 2024. Aqui todo modelo é contado como cobrado, o que erra para o lado
+  seguro — mostra um custo maior que o real. Acertar depende de saber se a
+  janela estava aberta, que é o webhook.
+- **Preço por conversa** não aparece em lugar nenhum: ele varia por país e por
+  categoria, e um valor em reais escrito no código estaria errado em algum mês.
+  O painel conta unidades; a moeda fica no Gerenciador.
+
+---
+
+## 13. Riscos
 
 - **Token de acesso expira.** O token do app dura 24h; o permanente vem de
   System User no Business Manager. A tela precisa dizer isso *antes*, porque
@@ -330,14 +404,16 @@ incidente não deve obrigar a recadastrar a outra.
   `template.ts` faz.
 - **Custo por conversa.** A Meta cobra por conversa iniciada. Um disparo para
   a escola inteira é dinheiro, e a confirmação explícita de público que
-  `communication` já exige (§8.3, regra 5) vale aqui também. Fase 2.
+  `communication` já exige (§8.3, regra 5) vale aqui também. Fase 2 — mas o
+  contador da §12 já existe, e é ele que a fila de disparo vai consultar antes
+  de cada lote.
 - **Número banido por denúncia.** Família que marca como spam derruba a
   qualidade da conta. É risco de operação, não de código, e a seção "Número"
   mostra a qualidade que a Meta reporta para a escola ver antes de cair.
 
 ---
 
-## 13. Pendências
+## 14. Pendências
 
 - `[A VALIDAR]` Professor pode disparar pelo número da escola?
 - `[A VALIDAR]` Consentimento: o termo de matrícula cobre "receber avisos por
