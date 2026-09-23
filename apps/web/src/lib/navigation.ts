@@ -53,7 +53,7 @@ export interface NavEntry {
   destaque?: boolean;
 }
 
-const GESTAO: NavEntry[] = [
+const MANAGEMENT: NavEntry[] = [
   { label: "Início", to: "/inicio", icon: Home },
   { label: "Alunos", to: "/alunos", icon: GraduationCap },
   { label: "Turmas", to: "/turmas", icon: LayoutGrid },
@@ -92,7 +92,7 @@ const GESTAO: NavEntry[] = [
   { label: "Apps", to: "/apps", icon: Blocks, destaque: true },
 ];
 
-const PROFESSOR: NavEntry[] = [
+const TEACHER: NavEntry[] = [
   { label: "Início", to: "/inicio", icon: Home },
   { label: "Minhas turmas", to: "/turmas", icon: Users },
   { label: "Chamada", to: "/chamada", icon: CircleCheck, badge: "chamadasPendentes" },
@@ -106,7 +106,7 @@ const PROFESSOR: NavEntry[] = [
   { label: "Comunicados", to: "/mural", icon: MessageCircle, badge: "comunicadosNaoLidos" },
 ];
 
-const ALUNO: NavEntry[] = [
+const STUDENT: NavEntry[] = [
   { label: "Início", to: "/inicio", icon: Home },
   { label: "Minhas notas", to: "/boletim", icon: BookOpen },
   { label: "Frequência", to: "/frequencia", icon: ClipboardCheck },
@@ -126,9 +126,9 @@ const ALUNO: NavEntry[] = [
  * não é dela.
  */
 export function navigationFor(role: AppRole): NavEntry[] {
-  if (role === "teacher") return PROFESSOR;
-  if (role === "student") return ALUNO;
-  return GESTAO;
+  if (role === "teacher") return TEACHER;
+  if (role === "student") return STUDENT;
+  return MANAGEMENT;
 }
 
 export function roleLabel(role: AppRole): string {

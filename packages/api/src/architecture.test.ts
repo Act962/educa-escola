@@ -83,13 +83,52 @@ describe("regras de arquitetura", () => {
         const fonte = readFileSync(file, "utf8");
         return [...fonte.matchAll(fabrica)]
           .filter(([, , params]) => !(params ?? "").includes("tenant"))
-          .map(([, nome]) => `${rel(file)}::${nome}`);
+          .map(([, name]) => `${rel(file)}::${name}`);
       });
 
     // Subconjunto, e não igualdade: a lista precisa sobreviver a um branch em
     // que o módulo citado ainda não existe. O que este teste guarda é a
     // consulta nova que ninguém autorizou, não a linha velha que sobrou.
-    expect(semTenant.filter((chave) => !CONSULTAS_SEM_TENANT.includes(chave))).toEqual([]);
+    expect(semTenant.filter((key) => !CONSULTAS_SEM_TENANT.includes(key))).toEqual([]);
+  });
+
+  /**
+   * O SDK da AWS é detalhe do adaptador do R2.
+   *
+   * O dia de trocar de provedor precisa ser o dia de escrever um irmão de
+   * `storage/r2.ts`, e não o de caçar `S3Client` pelo código. Mesma ideia da
+   * regra do `drizzle-orm`: mecânica, não cultural.
+   */
+  it("só storage/ conhece o SDK da AWS", () => {
+    const offenders = sourceFiles(SRC)
+      .filter((file) => !file.includes(`${sep}storage${sep}`))
+      .filter((file) => /from\s+"@aws-sdk\/[^"]*"/.test(readFileSync(file, "utf8")))
+      .map(rel);
+
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * Adaptador cru não tem tenant.
+   *
+   * `createR2Storage` e `createMemoryStorage` aceitam qualquer chave, inclusive
+   * a de outra escola. Quem consome storage monta por `storageDoAmbiente()` e
+   * embrulha com `createTenantStorage` — construir o adaptador direto num
+   * service ou router pula a camada que segura o isolamento.
+   *
+   * Vale só para código de produção: teste de service legitimamente monta um
+   * storage em memória para não depender de rede.
+   */
+  it("fora de storage/, código de produção não constrói adaptador cru", () => {
+    const offenders = sourceFiles(SRC)
+      .filter(isProductionCode)
+      .filter((file) => !file.includes(`${sep}storage${sep}`))
+      .filter((file) =>
+        /\b(createR2Storage|createMemoryStorage)\b/.test(readFileSync(file, "utf8")),
+      )
+      .map(rel);
+
+    expect(offenders).toEqual([]);
   });
 
   it("todo módulo expõe repository, service e router", () => {

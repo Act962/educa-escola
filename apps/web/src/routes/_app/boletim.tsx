@@ -13,7 +13,7 @@ import { cn } from "@educa-escola/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { nota, situacaoNota } from "@/lib/format";
+import { gradeSituationBadge, gradeText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -44,7 +44,7 @@ function Boletim() {
     );
   }
 
-  const disciplinas = boletim.data?.subjects ?? [];
+  const subjects = boletim.data?.subjects ?? [];
 
   return (
     <>
@@ -60,7 +60,7 @@ function Boletim() {
         <Card size="sm" className="flex-row items-center gap-4">
           <CardEyebrow>Média geral</CardEyebrow>
           <span className="font-extrabold text-2xl tracking-[-0.6px]">
-            {nota(boletim.data?.overall)}
+            {gradeText(boletim.data?.overall)}
           </span>
         </Card>
       </div>
@@ -69,7 +69,7 @@ function Boletim() {
         <Card>
           <ListSkeleton rows={4} />
         </Card>
-      ) : disciplinas.length === 0 ? (
+      ) : subjects.length === 0 ? (
         <Card>
           <EmptyState
             title="Nenhuma nota publicada"
@@ -77,8 +77,8 @@ function Boletim() {
           />
         </Card>
       ) : (
-        disciplinas.map((disciplina) => {
-          const situacao = situacaoNota(disciplina.situation);
+        subjects.map((disciplina) => {
+          const situation = gradeSituationBadge(disciplina.situation);
           const pesoTotal = disciplina.entries.reduce((soma, item) => soma + item.weight, 0);
 
           return (
@@ -86,10 +86,10 @@ function Boletim() {
               <CardHeader>
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <CardTitle>{disciplina.subjectName}</CardTitle>
-                  <CardDescription>média {nota(disciplina.average)}</CardDescription>
+                  <CardDescription>média {gradeText(disciplina.average)}</CardDescription>
                 </div>
                 <CardAction>
-                  <Badge variant={situacao.tone}>{situacao.label}</Badge>
+                  <Badge variant={situation.tone}>{situation.label}</Badge>
                 </CardAction>
               </CardHeader>
 
@@ -107,8 +107,8 @@ function Boletim() {
                       </span>
                     </span>
                     <span className="text-meta text-muted-foreground tabular-nums">
-                      {nota(avaliacao.score)} × {avaliacao.weight} ={" "}
-                      {nota(avaliacao.score * avaliacao.weight)}
+                      {gradeText(avaliacao.score)} × {avaliacao.weight} ={" "}
+                      {gradeText(avaliacao.score * avaliacao.weight)}
                     </span>
                     <span
                       className={cn(
@@ -116,14 +116,14 @@ function Boletim() {
                         avaliacao.score < 6 ? "text-danger" : "text-foreground",
                       )}
                     >
-                      {nota(avaliacao.score)}
+                      {gradeText(avaliacao.score)}
                     </span>
                   </li>
                 ))}
               </ul>
 
               <p className="text-meta text-muted-foreground">
-                Como sua média foi calculada: soma de (nota × peso) dividida pelo peso total (
+                Como sua média foi calculada: soma de (gradeText × peso) dividida pelo peso total (
                 {pesoTotal}). Avaliação ainda não lançada não entra na conta — não vale zero.
               </p>
             </Card>

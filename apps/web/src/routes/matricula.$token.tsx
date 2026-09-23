@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@educa-escola/ui/components/select";
 import { Skeleton } from "@educa-escola/ui/components/skeleton";
-import { OrbitaMarca } from "@educa-escola/ui/integra/orbita";
+import { OrbitaBrand } from "@educa-escola/ui/integra/orbita";
 import { Passos } from "@educa-escola/ui/integra/steps";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -20,7 +20,7 @@ import { Check, Clock, Lock, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { dataHora, telefone } from "@/lib/format";
+import { dateTimeText, phoneText } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/matricula/$token")({
@@ -85,7 +85,7 @@ function ConfirmacaoMatricula() {
   }
 
   if (abertura.error) {
-    return <Recusa codigo={abertura.error.data?.code} mensagem={abertura.error.message} />;
+    return <Recusa code={abertura.error.data?.code} message={abertura.error.message} />;
   }
 
   if (protocolo) {
@@ -105,8 +105,8 @@ function ConfirmacaoMatricula() {
           <Estado
             tom="info"
             icone={<Check size={22} strokeWidth={1.8} aria-hidden />}
-            titulo="Você já enviou esta ficha"
-            descricao={`Recebemos os dados em ${dataHora(abertura.data.submittedAt)}. A secretaria está conferindo.`}
+            title="Você já enviou esta ficha"
+            descricao={`Recebemos os dados em ${dateTimeText(abertura.data.submittedAt)}. A secretaria está conferindo.`}
           />
           <div className="rounded-card bg-muted p-4 text-center">
             <CardEyebrow>Protocolo</CardEyebrow>
@@ -124,8 +124,8 @@ function ConfirmacaoMatricula() {
       <Conferencia
         token={token}
         escola={abertura.data?.schoolName ?? ""}
-        ano={abertura.data?.academicYear ?? 0}
-        onConferido={setFicha}
+        year={abertura.data?.academicYear ?? 0}
+        onChecked={setFicha}
       />
     );
   }
@@ -163,13 +163,13 @@ function AutorizacaoDeBiometria({
   escola: string;
 }) {
   const trpc = useTRPC();
-  const [nome, setNome] = useState(ficha.guardian?.name ?? "");
+  const [name, setNome] = useState(ficha.guardian?.name ?? "");
   const [respondido, setRespondido] = useState<boolean | null>(null);
 
   const responder = useMutation(
     trpc.enrollmentLink.autorizarBiometria.mutationOptions({
       onSuccess: (saida) => setRespondido(saida.autorizou),
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -180,7 +180,7 @@ function AutorizacaoDeBiometria({
           <Estado
             tom={respondido ? "success" : "info"}
             icone={<Check size={22} strokeWidth={1.8} aria-hidden />}
-            titulo={respondido ? "Autorização registrada" : "Resposta registrada"}
+            title={respondido ? "Autorização registrada" : "Resposta registrada"}
             descricao={
               respondido
                 ? `${ficha.student.name} vai poder entrar pelo reconhecimento facial. Você pode retirar esta autorização a qualquer momento, falando com a escola.`
@@ -224,7 +224,7 @@ function AutorizacaoDeBiometria({
           <Label htmlFor="quem-responde">Seu nome</Label>
           <Input
             id="quem-responde"
-            value={nome}
+            value={name}
             onChange={(e) => setNome(e.target.value)}
             placeholder="Quem está respondendo"
           />
@@ -237,15 +237,15 @@ function AutorizacaoDeBiometria({
         */}
         <div className="flex flex-col gap-2">
           <Button
-            disabled={!nome.trim() || responder.isPending}
-            onClick={() => responder.mutate({ token, autoriza: true, acceptedBy: nome.trim() })}
+            disabled={!name.trim() || responder.isPending}
+            onClick={() => responder.mutate({ token, autoriza: true, acceptedBy: name.trim() })}
           >
             Autorizo a identificação facial
           </Button>
           <Button
             variant="secondary"
-            disabled={!nome.trim() || responder.isPending}
-            onClick={() => responder.mutate({ token, autoriza: false, acceptedBy: nome.trim() })}
+            disabled={!name.trim() || responder.isPending}
+            onClick={() => responder.mutate({ token, autoriza: false, acceptedBy: name.trim() })}
           >
             Não autorizo
           </Button>
@@ -259,35 +259,35 @@ function AutorizacaoDeBiometria({
 function Conferencia({
   token,
   escola,
-  ano,
-  onConferido,
+  year,
+  onChecked,
 }: {
   token: string;
   escola: string;
-  ano: number;
-  onConferido: (ficha: Ficha) => void;
+  year: number;
+  onChecked: (ficha: Ficha) => void;
 }) {
   const trpc = useTRPC();
   const [birthDate, setBirthDate] = useState("");
-  const [erro, setErro] = useState<string | null>(null);
+  const [error, setErro] = useState<string | null>(null);
 
   const conferir = useMutation(
     trpc.enrollmentLink.verify.mutationOptions({
-      onSuccess: (dados) => onConferido(dados as Ficha),
+      onSuccess: (data) => onChecked(data as Ficha),
       onError: (falha) => setErro(falha.message),
     }),
   );
 
   const bloqueado = conferir.error?.data?.code === "TOO_MANY_REQUESTS";
   if (bloqueado) {
-    return <Recusa codigo="TOO_MANY_REQUESTS" mensagem={conferir.error?.message ?? ""} />;
+    return <Recusa code="TOO_MANY_REQUESTS" message={conferir.error?.message ?? ""} />;
   }
 
   return (
     <Casca escola={escola}>
       <Card className="flex w-full max-w-md flex-col gap-4">
         <div>
-          <CardEyebrow>Matrícula {ano || ""}</CardEyebrow>
+          <CardEyebrow>Matrícula {year || ""}</CardEyebrow>
           <h1 className="mt-1 font-extrabold text-lg tracking-[-0.3px]">Confirme para continuar</h1>
           <p className="mt-1 text-corpo text-muted-foreground">
             Para proteger os dados do aluno, informe a data de nascimento dele.
@@ -312,7 +312,7 @@ function Conferencia({
               value={birthDate}
               onChange={(event) => setBirthDate(event.target.value)}
             />
-            {erro ? <p className="text-danger text-meta">{erro}</p> : null}
+            {error ? <p className="text-danger text-meta">{error}</p> : null}
           </div>
 
           <Button type="submit" size="lg" disabled={conferir.isPending || !birthDate}>
@@ -336,29 +336,29 @@ function Formulario({
 }: {
   token: string;
   ficha: Ficha;
-  onEnviado: (dados: { protocol: string; submittedAt: Date }) => void;
+  onEnviado: (data: { protocol: string; submittedAt: Date }) => void;
 }) {
   const trpc = useTRPC();
-  const [nome, setNome] = useState(ficha.student.name);
+  const [name, setNome] = useState(ficha.student.name);
   const [responsavel, setResponsavel] = useState(ficha.guardian?.name ?? "");
-  const [parentesco, setParentesco] = useState<Parentesco>(
+  const [relationship, setParentesco] = useState<Parentesco>(
     (ficha.guardian?.relationship as Parentesco) ?? "responsavel_legal",
   );
   // Mostrado no formato que a pessoa usa; o servidor normaliza de volta
   // para E.164 ao receber.
-  const [celular, setCelular] = useState(telefone(ficha.guardian?.phoneE164) ?? "");
+  const [celular, setCelular] = useState(phoneText(ficha.guardian?.phoneE164) ?? "");
   const [email, setEmail] = useState(ficha.guardian?.email ?? "");
   const [aceitoPor, setAceitoPor] = useState(ficha.guardian?.name ?? "");
   const [termos, setTermos] = useState(false);
   const [imagem, setImagem] = useState(false);
   const [comunicacao, setComunicacao] = useState(false);
   const [biometria, setBiometria] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [error, setErro] = useState<string | null>(null);
 
   const enviar = useMutation(
     trpc.enrollmentLink.submit.mutationOptions({
-      onSuccess: (dados) =>
-        onEnviado({ protocol: dados.protocol, submittedAt: new Date(dados.submittedAt) }),
+      onSuccess: (data) =>
+        onEnviado({ protocol: data.protocol, submittedAt: new Date(data.submittedAt) }),
       onError: (falha) => setErro(falha.message),
     }),
   );
@@ -366,7 +366,7 @@ function Formulario({
   return (
     <Casca escola={ficha.schoolName}>
       <Card className="flex w-full max-w-md flex-col gap-4">
-        <Passos atual={2} total={3} rotulo="Confira os dados" />
+        <Passos atual={2} total={3} label="Confira os dados" />
 
         <div>
           <h1 className="font-extrabold text-lg tracking-[-0.3px]">{ficha.student.name}</h1>
@@ -383,10 +383,10 @@ function Formulario({
             setErro(null);
             enviar.mutate({
               token,
-              student: { name: nome },
+              student: { name: name },
               guardian: {
                 name: responsavel,
-                relationship: parentesco,
+                relationship: relationship,
                 phoneE164: celular,
                 email: email.trim() || null,
               },
@@ -402,7 +402,7 @@ function Formulario({
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="aluno">Nome completo do aluno</Label>
-            <Input id="aluno" value={nome} onChange={(e) => setNome(e.target.value)} required />
+            <Input id="aluno" value={name} onChange={(e) => setNome(e.target.value)} required />
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -419,7 +419,7 @@ function Formulario({
             <Label htmlFor="parentesco">Parentesco</Label>
             <Select
               items={PARENTESCOS.map((o) => ({ value: o.value, label: o.label }))}
-              value={parentesco}
+              value={relationship}
               onValueChange={(valor) => setParentesco(valor as Parentesco)}
             >
               <SelectTrigger id="parentesco">
@@ -461,29 +461,29 @@ function Formulario({
               id="termos"
               checked={termos}
               onChange={setTermos}
-              titulo="Li e aceito os termos da matrícula"
-              detalhe={`versão ${ficha.termVersion} · obrigatório`}
+              title="Li e aceito os termos da matrícula"
+              detail={`versão ${ficha.termVersion} · obrigatório`}
             />
             <Consentimento
               id="imagem"
               checked={imagem}
               onChange={setImagem}
-              titulo="Autorizo o uso de imagem do aluno"
-              detalhe="opcional · pode ser revogado depois"
+              title="Autorizo o uso de imagem do aluno"
+              detail="opcional · pode ser revogado depois"
             />
             <Consentimento
               id="comunicacao"
               checked={comunicacao}
               onChange={setComunicacao}
-              titulo="Aceito receber avisos da escola"
-              detalhe="opcional"
+              title="Aceito receber avisos da escola"
+              detail="opcional"
             />
             <Consentimento
               id="biometria"
               checked={biometria}
               onChange={setBiometria}
-              titulo="Autorizo a identificação facial na entrada"
-              detalhe="opcional · sem ela, o aluno entra pela carteirinha"
+              title="Autorizo a identificação facial na entrada"
+              detail="opcional · sem ela, o aluno entra pela carteirinha"
             />
           </div>
 
@@ -500,7 +500,7 @@ function Formulario({
             </span>
           </div>
 
-          {erro ? <p className="text-danger text-meta">{erro}</p> : null}
+          {error ? <p className="text-danger text-meta">{error}</p> : null}
 
           <Button type="submit" size="lg" disabled={enviar.isPending || !termos}>
             {enviar.isPending ? "Enviando…" : "Confirmar meus dados"}
@@ -531,13 +531,13 @@ function Comprovante({
         <Estado
           tom="success"
           icone={<Check size={22} strokeWidth={2} aria-hidden />}
-          titulo="Ficha enviada"
+          title="Ficha enviada"
           descricao="A secretaria vai conferir e confirmar a matrícula. Você será avisado quando isso acontecer."
         />
         <div className="rounded-card bg-muted p-4 text-center">
           <CardEyebrow>Protocolo</CardEyebrow>
           <p className="mt-1 font-extrabold text-lg tabular-nums tracking-[0.5px]">{protocolo}</p>
-          <p className="mt-1 text-meta text-muted-foreground">{dataHora(quando)}</p>
+          <p className="mt-1 text-meta text-muted-foreground">{dateTimeText(quando)}</p>
         </div>
         <p className="text-center text-meta text-muted-foreground">
           Guarde este número. Ele identifica seu envio se precisar falar com a escola.
@@ -554,15 +554,15 @@ function Comprovante({
  * link existe. Vencido e bloqueado dizem o motivo, porque quem os vê já
  * possuía o link e precisa saber o que fazer.
  */
-function Recusa({ codigo, mensagem }: { codigo?: string; mensagem: string }) {
-  if (codigo === "TOO_MANY_REQUESTS") {
+function Recusa({ code, message }: { code?: string; message: string }) {
+  if (code === "TOO_MANY_REQUESTS") {
     return (
       <Casca>
         <Card className="w-full max-w-md">
           <Estado
             tom="danger"
             icone={<Lock size={22} strokeWidth={1.8} aria-hidden />}
-            titulo="Link bloqueado"
+            title="Link bloqueado"
             descricao="Houve tentativas demais de abrir esta matrícula. Por segurança, o link foi desativado. A secretaria pode emitir um novo."
           />
         </Card>
@@ -570,15 +570,15 @@ function Recusa({ codigo, mensagem }: { codigo?: string; mensagem: string }) {
     );
   }
 
-  if (codigo === "PRECONDITION_FAILED") {
+  if (code === "PRECONDITION_FAILED") {
     return (
       <Casca>
         <Card className="flex w-full max-w-md flex-col gap-4">
           <Estado
             tom="warning"
             icone={<Clock size={22} strokeWidth={1.8} aria-hidden />}
-            titulo="Este link não vale mais"
-            descricao={mensagem}
+            title="Este link não vale mais"
+            descricao={message}
           />
           <Alert>
             <AlertTitle>Como resolver</AlertTitle>
@@ -597,7 +597,7 @@ function Recusa({ codigo, mensagem }: { codigo?: string; mensagem: string }) {
         <Estado
           tom="danger"
           icone={<TriangleAlert size={22} strokeWidth={1.8} aria-hidden />}
-          titulo="Link inválido"
+          title="Link inválido"
           descricao="Confira se o endereço foi copiado inteiro. Se o problema continuar, fale com a secretaria da escola."
         />
       </Card>
@@ -608,12 +608,12 @@ function Recusa({ codigo, mensagem }: { codigo?: string; mensagem: string }) {
 function Estado({
   tom,
   icone,
-  titulo,
+  title,
   descricao,
 }: {
   tom: "success" | "warning" | "danger" | "info";
   icone: React.ReactNode;
-  titulo: string;
+  title: string;
   descricao: string;
 }) {
   const tons = {
@@ -628,7 +628,7 @@ function Estado({
       <span className={`grid size-12 place-items-center rounded-control ${tons[tom]}`}>
         {icone}
       </span>
-      <h1 className="font-extrabold text-base">{titulo}</h1>
+      <h1 className="font-extrabold text-base">{title}</h1>
       <p className="max-w-xs text-apoio text-muted-foreground leading-relaxed">{descricao}</p>
     </div>
   );
@@ -638,14 +638,14 @@ function Consentimento({
   id,
   checked,
   onChange,
-  titulo,
-  detalhe,
+  title,
+  detail,
 }: {
   id: string;
   checked: boolean;
   onChange: (valor: boolean) => void;
-  titulo: string;
-  detalhe: string;
+  title: string;
+  detail: string;
 }) {
   return (
     <div className="flex items-start gap-3">
@@ -656,8 +656,8 @@ function Consentimento({
         className="mt-0.5"
       />
       <Label htmlFor={id} className="flex flex-col items-start gap-0.5 font-normal">
-        <span className="font-bold text-apoio">{titulo}</span>
-        <span className="text-meta text-muted-foreground">{detalhe}</span>
+        <span className="font-bold text-apoio">{title}</span>
+        <span className="text-meta text-muted-foreground">{detail}</span>
       </Label>
     </div>
   );
@@ -669,7 +669,7 @@ function Casca({ children, escola }: { children: React.ReactNode; escola?: strin
     <div className="grid min-h-svh place-items-center bg-background p-6">
       <div className="flex w-full max-w-md flex-col items-center gap-4">
         <div className="flex flex-col items-center gap-1.5 text-center">
-          <OrbitaMarca titulo="Órbita Edu" className="w-36 text-primary" />
+          <OrbitaBrand title="Órbita Edu" className="w-36 text-primary" />
           {escola ? <span className="text-meta text-muted-foreground">{escola}</span> : null}
         </div>
         {children}

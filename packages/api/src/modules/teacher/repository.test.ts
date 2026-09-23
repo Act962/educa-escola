@@ -35,9 +35,9 @@ describe("createTeacherRepository", () => {
       await vincular(tx, escola.id, professor.id, "teacher");
       await vincular(tx, escola.id, secretaria.id, "admin");
 
-      const lista = await createTeacherRepository(tx, { schoolId: escola.id }).list();
+      const list = await createTeacherRepository(tx, { schoolId: escola.id }).list();
 
-      expect(lista.map((l) => l.userId)).toEqual([professor.id]);
+      expect(list.map((l) => l.userId)).toEqual([professor.id]);
     });
   });
 
@@ -85,7 +85,7 @@ describe("createTeacherRepository", () => {
         2026,
       );
 
-      expect(carga).toMatchObject({ turmas: 2, disciplinas: 1, aulas: 3 });
+      expect(carga).toMatchObject({ classrooms: 2, subjects: 1, lessons: 3 });
     });
   });
 
@@ -113,9 +113,9 @@ describe("createTeacherRepository", () => {
       }
 
       const repo = createTeacherRepository(tx, { schoolId: escola.id });
-      const [pendentes] = await repo.pendingCallsByTeacher(2026, "2026-03-10");
+      const [pending] = await repo.pendingCallsByTeacher(2026, "2026-03-10");
 
-      expect(pendentes?.pendentes).toBe(1);
+      expect(pending?.pending).toBe(1);
     });
   });
 

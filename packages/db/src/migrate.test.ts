@@ -35,12 +35,12 @@ async function comAdmin<T>(fn: (admin: Client) => Promise<T>): Promise<T> {
 }
 
 async function bancoVazio(): Promise<string> {
-  const nome = `migrate_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
-  await comAdmin((admin) => admin.query(`create database "${nome}"`));
-  criados.push(nome);
+  const name = `migrate_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
+  await comAdmin((admin) => admin.query(`create database "${name}"`));
+  criados.push(name);
 
   const url = new URL(testDatabaseUrl());
-  url.pathname = `/${nome}`;
+  url.pathname = `/${name}`;
   return url.toString();
 }
 
@@ -74,8 +74,8 @@ function pastaDeMigrations(migrations: Record<string, string>): string {
 
 afterEach(async () => {
   await comAdmin(async (admin) => {
-    for (const nome of criados.splice(0)) {
-      await admin.query(`drop database if exists "${nome}" with (force)`);
+    for (const name of criados.splice(0)) {
+      await admin.query(`drop database if exists "${name}" with (force)`);
     }
   });
   for (const pasta of pastas.splice(0)) rmSync(pasta, { recursive: true, force: true });

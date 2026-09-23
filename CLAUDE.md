@@ -35,6 +35,8 @@ Está em fase de fundação: a base arquitetural existe e está testada (ver
 | `INTEGRA-EDU-UI-KIT.md` | Como levar o mockup ao código sem perder fidelidade; inventário de componentes |
 | `docs/design/{gestao,professor,aluno}/` | PNGs exportados do canvas — **a referência que o código persegue** |
 | `DEMO.md` | Como subir com dados e o que mostrar numa apresentação |
+| `docs/deploy/` | Plano de deploy e o roteiro tela a tela do Coolify |
+| `docs/storage/SPEC-STORAGE-R2.md` | A camada de arquivos: porta, adaptadores, contrato e as três fases |
 
 Canvas de origem do fluxo do Professor:
 <https://claude.ai/code/artifact/06b60c49-cbb7-4c62-8389-f9a3f2611436>
@@ -110,6 +112,88 @@ Cria a `organization`, a `school` e o primeiro `member` como `owner`. É
 idempotente pelo `slug`. Roda via `jiti` porque o CLI importa TypeScript com
 resolução de bundler, que o Node puro não resolve.
 
+**Para escola nova em produção, o comando é o `seed:producao`** — é o
+`provision` levado até o fim, com um acesso de cada tipo:
+
+```bash
+pnpm run seed:producao -- \
+  --name "Escola Municipal X" --slug escola-x --dominio escola-x.br
+```
+
+Cria a escola, **quatro contas — uma por papel do RBAC** (`owner`, `admin`,
+`teacher`, `student`) —, as oito disciplinas da base comum e uma turma com o
+aluno matriculado nela. São quatro e não três porque a via de Gestão tem dois
+papéis com poderes diferentes: só a direção exclui a escola e instala app do
+Órbita.
+
+Três coisas que separam este seed do `seed:demo`, e nenhuma é detalhe:
+
+- **Nunca apaga.** O `seed:demo` começa deletando para a demonstração ser
+  sempre igual; aqui isso destruiria a escola. Toda etapa procura antes de
+  escrever, então rodar de novo — ou rodar depois de um `provision` — só
+  acrescenta o que faltava, e o relatório diz o que criou e o que reaproveitou.
+- **Senha gerada, mostrada uma vez.** Sem senha no código e sem senha
+  compartilhada: 16 caracteres de um alfabeto sem `O`/`0` e `I`/`l`/`1`, porque
+  a senha do primeiro acesso é lida numa tela, digitada em outra e às vezes
+  ditada por telefone. Conta que já existia tem a senha **mantida** — comando de
+  preparação não derruba acesso de quem já usa o sistema.
+- **Nada de fictício por padrão, exceto o que o app exige.** Nenhuma aula, nota
+  ou chamada; os painéis abrem nos estados vazios — a menos que se peça
+  `--com-demonstracao`, logo abaixo. A ficha do aluno existe porque sem
+  `student` casado com o `userId` a via do Aluno responde "nenhuma matrícula
+  vinculada a este acesso" e não abre — e vem com matrícula `ativa` e trilha,
+  não só a projeção em `student`.
+
+`seed-producao-data.ts` guarda o que é decidido antes de escrever (perfis,
+disciplinas, geração de senha, sequência de matrícula) e é testado sem banco em
+`seed-producao-data.test.ts`.
+
+**`--com-demonstracao` grava dado fictício na turma**, e existe para um caso só:
+apresentar o produto a partir do ambiente que está no ar, com os painéis
+mostrando números em vez dos estados vazios.
+
+```bash
+pnpm run seed:producao -- --name "Escola X" --slug escola-x --dominio escola-x.br \
+  --turma "6º A" --com-demonstracao --sala "Sala 12"
+```
+
+Acrescenta 31 colegas na turma, seis semanas de aula mais uma à frente,
+chamadas, quatro avaliações por disciplina e as notas — tudo derivado dos
+geradores puros de `seed-demo-data.ts`, então nada sorteia e a apresentação se
+ensaia. O roteiro fica montado: **uma chamada em atraso**, **duas notas
+faltando numa Prova 2 em rascunho** (a publicação é recusada com o motivo),
+alunos abaixo dos 75% e a média do bimestre anterior para o gráfico comparar.
+
+Quatro coisas a saber antes de usar em produção:
+
+- **Não apaga nada**, como o resto do seed: se a turma já tem aula, não escreve.
+- **O dado é fictício em banco de verdade.** O relatório final imprime o id da
+  turma e como remover: apagar a turma cascateia aula, chamada, avaliação e
+  nota; os colegas (os alunos sem conta) saem junto, à mão.
+- **Só manhã ou tarde.** A grade de demonstração não tem horário noturno, e o
+  comando recusa `--turno noite` em vez de mostrar aula às 13h numa turma da
+  noite.
+- **O dia letivo sai do fuso da escola** (`school.timezone`), não do UTC. Rodar
+  às 21h de São Paulo pelo relógio do processo datava as aulas de amanhã, e a
+  pendência de chamada desaparecia da fila da direção — que só conta aula com
+  data anterior à de hoje. `diaLetivoDe` existe por isso, e repete
+  `toSchoolDate` de `packages/api/src/dates.ts` porque `packages/auth` não pode
+  importar `packages/api`.
+
+**Para apontar para outro banco, `--env-file`** — um Postgres local à parte, uma
+cópia de homologação:
+
+```bash
+pnpm run seed:producao -- --env-file apps/web/.env.local \
+  --name "Escola de Testes" --slug escola-teste --dominio escola-teste.br
+```
+
+O arquivo pedido ganha do que já estiver no ambiente, e é por isso que o CLI
+importa o seed por `import()` no fim do arquivo: `@educa-escola/env` valida o
+ambiente no carregamento do módulo, então um `import` estático abriria conexão
+com o banco do `apps/web/.env` antes de a flag ser lida. Apontar para o banco
+errado é o erro que este comando mais precisa tornar impossível.
+
 Para desenvolver ou demonstrar, o atalho é a escola de exemplo — turmas,
 alunos, aulas, chamadas, avaliações e notas coerentes entre si:
 
@@ -146,6 +230,8 @@ subir Postgres. Três armadilhas que esse teste guarda:
 | `pnpm run check` | Biome: formata e corrige lint |
 | `pnpm run build` | Build de todos os workspaces |
 | `pnpm run seed:demo` | Popula a escola de demonstração (regrava se já existir) |
+| `pnpm run seed:producao -- --name … --slug … --dominio …` | Escola nova com um acesso por papel. Nunca apaga |
+| `… --com-demonstracao` | Acrescenta aulas, chamadas e notas na turma, para apresentar do ambiente no ar |
 | `pnpm run db:generate` | Gera migration a partir do schema |
 | `pnpm run db:studio` | Drizzle Studio |
 | `pnpm run db:stop` / `db:down` | Para / remove o container do Postgres |
@@ -362,14 +448,14 @@ obrigatória do service da foto, para o compilador cobrar quem esquecer); e a
 carteirinha com QR é o caminho que **nunca falha** — todo erro do rosto termina
 pedindo o QR, nunca barrando criança na porta.
 
-A comparação vive em `modules/gate/reconhecimento.ts`, sem banco nem tela,
+A comparação vive em `modules/gate/recognition.ts`, sem banco nem tela,
 porque é a única parte do sistema que pode identificar uma criança como outra.
 Além do limiar há uma **margem mínima**: dois alunos quase à mesma distância
 devolvem "ambíguo", não o menor por centésimos — irmãos parecidos existem, e
 liberar a criança errada não se desfaz.
 
 **Qual biblioteca extrai o descritor é `DECISÃO-JOÃO`**
-(`apps/web/src/lib/extrator-de-rosto.ts`). Até ela existir, a portaria sobe e
+(`apps/web/src/lib/face-extractor.ts`). Até ela existir, a portaria sobe e
 atende inteira pela carteirinha.
 
 **O molde facial do fornecedor não mora aqui.** Ele é proprietário do algoritmo que o gerou e
@@ -387,6 +473,40 @@ endereço deixa de precisar aparecer.
 
 `overview` importa esses limiares dos outros services em vez de repeti-los; do
 contrário o painel e o boletim discordariam sobre quem está aprovado.
+
+### Armazenamento de arquivos
+
+`packages/api/src/storage/` é uma porta com adaptadores, como `messaging/`:
+`ObjectStorage` (`port.ts`) tem seis métodos — `put`, `get`, `head`, `delete`,
+`list`, `deletePrefix` — e **nenhum devolve endereço, todos devolvem bytes**.
+`r2.ts` é o Cloudflare R2 pela API do S3 e o **único arquivo que conhece o
+`@aws-sdk`**; `memory.ts` é o dublê que roda em todo PR. Os dois passam pela
+mesma suíte (`contract.ts`), porque "passa em memória" precisa significar "passa
+no R2". Detalhes e decisões em `docs/storage/SPEC-STORAGE-R2.md`; o roteiro do
+bucket em `docs/deploy/BUCKET-R2.md`.
+
+Quatro coisas que não são óbvias:
+
+- **Não existe URL pré-assinada, e é decisão.** A §24.2 diz que anexo não é
+  acessível por endereço direto sem verificação de permissão, e a §13.3 pede
+  registro de *cada* leitura — link assinado falha nas duas. Para o que é
+  cifrado pela aplicação ele nem funcionaria: entregaria texto cifrado a um
+  navegador sem a chave. A leitura passa pelo servidor.
+- **`createTenantStorage` é o `eq(table.schoolId, …)` do bucket.** Toda chave
+  precisa começar por `escolas/{schoolId}/`, e a barra final não é cosmética:
+  sem ela `escolas/abc` alcança `escolas/abc2/...`. `list` e `deletePrefix`
+  conferem também — é neles que o descuido deixa de ser um objeto errado e passa
+  a ser o bucket inteiro.
+- **Dois tetos de tamanho, de propósito.** `MAX_OBJECT_BYTES` é o arquivo do
+  usuário (10 MB) e `MAX_BODY_BYTES` é ele já com os 28 bytes do envelope de
+  cifragem. Com um teto só, o arquivo no limite passaria na validação de cima e
+  seria recusado pela de baixo, falando de um tamanho que ninguém escolheu.
+- **Versionamento do bucket fica desligado.** "Revogar apaga" não convive com
+  versão anterior retida — e essa é a configuração que falha em silêncio.
+
+Os segmentos fixos da chave (`escolas`, `alunos`, `documentos`) ficam em
+português porque são dado gravado, na mesma convenção dos valores de enum do
+banco (`biometria`, `foto_aberta`). Traduzi-los depois seria migração de dado.
 
 ### Anatomia de um módulo
 
@@ -587,6 +707,10 @@ serviço Postgres 18. Quatro portões, nesta ordem:
 4. **Deriva de migration** — roda `drizzle-kit generate` e falha se aparecer
    arquivo novo, ou seja, se o schema mudou sem migration commitada
 
+Mexeu em `packages/db/src/schema/`? Rode `pnpm run db:generate` e commite a
+migration junto, senão o portão 4 reprova. Há um quinto passo que roda **só na
+`main`**, o `publish` — ver "Do branch à produção".
+
 Reproduzir o ambiente do CI localmente (sem arquivo `.env`, variáveis só no
 ambiente) é a forma de pegar dependência acidental do `apps/web/.env`:
 
@@ -595,6 +719,69 @@ mv apps/web/.env apps/web/.env.bak
 DATABASE_URL=... BETTER_AUTH_SECRET=... BETTER_AUTH_URL=... pnpm run test
 mv apps/web/.env.bak apps/web/.env
 ```
+
+### Do branch à produção
+
+O produto está no ar em <https://orbitaedu.nasaex.com>, numa VPS gerenciada
+com **Coolify**. Do merge ao container novo não há clique nenhum:
+
+```
+branch → PR (base: main) → CI verde → merge
+                             → CI da main → imagem no GHCR → Coolify
+```
+
+O job `publish` do `ci.yml` roda **só em push para `main`**, nunca em PR. Antes
+de publicar, ele **sobe a imagem contra um Postgres descartável e exige 200 em
+`/api/health`** — prova que ela migra e atende, não só que compila. Só então
+publica `ghcr.io/act962/integra-web` com duas etiquetas: `main`, que o Coolify
+acompanha, e `sha-<commit>`, que existe para rollback.
+
+**As migrations rodam na subida do container**, no `CMD` do
+`apps/web/Dockerfile`, e só depois o servidor sobe (`exec`, para o node ser o
+PID 1). Não é o *pre-deployment* do Coolify: aquele roda no container
+**antigo**, com as migrations da versão anterior, e é pulado no primeiro
+deploy. Migração que falha impede o servidor de subir, o healthcheck não
+passa, e o Coolify mantém o container anterior no ar.
+
+`runMigrations` (`packages/db/src/migrate.ts`) existe porque `drizzle-kit
+migrate` engole a mensagem do Postgres e sai só com exit 1 — num deploy isso é
+um log que não diz nada. Ele aplica o lote numa transação, sob lock advisory
+(réplicas que sobem juntas), e devolve o erro inteiro.
+
+**Rollback é trocar a etiqueta**, não reverter commit: no Coolify, app →
+*Configuration → General → Tag*, troque `main` por um `sha-<commit>` anterior e
+faça deploy; depois volte para `main`.
+
+> **Armadilha, e a mais cara delas:** o rollback **não desfaz migration**. O
+> banco fica no schema novo servindo código antigo. Pela mesma razão, durante o
+> rolling update o container antigo atende alguns segundos com o schema já
+> migrado. Então **toda migration precisa continuar funcionando com a versão
+> anterior do app**: acrescente a coluna num deploy, remova a antiga só num
+> seguinte.
+
+Detalhes de infraestrutura, variáveis de produção e o roteiro tela a tela do
+Coolify ficam em `docs/deploy/` — não os repita aqui.
+
+> **Armadilha do healthcheck:** o check HTTP do painel do Coolify roda `curl`
+> ou `wget` **dentro** do container, e `node:24-slim` não tem nenhum dos dois.
+> Use o tipo **CMD** com o comando do roteiro. A imagem também traz um
+> `HEALTHCHECK` próprio, pelo node, para valer fora do Coolify.
+
+### Branch, PR e merge
+
+**Branch curta, PR com base na `main`, mescla no mesmo dia.** Empilhar PR sobre
+PR só quando um trabalho de fato depender de outro que ainda não entrou.
+
+A pilha de 15 PRs encadeados de 22/09/2026 é o registro do custo: mesclar
+exigiu reapontar a base de cada um para a `main` na ordem, sem parar; duas
+migrations nasceram `0016` em branches paralelas e uma teve de ser regerada
+como `0020`; um PR em rascunho travou a fila no meio; e a base se moveu três
+vezes enquanto o merge era preparado. Nada disso é defeito de ferramenta — é o
+preço de manter muita coisa aberta em paralelo.
+
+Antes de mesclar uma pilha, mescle a base primeiro. `gh pr merge --merge
+--match-head-commit <sha>` recusa a mescla se a branch andou desde a
+verificação — use sempre, e passe o SHA **completo**.
 
 ### Configuração compartilhada
 
@@ -625,6 +812,10 @@ versão por pacote.
   `packages/env/src/load.ts` sobe até a raiz do workspace e o carrega por caminho
   absoluto, então qualquer cwd enxerga o mesmo ambiente. Não crie `.env` por
   pacote.
+- **Arquivo vai para o bucket, nunca para uma coluna nova.** A camada é
+  `packages/api/src/storage/`; ver "Armazenamento de arquivos". Quem consome
+  monta por `storageFromEnv()` e embrulha com `createTenantStorage` — um teste
+  de arquitetura reprova quem construir `createR2Storage` direto num service.
 - **Variável de ambiente nova precisa ser declarada em `packages/env`**
   (`src/server.ts` para servidor, `src/web.ts` para `VITE_` no cliente). São
   schemas do `@t3-oss/env-core`: variável não declarada é invisível ao app, e

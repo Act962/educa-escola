@@ -1,6 +1,6 @@
 import {
+  REFERER_KIND_GRADE,
   REFERER_KIND_LABEL,
-  REFERER_KIND_NOTA,
   REFERER_KINDS,
   REWARD_KIND_LABEL,
   REWARD_KINDS,
@@ -39,7 +39,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
-import { dataDoInstante, inteiro } from "@/lib/format";
+import { instantDateText, integerText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { type RouterOutputs, useTRPC } from "@/utils/trpc";
 
@@ -52,15 +52,15 @@ type MeuPainel = RouterOutputs["referral"]["meuPainel"];
 type Indicacao = Visao["indicacoes"][number];
 
 const SITUACAO = {
-  confirmada: { rotulo: "Desconto confirmado", tom: "success" },
-  pendente: { rotulo: "Aguardando matrícula", tom: "warning" },
-  acima_do_teto: { rotulo: "Acima do limite", tom: "neutral" },
-  sem_efeito: { rotulo: "Sem efeito", tom: "neutral" },
+  confirmada: { label: "Desconto confirmado", tom: "success" },
+  pendente: { label: "Aguardando matrícula", tom: "warning" },
+  acima_do_teto: { label: "Acima do limite", tom: "neutral" },
+  sem_efeito: { label: "Sem efeito", tom: "neutral" },
 } as const;
 
 /** 1500 centavos -> "R$ 15,00". Dinheiro não passa por ponto flutuante. */
-function reais(centavos: number): string {
-  return (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+function reais(cents: number): string {
+  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function premio(kind: RewardKind, value: number): string {
@@ -89,13 +89,13 @@ function Indicacoes() {
     );
   }
 
-  return daGestao ? <PainelDaGestao ano={year} /> : <MeuLink ano={year} />;
+  return daGestao ? <PainelDaGestao year={year} /> : <MeuLink year={year} />;
 }
 
-function PainelDaGestao({ ano }: { ano: number }) {
+function PainelDaGestao({ year }: { year: number }) {
   const trpc = useTRPC();
   const visao = useQuery({
-    ...trpc.referral.overview.queryOptions({ academicYear: ano }),
+    ...trpc.referral.overview.queryOptions({ academicYear: year }),
     retry: false,
   });
 
@@ -105,7 +105,7 @@ function PainelDaGestao({ ano }: { ano: number }) {
         <CardEyebrow>Secretaria</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Indicações</h1>
         <p className="text-corpo text-muted-foreground">
-          O programa de desconto por indicação e quem já trouxe matrícula em {ano}.
+          O programa de desconto por indicação e quem já trouxe matrícula em {year}.
         </p>
       </div>
 
@@ -126,7 +126,7 @@ function PainelDaGestao({ ano }: { ano: number }) {
           <Programa programa={visao.data.programa} />
           <EmitirCodigo ativo={visao.data.programa.enabled} />
           <RegistrarIndicacao ativo={visao.data.programa.enabled} />
-          <ListaDeIndicacoes indicacoes={visao.data.indicacoes} ano={ano} />
+          <ListaDeIndicacoes indicacoes={visao.data.indicacoes} year={year} />
         </>
       )}
     </>
@@ -134,7 +134,7 @@ function PainelDaGestao({ ano }: { ano: number }) {
 }
 
 function Numeros({ visao }: { visao: Visao }) {
-  const { resumo, programa } = visao;
+  const { summary, programa } = visao;
 
   return (
     <>
@@ -151,14 +151,14 @@ function Numeros({ visao }: { visao: Visao }) {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard icon={Users} label="Famílias com link" hint="quem pode divulgar">
-          {inteiro(visao.familias)}
+          {integerText(visao.familias)}
         </StatCard>
         <StatCard
           icon={Share2}
           label="Indicações"
           hint={`registradas em ${new Date().getFullYear()}`}
         >
-          {inteiro(visao.indicacoes.length)}
+          {integerText(visao.indicacoes.length)}
         </StatCard>
         <StatCard
           icon={Gift}
@@ -166,10 +166,10 @@ function Numeros({ visao }: { visao: Visao }) {
           tone="success"
           hint="matrícula efetivada"
         >
-          {inteiro(resumo.confirmadas)}
+          {integerText(summary.confirmed)}
         </StatCard>
         <StatCard icon={Gift} label="Aguardando" tone="warning" hint="matrícula ainda pendente">
-          {inteiro(resumo.pendentes)}
+          {integerText(summary.pending)}
         </StatCard>
       </div>
     </>
@@ -186,7 +186,7 @@ function Programa({ programa }: { programa: Visao["programa"] }) {
         toast.success("Programa atualizado.");
         await queryClient.invalidateQueries({ queryKey: [["referral"]] });
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -294,9 +294,9 @@ function Programa({ programa }: { programa: Visao["programa"] }) {
                 onChange={(e) => field.handleChange(e.target.value)}
                 maxLength={80}
               />
-              {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-danger text-meta">
-                  {erro?.message}
+              {field.state.meta.errors.map((error) => (
+                <p key={error?.message} className="text-danger text-meta">
+                  {error?.message}
                 </p>
               ))}
             </div>
@@ -366,9 +366,9 @@ function Programa({ programa }: { programa: Visao["programa"] }) {
                         ? "Sobre a mensalidade de quem indicou."
                         : `Equivale a ${reais(Number(field.state.value) || 0)}.`}
                     </p>
-                    {field.state.meta.errors.map((erro) => (
-                      <p key={erro?.message} className="text-danger text-meta">
-                        {erro?.message}
+                    {field.state.meta.errors.map((error) => (
+                      <p key={error?.message} className="text-danger text-meta">
+                        {error?.message}
                       </p>
                     ))}
                   </div>
@@ -396,9 +396,9 @@ function Programa({ programa }: { programa: Visao["programa"] }) {
                 <p className="text-meta text-muted-foreground">
                   Indicações premiadas por família, por ano.
                 </p>
-                {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-danger text-meta">
-                    {erro?.message}
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-danger text-meta">
+                    {error?.message}
                   </p>
                 ))}
               </div>
@@ -419,9 +419,9 @@ function Programa({ programa }: { programa: Visao["programa"] }) {
                   }
                 />
                 <p className="text-meta text-muted-foreground">Zero significa sem prazo.</p>
-                {field.state.meta.errors.map((erro) => (
-                  <p key={erro?.message} className="text-danger text-meta">
-                    {erro?.message}
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-danger text-meta">
+                    {error?.message}
                   </p>
                 ))}
               </div>
@@ -453,10 +453,10 @@ function Programa({ programa }: { programa: Visao["programa"] }) {
               {/*
                 A consequência jurídica da escolha, ao lado do campo e no
                 momento em que a direção escolhe — não num documento que
-                ninguém abre. Ver `REFERER_KIND_NOTA` no schema do módulo.
+                ninguém abre. Ver `REFERER_KIND_GRADE` no schema do módulo.
               */}
               <Alert variant={field.state.value === "responsavel" ? "info" : "warning"}>
-                <AlertDescription>{REFERER_KIND_NOTA[field.state.value]}</AlertDescription>
+                <AlertDescription>{REFERER_KIND_GRADE[field.state.value]}</AlertDescription>
               </Alert>
             </div>
           )}
@@ -518,7 +518,7 @@ function EmitirCodigo({ ativo }: { ativo: boolean }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
-  const [emitido, setEmitido] = useState<{ nome: string; codigo: string } | null>(null);
+  const [emitido, setEmitido] = useState<{ name: string; code: string } | null>(null);
 
   const alunos = useQuery({
     ...trpc.student.list.queryOptions({ search: busca.trim(), limit: 8, offset: 0 }),
@@ -529,11 +529,11 @@ function EmitirCodigo({ ativo }: { ativo: boolean }) {
 
   const gerar = useMutation(
     trpc.referral.gerarLink.mutationOptions({
-      onSuccess: async (dados) => {
-        setEmitido({ nome: dados.aluno.name, codigo: dados.link.code });
+      onSuccess: async (data) => {
+        setEmitido({ name: data.aluno.name, code: data.link.code });
         await queryClient.invalidateQueries({ queryKey: [["referral"]] });
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -559,7 +559,7 @@ function EmitirCodigo({ ativo }: { ativo: boolean }) {
       {emitido ? (
         <Alert variant="success">
           <AlertTitle>
-            {emitido.nome}: {emitido.codigo}
+            {emitido.name}: {emitido.code}
           </AlertTitle>
           <AlertDescription>
             Anote ou dite para a família. O código é o mesmo em toda consulta futura.
@@ -608,7 +608,7 @@ function RegistrarIndicacao({ ativo }: { ativo: boolean }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [enrollmentId, setEnrollmentId] = useState("");
-  const [codigo, setCodigo] = useState("");
+  const [code, setCodigo] = useState("");
 
   const registrar = useMutation(
     trpc.referral.registrar.mutationOptions({
@@ -618,7 +618,7 @@ function RegistrarIndicacao({ ativo }: { ativo: boolean }) {
         setCodigo("");
         await queryClient.invalidateQueries({ queryKey: [["referral"]] });
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -650,19 +650,15 @@ function RegistrarIndicacao({ ativo }: { ativo: boolean }) {
           <Label htmlFor="codigo-indicacao">Código</Label>
           <Input
             id="codigo-indicacao"
-            value={codigo}
+            value={code}
             onChange={(e) => setCodigo(e.target.value.toUpperCase())}
             placeholder="MA4K2Z"
             maxLength={24}
           />
         </div>
         <Button
-          onClick={() =>
-            registrar.mutate({ enrollmentId: enrollmentId.trim(), code: codigo.trim() })
-          }
-          disabled={
-            registrar.isPending || enrollmentId.trim().length < 4 || codigo.trim().length < 4
-          }
+          onClick={() => registrar.mutate({ enrollmentId: enrollmentId.trim(), code: code.trim() })}
+          disabled={registrar.isPending || enrollmentId.trim().length < 4 || code.trim().length < 4}
         >
           Registrar
         </Button>
@@ -671,7 +667,7 @@ function RegistrarIndicacao({ ativo }: { ativo: boolean }) {
   );
 }
 
-function ListaDeIndicacoes({ indicacoes, ano }: { indicacoes: Indicacao[]; ano: number }) {
+function ListaDeIndicacoes({ indicacoes, year }: { indicacoes: Indicacao[]; year: number }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
@@ -681,13 +677,13 @@ function ListaDeIndicacoes({ indicacoes, ano }: { indicacoes: Indicacao[]; ano: 
         toast.success("Indicação removida.");
         await queryClient.invalidateQueries({ queryKey: [["referral"]] });
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
   return (
     <Card className="flex flex-col gap-4">
-      <CardEyebrow>Indicações de {ano}</CardEyebrow>
+      <CardEyebrow>Indicações de {year}</CardEyebrow>
 
       {indicacoes.length === 0 ? (
         <EmptyState
@@ -708,24 +704,24 @@ function ListaDeIndicacoes({ indicacoes, ano }: { indicacoes: Indicacao[]; ano: 
           </TableHeader>
           <TableBody>
             {indicacoes.map((indicacao) => {
-              const situacao = SITUACAO[indicacao.situacao];
+              const situation = SITUACAO[indicacao.situation];
 
               return (
                 <TableRow key={indicacao.id}>
-                  <TableCell className="font-bold">{indicacao.indicanteNome}</TableCell>
-                  <TableCell className="font-mono text-meta">{indicacao.codigo}</TableCell>
+                  <TableCell className="font-bold">{indicacao.referrerName}</TableCell>
+                  <TableCell className="font-mono text-meta">{indicacao.code}</TableCell>
                   <TableCell>{premio(indicacao.rewardKind, indicacao.rewardValue)}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {dataDoInstante(indicacao.createdAt)}
+                    {instantDateText(indicacao.createdAt)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={situacao.tom}>{situacao.rotulo}</Badge>
+                    <Badge variant={situation.tom}>{situation.label}</Badge>
                   </TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label={`Remover a indicação de ${indicacao.indicanteNome}`}
+                      aria-label={`Remover a indicação de ${indicacao.referrerName}`}
                       onClick={() => remover.mutate({ id: indicacao.id })}
                       disabled={remover.isPending}
                     >
@@ -751,9 +747,9 @@ function ListaDeIndicacoes({ indicacoes, ano }: { indicacoes: Indicacao[]; ano: 
 }
 
 /** A tela de quem divulga: o próprio link e o próprio desconto. */
-function MeuLink({ ano }: { ano: number }) {
+function MeuLink({ year }: { year: number }) {
   const trpc = useTRPC();
-  const painel = useQuery(trpc.referral.meuPainel.queryOptions({ academicYear: ano }));
+  const painel = useQuery(trpc.referral.meuPainel.queryOptions({ academicYear: year }));
 
   if (painel.isLoading) {
     return (
@@ -763,28 +759,28 @@ function MeuLink({ ano }: { ano: number }) {
     );
   }
 
-  const dados = painel.data;
+  const data = painel.data;
 
   return (
     <>
       <div className="flex flex-col gap-1">
         <CardEyebrow>Conta</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">
-          {dados?.programa.headline ?? "Indicações"}
+          {data?.programa.headline ?? "Indicações"}
         </h1>
-        {dados?.programa.description ? (
-          <p className="text-corpo text-muted-foreground">{dados.programa.description}</p>
+        {data?.programa.description ? (
+          <p className="text-corpo text-muted-foreground">{data.programa.description}</p>
         ) : null}
       </div>
 
-      {!dados || !dados.programa.enabled ? (
+      {!data || !data.programa.enabled ? (
         <Card>
           <EmptyState
             title="O programa não está ativo"
             description="Esta escola não tem programa de indicações no ar no momento."
           />
         </Card>
-      ) : !dados.aluno ? (
+      ) : !data.aluno ? (
         <Card>
           <EmptyState
             title="Sua conta não está ligada a uma ficha de aluno"
@@ -792,14 +788,14 @@ function MeuLink({ ano }: { ano: number }) {
           />
         </Card>
       ) : (
-        <CartaoDoLink painel={dados} />
+        <CartaoDoLink painel={data} />
       )}
     </>
   );
 }
 
 function CartaoDoLink({ painel }: { painel: MeuPainel }) {
-  const { link, programa, indicacoes, resumo } = painel;
+  const { link, programa, indicacoes, summary } = painel;
 
   const endereco = link ? `${window.location.origin}/matriculas/nova?indicacao=${link.code}` : null;
 
@@ -813,7 +809,7 @@ function CartaoDoLink({ painel }: { painel: MeuPainel }) {
             Vale {premio(programa.rewardKind, programa.rewardValue)}, até{" "}
             {programa.rewardCapPerYear}{" "}
             {programa.rewardCapPerYear === 1 ? "indicação" : "indicações"} por ano.
-            {link.expiresAt ? ` O código vale até ${dataDoInstante(link.expiresAt)}.` : ""}
+            {link.expiresAt ? ` O código vale até ${instantDateText(link.expiresAt)}.` : ""}
           </p>
 
           {endereco ? (
@@ -848,13 +844,13 @@ function CartaoDoLink({ painel }: { painel: MeuPainel }) {
         </Card>
       )}
 
-      {resumo ? (
+      {summary ? (
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <StatCard icon={Gift} label="Descontos confirmados" tone="success">
-            {inteiro(resumo.confirmadas)}
+            {integerText(summary.confirmed)}
           </StatCard>
           <StatCard icon={Share2} label="Aguardando matrícula" tone="warning">
-            {inteiro(resumo.pendentes)}
+            {integerText(summary.pending)}
           </StatCard>
         </div>
       ) : null}
@@ -869,14 +865,14 @@ function CartaoDoLink({ painel }: { painel: MeuPainel }) {
         ) : (
           <ul className="flex flex-col">
             {indicacoes.map((indicacao) => {
-              const situacao = SITUACAO[indicacao.situacao];
+              const situation = SITUACAO[indicacao.situation];
               return (
                 <li
                   key={indicacao.id}
                   className="flex flex-wrap items-center gap-3 border-border border-t py-3 text-corpo first:border-t-0"
                 >
                   <span className="min-w-36 text-muted-foreground">
-                    {dataDoInstante(indicacao.createdAt)}
+                    {instantDateText(indicacao.createdAt)}
                   </span>
                   {/* O nome de quem se matriculou **não** aparece: a família
                       que indicou não precisa saber quem entrou por ela, e
@@ -884,7 +880,7 @@ function CartaoDoLink({ painel }: { painel: MeuPainel }) {
                   <span className="min-w-0 flex-1 font-bold">
                     {premio(indicacao.rewardKind, indicacao.rewardValue)}
                   </span>
-                  <Badge variant={situacao.tom}>{situacao.rotulo}</Badge>
+                  <Badge variant={situation.tom}>{situation.label}</Badge>
                 </li>
               );
             })}

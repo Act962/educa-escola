@@ -188,9 +188,9 @@ export function createOrbitaService(repo: OrbitaRepository, deps: OrbitaServiceD
      * receberia 403 na listagem. Saber que a escola contratou o assistente não
      * é dado sensível; a lista do que mais ela contratou é, e continua fechada.
      */
-    async assistenteDisponivel() {
+    async assistantAvailable() {
       const linha = await repo.findInstall("astro");
-      return { disponivel: linha?.status === "instalado" };
+      return { available: linha?.status === "instalado" };
     },
 
     /**

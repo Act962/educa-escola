@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BookOpen, ChevronLeft, ClipboardList, Sparkles, Users } from "lucide-react";
 
-import { inteiro, percentualCurto } from "@/lib/format";
+import { integerText, shortPercentText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -18,10 +18,10 @@ export const Route = createFileRoute("/_app/professores/$userId")({
 });
 
 const SITUACOES = {
-  em_dia: { rotulo: "Em dia", variante: "success" },
-  atencao: { rotulo: "Atenção", variante: "warning" },
-  atrasado: { rotulo: "Atrasado", variante: "danger" },
-  sem_turma: { rotulo: "Sem turma", variante: "info" },
+  em_dia: { label: "Em dia", variante: "success" },
+  atencao: { label: "Atenção", variante: "warning" },
+  atrasado: { label: "Atrasado", variante: "danger" },
+  sem_turma: { label: "Sem turma", variante: "info" },
 } as const;
 
 /**
@@ -46,10 +46,10 @@ function FichaDoProfessor() {
   // O placar de docentes já existe na tela de Pontuação; reaproveitá-lo é
   // melhor que criar uma segunda consulta que pode discordar dela.
   const placar = useQuery({
-    ...trpc.score.rankingDeProfessores.queryOptions({ academicYear: year }),
+    ...trpc.score.teacherRanking.queryOptions({ academicYear: year }),
     retry: false,
   });
-  const pontos = placar.data?.find((linha) => linha.subjectId === userId);
+  const points = placar.data?.find((linha) => linha.subjectId === userId);
 
   if (ficha.isLoading) {
     return (
@@ -75,8 +75,8 @@ function FichaDoProfessor() {
     );
   }
 
-  const docente = ficha.data;
-  const situacao = SITUACOES[docente.situacao];
+  const teacher = ficha.data;
+  const situation = SITUACOES[teacher.situation];
 
   return (
     <>
@@ -92,62 +92,62 @@ function FichaDoProfessor() {
 
       <div className="flex flex-wrap items-center gap-4">
         <Avatar className="size-14">
-          <AvatarFallback>{initialsOf(docente.name)}</AvatarFallback>
+          <AvatarFallback>{initialsOf(teacher.name)}</AvatarFallback>
         </Avatar>
         <div className="min-w-0">
-          <h1 className="font-extrabold text-2xl tracking-[-0.6px]">{docente.name}</h1>
-          <p className="text-corpo text-muted-foreground">{docente.email}</p>
+          <h1 className="font-extrabold text-2xl tracking-[-0.6px]">{teacher.name}</h1>
+          <p className="text-corpo text-muted-foreground">{teacher.email}</p>
         </div>
-        <Badge variant={situacao.variante} className="ml-auto">
-          {situacao.rotulo}
+        <Badge variant={situation.variante} className="ml-auto">
+          {situation.label}
         </Badge>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard icon={Users} label="Alunos alcançados" hint={`em ${year}`}>
-          {inteiro(docente.alunos)}
+          {integerText(teacher.alunos)}
         </StatCard>
         <StatCard
           icon={BookOpen}
           label="Aulas no ano"
-          hint={`${inteiro(docente.aulasRegistradas)} com chamada`}
+          hint={`${integerText(teacher.recordedLessons)} com chamada`}
         >
-          {inteiro(docente.aulas)}
+          {integerText(teacher.lessons)}
         </StatCard>
         <StatCard
           icon={ClipboardList}
           label="Pendências"
           hint="chamada e nota em aberto"
-          tone={docente.chamadasPendentes + docente.notasPendentes > 0 ? "warning" : undefined}
+          tone={teacher.pendingAttendance + teacher.pendingGrades > 0 ? "warning" : undefined}
         >
-          {inteiro(docente.chamadasPendentes + docente.notasPendentes)}
+          {integerText(teacher.pendingAttendance + teacher.pendingGrades)}
         </StatCard>
         <StatCard
           icon={Sparkles}
           label="Pontos"
-          hint={pontos ? `${pontos.posicao}º entre os docentes` : "ainda sem apuração"}
+          hint={points ? `${points.posicao}º entre os docentes` : "ainda sem apuração"}
         >
-          {pontos ? inteiro(pontos.pontos) : "—"}
+          {points ? integerText(points.points) : "—"}
         </StatCard>
       </div>
 
       <Card className="flex flex-col gap-3">
         <CardEyebrow>Turmas e disciplinas</CardEyebrow>
-        {docente.turmas.length === 0 ? (
+        {teacher.classrooms.length === 0 ? (
           <EmptyState
             title={`Sem turma em ${year}`}
             description="Não há aula deste professor na agenda deste ano letivo."
           />
         ) : (
           <ul className="flex flex-col">
-            {docente.turmas.map((turma) => (
+            {teacher.classrooms.map((turma) => (
               <li
                 key={turma.classroomId}
                 className="flex flex-wrap items-center gap-3 border-border border-t py-2.5 text-corpo first:border-t-0"
               >
-                <span className="min-w-20 font-bold">{turma.nome}</span>
+                <span className="min-w-20 font-bold">{turma.name}</span>
                 <span className="min-w-0 flex-1 text-muted-foreground">
-                  {turma.disciplinas.join(" · ")}
+                  {turma.subjects.join(" · ")}
                 </span>
               </li>
             ))}
@@ -158,12 +158,12 @@ function FichaDoProfessor() {
       <Card className="flex flex-col gap-2">
         <CardEyebrow>Frequência das turmas</CardEyebrow>
         <p className="font-extrabold text-2xl">
-          {docente.frequenciaDasTurmas === null
+          {teacher.classroomAttendance === null
             ? "—"
-            : percentualCurto(docente.frequenciaDasTurmas)}
+            : shortPercentText(teacher.classroomAttendance)}
         </p>
         <p className="text-meta text-muted-foreground">
-          {docente.frequenciaDasTurmas === null
+          {teacher.classroomAttendance === null
             ? "Sem chamada registrada nas turmas dele neste ano."
             : "Contexto da coordenação, não avaliação do professor: quem falta é o aluno, e a §10.6 do requisito é clara sobre indicador pedagógico não virar ranking de docente."}
         </p>

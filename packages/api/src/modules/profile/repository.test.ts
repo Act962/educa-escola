@@ -143,7 +143,7 @@ describe("createProfileRepository", () => {
         2026,
       );
 
-      expect(carga).toEqual({ turmas: 2, disciplinas: 1, aulas: 3 });
+      expect(carga).toEqual({ classrooms: 2, subjects: 1, lessons: 3 });
     });
   });
 
@@ -159,7 +159,7 @@ describe("createProfileRepository", () => {
 
       expect(
         await createProfileRepository(tx, { schoolId: escola.id }).teacherBond(professor.id, 2026),
-      ).toEqual({ turmas: 0, disciplinas: 0, aulas: 0 });
+      ).toEqual({ classrooms: 0, subjects: 0, lessons: 0 });
     });
   });
 });

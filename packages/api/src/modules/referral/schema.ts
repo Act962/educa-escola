@@ -24,7 +24,7 @@ export const REFERER_KIND_LABEL: Record<RefererKind, string> = {
  * tela precisa mostrá-la ao lado do campo, no momento em que a direção
  * escolhe, não num documento que ninguém abre.
  */
-export const REFERER_KIND_NOTA: Record<RefererKind, string> = {
+export const REFERER_KIND_GRADE: Record<RefererKind, string> = {
   responsavel:
     "Quem divulga é um adulto. É a opção que não encosta na Resolução 163/2014 do CONANDA, que trata como abusiva a publicidade dirigida a criança e adolescente.",
   aluno:

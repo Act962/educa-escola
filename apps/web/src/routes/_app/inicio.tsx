@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-
-import { DashboardAluno } from "@/components/dashboards/aluno";
-import { DashboardGestao } from "@/components/dashboards/gestao";
-import { DashboardProfessor } from "@/components/dashboards/professor";
+import { ManagementDashboard } from "@/components/dashboards/management";
+import { StudentDashboard } from "@/components/dashboards/student";
+import { TeacherDashboard } from "@/components/dashboards/teacher";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_app/inicio")({
@@ -22,7 +21,7 @@ function Inicio() {
 
   if (!me.data) return null;
 
-  if (me.data.role === "teacher") return <DashboardProfessor me={me.data} />;
-  if (me.data.role === "student") return <DashboardAluno me={me.data} />;
-  return <DashboardGestao />;
+  if (me.data.role === "teacher") return <TeacherDashboard me={me.data} />;
+  if (me.data.role === "student") return <StudentDashboard me={me.data} />;
+  return <ManagementDashboard />;
 }

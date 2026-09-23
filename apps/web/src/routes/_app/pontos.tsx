@@ -5,8 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Medal, Users } from "lucide-react";
 
-import { EsqueletoDePontos, ExtratoDePontos, ResumoDePontos } from "@/components/painel-de-pontos";
-import { inteiro } from "@/lib/format";
+import { PointsSkeleton, PointsStatement, PointsSummary } from "@/components/points-panel";
+import { integerText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_app/pontos")({
 function MeusPontos() {
   const trpc = useTRPC();
   const { year } = useSchoolContext();
-  const painel = useQuery(trpc.score.meuPainelDeAluno.queryOptions({ academicYear: year }));
+  const painel = useQuery(trpc.score.myStudentPanel.queryOptions({ academicYear: year }));
 
   return (
     <>
@@ -38,7 +38,7 @@ function MeusPontos() {
       </div>
 
       {painel.isLoading ? (
-        <EsqueletoDePontos />
+        <PointsSkeleton />
       ) : painel.isError || !painel.data ? (
         <Card>
           <ErrorState
@@ -48,7 +48,7 @@ function MeusPontos() {
         </Card>
       ) : (
         <>
-          <ResumoDePontos dados={painel.data} ano={year} />
+          <PointsSummary data={painel.data} year={year} />
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <StatCard
@@ -61,16 +61,18 @@ function MeusPontos() {
               }
             >
               {painel.data.posicao
-                ? `${painel.data.posicao}º de ${inteiro(painel.data.totalNaTurma)}`
+                ? `${painel.data.posicao}º de ${integerText(painel.data.classroomTotal)}`
                 : "—"}
             </StatCard>
 
             <StatCard icon={Users} label="Média da turma" hint="comparação anônima, sem nomes">
-              {painel.data.mediaDaTurma === null ? "—" : inteiro(painel.data.mediaDaTurma)}
+              {painel.data.classroomAverage === null
+                ? "—"
+                : integerText(painel.data.classroomAverage)}
             </StatCard>
           </div>
 
-          <ExtratoDePontos dados={painel.data} />
+          <PointsStatement data={painel.data} />
         </>
       )}
     </>

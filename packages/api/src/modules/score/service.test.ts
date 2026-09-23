@@ -1,18 +1,17 @@
 import { describe, expect, it } from "vitest";
-
-import type { AulaApurada, AvaliacaoApurada, PresencaApurada } from "./apuracao";
 import type { ScoreRepository } from "./repository";
-import { createScoreService, mediaDePontos, mediasPorBimestre, posicaoEm } from "./service";
+import { averagePoints, averagesByTerm, createScoreService, posicaoEm } from "./service";
+import type { TalliedAssessment, TalliedAttendance, TalliedLesson } from "./tally";
 
 interface EstadoDoDuble {
   saldos?: { subjectKind: string; subjectId: string; points: number }[];
-  presencas?: PresencaApurada[];
-  aulas?: AulaApurada[];
-  avaliacoes?: AvaliacaoApurada[];
+  attendanceEntries?: TalliedAttendance[];
+  lessons?: TalliedLesson[];
+  assessments?: TalliedAssessment[];
   lancamentos?: { studentId: string; term: number; score: number; weight: number }[];
   turma?: string[];
   alunos?: { id: string; name: string; classroomId: string | null }[];
-  docentes?: { id: string; name: string }[];
+  teachers?: { id: string; name: string }[];
 }
 
 /**
@@ -26,9 +25,9 @@ function fakeRepository(estado: EstadoDoDuble = {}) {
   const saldos = estado.saldos ?? [];
 
   const repo: ScoreRepository = {
-    appendEvents: async (eventos) => {
-      gravados.push(...eventos.map((e) => ({ ruleKey: e.ruleKey, subjectId: e.subjectId })));
-      return eventos.length;
+    appendEvents: async (events) => {
+      gravados.push(...events.map((e) => ({ ruleKey: e.ruleKey, subjectId: e.subjectId })));
+      return events.length;
     },
     rebuildBalances: async () => {
       reconstruiu += 1;
@@ -44,16 +43,16 @@ function fakeRepository(estado: EstadoDoDuble = {}) {
         .map((s) => ({ subjectId: s.subjectId, points: s.points }))
         .sort((a, b) => b.points - a.points || a.subjectId.localeCompare(b.subjectId)),
     listEvents: async () => [],
-    presencasDoAno: async () => estado.presencas ?? [],
-    aulasDoAno: async () => estado.aulas ?? [],
-    avaliacoesDoAno: async () => estado.avaliacoes ?? [],
-    lancamentosPublicadosDoAno: async () => estado.lancamentos ?? [],
+    yearAttendance: async () => estado.attendanceEntries ?? [],
+    yearLessons: async () => estado.lessons ?? [],
+    yearAssessments: async () => estado.assessments ?? [],
+    yearPublishedGrades: async () => estado.lancamentos ?? [],
     studentsByIds: async (ids) => (estado.alunos ?? []).filter((a) => ids.includes(a.id)),
-    teachersByIds: async (ids) => (estado.docentes ?? []).filter((d) => ids.includes(d.id)),
+    teachersByIds: async (ids) => (estado.teachers ?? []).filter((d) => ids.includes(d.id)),
     studentIdsByClassroom: async () => estado.turma ?? [],
   };
 
-  return { repo, gravados, contagem: () => reconstruiu };
+  return { repo, gravados, count: () => reconstruiu };
 }
 
 describe("posicaoEm", () => {
@@ -79,35 +78,37 @@ describe("posicaoEm", () => {
 
 describe("mediaDePontos", () => {
   it("é nula com grupo vazio, e não zero", () => {
-    expect(mediaDePontos([])).toBeNull();
-    expect(mediaDePontos([10, 20, 31])).toBe(20);
+    expect(averagePoints([])).toBeNull();
+    expect(averagePoints([10, 20, 31])).toBe(20);
   });
 });
 
 describe("mediasPorBimestre", () => {
   it("pondera pelo peso da avaliação", () => {
-    const medias = mediasPorBimestre([
+    const averages = averagesByTerm([
       { studentId: "aluno-1", term: 1, score: 10, weight: 3 },
       { studentId: "aluno-1", term: 1, score: 6, weight: 1 },
     ]);
-    expect(medias).toEqual([{ studentId: "aluno-1", term: 1, media: 9 }]);
+    expect(averages).toEqual([{ studentId: "aluno-1", term: 1, average: 9 }]);
   });
 
   it("separa aluno e bimestre", () => {
-    const medias = mediasPorBimestre([
+    const averages = averagesByTerm([
       { studentId: "a", term: 1, score: 8, weight: 1 },
       { studentId: "a", term: 2, score: 6, weight: 1 },
       { studentId: "b", term: 1, score: 5, weight: 1 },
     ]);
-    expect(medias).toHaveLength(3);
+    expect(averages).toHaveLength(3);
   });
 });
 
 describe("apurar", () => {
   it("apura os cinco tipos de fato e refaz o saldo uma vez", async () => {
-    const { repo, gravados, contagem } = fakeRepository({
-      presencas: [{ id: "att-1", studentId: "aluno-1", date: "2026-03-02", status: "presente" }],
-      aulas: [
+    const { repo, gravados, count } = fakeRepository({
+      attendanceEntries: [
+        { id: "att-1", studentId: "aluno-1", date: "2026-03-02", status: "presente" },
+      ],
+      lessons: [
         {
           id: "l-1",
           teacherId: "prof-1",
@@ -117,7 +118,7 @@ describe("apurar", () => {
           homework: null,
         },
       ],
-      avaliacoes: [
+      assessments: [
         {
           id: "av-1",
           teacherId: "prof-1",
@@ -141,14 +142,14 @@ describe("apurar", () => {
       "professor.devolutiva_em_sete_dias",
       "professor.diario_preenchido",
     ]);
-    expect(resultado).toMatchObject({ apurados: 5, academicYear: 2026 });
-    expect(contagem()).toBe(1);
+    expect(resultado).toMatchObject({ tallied: 5, academicYear: 2026 });
+    expect(count()).toBe(1);
   });
 
   /** Sem fato nenhum a apuração não pode explodir — a escola pode estar vazia. */
   it("não quebra com escola sem movimento", async () => {
     const { repo } = fakeRepository();
-    await expect(createScoreService(repo).apurar(2026)).resolves.toMatchObject({ apurados: 0 });
+    await expect(createScoreService(repo).apurar(2026)).resolves.toMatchObject({ tallied: 0 });
   });
 });
 
@@ -170,7 +171,7 @@ describe("painel do aluno", () => {
    */
   it("nunca devolve lista de colegas, em nenhuma chave", async () => {
     const { repo } = fakeRepository(estado);
-    const painel = await createScoreService(repo).doAluno({
+    const painel = await createScoreService(repo).ofStudent({
       studentId: "aluno-1",
       classroomId: "turma-1",
       academicYear: 2026,
@@ -180,19 +181,19 @@ describe("painel do aluno", () => {
     expect(serializado).not.toContain("aluno-2");
     expect(serializado).not.toContain("aluno-3");
     expect(Object.keys(painel).sort()).toEqual([
+      "classroomAverage",
+      "classroomTotal",
       "extrato",
-      "mediaDaTurma",
-      "nivel",
-      "pontos",
+      "level",
+      "points",
       "posicao",
       "proximo",
-      "totalNaTurma",
     ]);
   });
 
   it("posiciona dentro da turma, ignorando quem é de outra", async () => {
     const { repo } = fakeRepository(estado);
-    const painel = await createScoreService(repo).doAluno({
+    const painel = await createScoreService(repo).ofStudent({
       studentId: "aluno-1",
       classroomId: "turma-1",
       academicYear: 2026,
@@ -200,44 +201,44 @@ describe("painel do aluno", () => {
 
     // 2º de 4: o aluno de 9000 pontos é de outra turma e não entra na conta.
     expect(painel.posicao).toBe(2);
-    expect(painel.totalNaTurma).toBe(4);
+    expect(painel.classroomTotal).toBe(4);
   });
 
   /** "3º de 12" numa turma de 28 faria o aluno achar que metade sumiu. */
   it("o denominador é a turma inteira, não só quem pontuou", async () => {
     const { repo } = fakeRepository(estado);
-    const painel = await createScoreService(repo).doAluno({
+    const painel = await createScoreService(repo).ofStudent({
       studentId: "aluno-1",
       classroomId: "turma-1",
       academicYear: 2026,
     });
 
     // (200 + 300 + 100 + 0) / 4
-    expect(painel.mediaDaTurma).toBe(150);
+    expect(painel.classroomAverage).toBe(150);
   });
 
   it("aluno sem turma tem pontos, mas não tem com quem se comparar", async () => {
     const { repo } = fakeRepository(estado);
-    const painel = await createScoreService(repo).doAluno({
+    const painel = await createScoreService(repo).ofStudent({
       studentId: "aluno-1",
       classroomId: null,
       academicYear: 2026,
     });
 
-    expect(painel.pontos).toBe(200);
-    expect(painel).toMatchObject({ posicao: null, totalNaTurma: 0, mediaDaTurma: null });
+    expect(painel.points).toBe(200);
+    expect(painel).toMatchObject({ posicao: null, classroomTotal: 0, classroomAverage: null });
   });
 
   it("aluno que ainda não pontuou vê zero e o primeiro nível", async () => {
     const { repo } = fakeRepository(estado);
-    const painel = await createScoreService(repo).doAluno({
+    const painel = await createScoreService(repo).ofStudent({
       studentId: "aluno-sem-ponto",
       classroomId: "turma-1",
       academicYear: 2026,
     });
 
-    expect(painel.pontos).toBe(0);
-    expect(painel.nivel.ordem).toBe(1);
+    expect(painel.points).toBe(0);
+    expect(painel.level.ordem).toBe(1);
     expect(painel.posicao).toBeNull();
   });
 });
@@ -255,8 +256,8 @@ describe("placar nominal", () => {
       ],
     });
 
-    const placar = await createScoreService(repo).rankingDeAlunos(2026);
-    expect(placar.map((l) => [l.posicao, l.nome])).toEqual([
+    const placar = await createScoreService(repo).studentRanking(2026);
+    expect(placar.map((l) => [l.posicao, l.name])).toEqual([
       [1, "Bruno"],
       [2, "Ana"],
     ]);
@@ -269,8 +270,8 @@ describe("placar nominal", () => {
       alunos: [],
     });
 
-    const placar = await createScoreService(repo).rankingDeAlunos(2026);
-    expect(placar[0]?.nome).toBe("Aluno removido");
+    const placar = await createScoreService(repo).studentRanking(2026);
+    expect(placar[0]?.name).toBe("Aluno removido");
   });
 });
 
@@ -278,11 +279,11 @@ describe("placar de professores", () => {
   it("resolve o nome pelo vínculo com a escola", async () => {
     const { repo } = fakeRepository({
       saldos: [{ subjectKind: "professor", subjectId: "prof-1", points: 500 }],
-      docentes: [{ id: "prof-1", name: "Ricardo Alves" }],
+      teachers: [{ id: "prof-1", name: "Ricardo Alves" }],
     });
 
-    const placar = await createScoreService(repo).rankingDeProfessores(2026);
-    expect(placar[0]).toMatchObject({ posicao: 1, nome: "Ricardo Alves", pontos: 500 });
+    const placar = await createScoreService(repo).teacherRanking(2026);
+    expect(placar[0]).toMatchObject({ posicao: 1, name: "Ricardo Alves", points: 500 });
   });
 
   /**
@@ -293,10 +294,10 @@ describe("placar de professores", () => {
   it("rotula quem perdeu o vínculo, sem mostrar o id", async () => {
     const { repo } = fakeRepository({
       saldos: [{ subjectKind: "professor", subjectId: "prof-antigo", points: 120 }],
-      docentes: [],
+      teachers: [],
     });
 
-    const placar = await createScoreService(repo).rankingDeProfessores(2026);
-    expect(placar[0]?.nome).toBe("Sem vínculo atual");
+    const placar = await createScoreService(repo).teacherRanking(2026);
+    expect(placar[0]?.name).toBe("Sem vínculo atual");
   });
 });

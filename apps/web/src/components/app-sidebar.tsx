@@ -15,15 +15,15 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@educa-escola/ui/components/sidebar";
-import { OrbitaIcone, OrbitaMarca } from "@educa-escola/ui/integra/orbita";
+import { OrbitaBrand, OrbitaIcon } from "@educa-escola/ui/integra/orbita";
 import { initialsOf } from "@educa-escola/ui/lib/initials";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { LogOut, Settings, UserRound } from "lucide-react";
 
-import { SeletorDeBimestre } from "@/components/seletor-de-bimestre";
-import { appOrbitaDe } from "@/lib/apps-orbita";
+import { TermSelector } from "@/components/term-selector";
 import { navigationFor } from "@/lib/navigation";
+import { orbitaAppFor } from "@/lib/orbita-apps";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -87,12 +87,12 @@ export function AppSidebar({
             assinatura já contém o símbolo, e cortá-la com `overflow` deixaria
             um pedaço de letra aparecendo no lugar do ícone.
           */}
-          <OrbitaMarca
-            titulo="Órbita Edu"
+          <OrbitaBrand
+            title="Órbita Edu"
             className="w-32 shrink-0 text-primary group-data-[collapsible=icon]:hidden"
           />
-          <OrbitaIcone
-            titulo="Órbita Edu"
+          <OrbitaIcon
+            title="Órbita Edu"
             className="hidden w-7 shrink-0 text-primary group-data-[collapsible=icon]:block"
           />
         </Link>
@@ -123,7 +123,7 @@ export function AppSidebar({
             </span>
             <span className="font-extrabold text-corpo tabular-nums">{year}</span>
           </span>
-          <SeletorDeBimestre className="w-36 shrink-0 bg-card text-info" />
+          <TermSelector className="w-36 shrink-0 bg-card text-info" />
         </div>
       </SidebarHeader>
 
@@ -259,7 +259,7 @@ function AppsInstalados() {
   });
 
   const apps = (instalados.data ?? [])
-    .map((linha) => appOrbitaDe(linha.appKey))
+    .map((linha) => orbitaAppFor(linha.appKey))
     .filter((app): app is NonNullable<typeof app> => app !== null);
 
   if (apps.length === 0) return null;
@@ -272,12 +272,12 @@ function AppsInstalados() {
           {apps.map((app) => (
             <SidebarMenuItem key={app.key}>
               <SidebarMenuButton
-                tooltip={app.nome}
+                tooltip={app.name}
                 onClick={recolher}
                 render={<Link to="/apps/$appKey" params={{ appKey: app.key }} />}
               >
                 <app.icon strokeWidth={1.7} aria-hidden />
-                <span>{app.nome}</span>
+                <span>{app.name}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

@@ -19,8 +19,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
-import { dataHora } from "@/lib/format";
-import { dataParaISO, idadeEm, mascararCelular, mascararData } from "@/lib/masks";
+import { dateTimeText } from "@/lib/format";
+import { dateToISO, idadeEm, maskDate, maskPhone } from "@/lib/masks";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_app/matriculas/nova")({
@@ -48,13 +48,13 @@ const ETAPAS = ["Aluno", "Responsável", "Turma e prazo"] as const;
 /** Validação por etapa: avançar só com a etapa corrente preenchida. */
 const esquemas = [
   z.object({
-    nome: z.string().trim().min(1, "Informe o nome do aluno"),
+    name: z.string().trim().min(1, "Informe o nome do aluno"),
     nascimento: z
       .string()
-      .refine((valor) => dataParaISO(valor) !== null, "Informe uma data de nascimento válida"),
+      .refine((valor) => dateToISO(valor) !== null, "Informe uma data de nascimento válida"),
   }),
   z.object({
-    responsavelNome: z.string().trim().min(1, "Informe o nome do responsável"),
+    guardianName: z.string().trim().min(1, "Informe o nome do responsável"),
     celular: z
       .string()
       .trim()
@@ -63,7 +63,7 @@ const esquemas = [
       }),
   }),
   z.object({
-    turmaId: z.string().min(1, "Escolha a turma"),
+    classroomId: z.string().min(1, "Escolha a turma"),
   }),
 ];
 
@@ -77,9 +77,9 @@ function NovaMatricula() {
   const trpc = useTRPC();
   const navigate = useNavigate();
   const [etapa, setEtapa] = useState(0);
-  const [criada, setCriada] = useState<{ id: string; url: string; detalhe: string } | null>(null);
+  const [criada, setCriada] = useState<{ id: string; url: string; detail: string } | null>(null);
 
-  const turmas = useQuery(trpc.classroom.list.queryOptions());
+  const classrooms = useQuery(trpc.classroom.list.queryOptions());
   // Prévia do número. O valor definitivo é resolvido no servidor na criação —
   // duas pessoas cadastrando ao mesmo tempo não podem receber o mesmo.
   const proximaMatricula = useQuery(
@@ -89,41 +89,41 @@ function NovaMatricula() {
   const criar = useMutation(
     trpc.enrollment.create.mutationOptions({
       onSuccess: (resultado) => {
-        setCriada({ id: resultado.id, url: resultado.url, detalhe: resultado.envio.detail });
+        setCriada({ id: resultado.id, url: resultado.url, detail: resultado.envio.detail });
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
   const form = useForm({
     defaultValues: {
-      nome: "",
+      name: "",
       nascimento: "",
       turno: "manha" as (typeof TURNOS)[number]["value"],
-      responsavelNome: "",
-      parentesco: "mae" as (typeof PARENTESCOS)[number]["value"],
+      guardianName: "",
+      relationship: "mae" as (typeof PARENTESCOS)[number]["value"],
       celular: "",
       email: "",
-      turmaId: "",
-      prazoDias: "7",
+      classroomId: "",
+      deadlineDays: "7",
     },
     onSubmit: async ({ value }) => {
       await criar.mutateAsync({
         student: {
-          name: value.nome,
+          name: value.name,
           // Sem `registration`: quem numera é o servidor, em sequência.
-          birthDate: dataParaISO(value.nascimento) ?? "",
+          birthDate: dateToISO(value.nascimento) ?? "",
           shift: value.turno,
         },
         guardian: {
-          name: value.responsavelNome,
-          relationship: value.parentesco,
+          name: value.guardianName,
+          relationship: value.relationship,
           phoneE164: value.celular,
           email: value.email.trim() || null,
         },
-        classroomId: value.turmaId,
+        classroomId: value.classroomId,
         academicYear: ANO_LETIVO,
-        expiryDays: Number(value.prazoDias),
+        expiryDays: Number(value.deadlineDays),
       });
     },
   });
@@ -160,7 +160,7 @@ function NovaMatricula() {
       <Passos
         atual={etapa + 1}
         total={ETAPAS.length}
-        rotulo={ETAPAS[etapa] ?? ""}
+        label={ETAPAS[etapa] ?? ""}
         className="max-w-md"
       />
 
@@ -174,7 +174,7 @@ function NovaMatricula() {
       >
         {etapa === 0 && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <form.Field name="nome">
+            <form.Field name="name">
               {(field) => <Campo field={field} label="Nome completo do aluno" autoComplete="off" />}
             </form.Field>
             <div className="flex flex-col gap-1.5">
@@ -230,10 +230,10 @@ function NovaMatricula() {
         {etapa === 1 && (
           <>
             <div className="grid gap-4 sm:grid-cols-2">
-              <form.Field name="responsavelNome">
+              <form.Field name="guardianName">
                 {(field) => <Campo field={field} label="Nome do responsável" />}
               </form.Field>
-              <form.Field name="parentesco">
+              <form.Field name="relationship">
                 {(field) => (
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor={field.name}>Parentesco</Label>
@@ -267,7 +267,7 @@ function NovaMatricula() {
                     label="Celular com WhatsApp"
                     inputMode="numeric"
                     placeholder="(86) 99999-9999"
-                    mascara={mascararCelular}
+                    mascara={maskPhone}
                     hint="É para este número que o link será enviado."
                   />
                 )}
@@ -290,12 +290,12 @@ function NovaMatricula() {
 
         {etapa === 2 && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <form.Field name="turmaId">
+            <form.Field name="classroomId">
               {(field) => (
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor={field.name}>Turma pretendida</Label>
                   <Select
-                    items={(turmas.data ?? [])
+                    items={(classrooms.data ?? [])
                       .filter((turma) => turma.academicYear === ANO_LETIVO)
                       .map((turma) => ({ value: turma.id, label: turma.name }))}
                     value={field.state.value}
@@ -305,7 +305,7 @@ function NovaMatricula() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {(turmas.data ?? [])
+                      {(classrooms.data ?? [])
                         .filter((turma) => turma.academicYear === ANO_LETIVO)
                         .map((turma) => (
                           <SelectItem key={turma.id} value={turma.id}>
@@ -320,7 +320,7 @@ function NovaMatricula() {
                 </div>
               )}
             </form.Field>
-            <form.Field name="prazoDias">
+            <form.Field name="deadlineDays">
               {(field) => (
                 <Campo
                   field={field}
@@ -368,7 +368,7 @@ function NovaMatricula() {
  * responsável — mas guardá-lo na tela do detalhe deixaria o token circulando
  * em print e aba aberta. Quem perder, reemite: o link antigo deixa de valer.
  */
-function LinkCriado({ id, url, detalhe }: { id: string; url: string; detalhe: string }) {
+function LinkCriado({ id, url, detail }: { id: string; url: string; detail: string }) {
   const [copiado, setCopiado] = useState(false);
 
   return (
@@ -379,7 +379,7 @@ function LinkCriado({ id, url, detalhe }: { id: string; url: string; detalhe: st
         </span>
         <CardEyebrow>Matrícula criada</CardEyebrow>
         <h1 className="font-extrabold text-xl tracking-[-0.4px]">Link de confirmação pronto</h1>
-        <p className="max-w-sm text-corpo text-muted-foreground">{detalhe}</p>
+        <p className="max-w-sm text-corpo text-muted-foreground">{detail}</p>
       </div>
 
       <div className="flex flex-col gap-2 rounded-card bg-muted p-4">
@@ -417,7 +417,7 @@ function LinkCriado({ id, url, detalhe }: { id: string; url: string; detalhe: st
         </Button>
       </div>
 
-      <p className="text-meta text-muted-foreground">Criado em {dataHora(new Date())}.</p>
+      <p className="text-meta text-muted-foreground">Criado em {dateTimeText(new Date())}.</p>
     </Card>
   );
 }
@@ -472,7 +472,7 @@ function Campo({
  */
 function CampoData({ field, label, hint }: { field: AnyFieldApi; label: string; hint?: string }) {
   const valor = field.state.value as string;
-  const iso = dataParaISO(valor);
+  const iso = dateToISO(valor);
   const idade = idadeEm(iso);
   const completo = valor.replace(/\D/g, "").length === 8;
 
@@ -490,7 +490,7 @@ function CampoData({ field, label, hint }: { field: AnyFieldApi; label: string; 
           className="pr-20 tabular-nums"
           value={valor}
           onBlur={field.handleBlur}
-          onChange={(event) => field.handleChange(mascararData(event.target.value))}
+          onChange={(event) => field.handleChange(maskDate(event.target.value))}
         />
         {idade !== null ? (
           <span

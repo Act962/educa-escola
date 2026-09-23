@@ -26,7 +26,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Megaphone, PenLine, Send, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
 
-import { inteiro, percentualCurto } from "@/lib/format";
+import { integerText, shortPercentText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -35,9 +35,9 @@ export const Route = createFileRoute("/_app/comunicados")({
 });
 
 const STATUS = {
-  rascunho: { rotulo: "Rascunho", variante: "secondary" },
-  publicado: { rotulo: "Publicado", variante: "success" },
-  retificado: { rotulo: "Retificado", variante: "warning" },
+  rascunho: { label: "Rascunho", variante: "secondary" },
+  publicado: { label: "Publicado", variante: "success" },
+  retificado: { label: "Retificado", variante: "warning" },
 } as const;
 
 /**
@@ -55,14 +55,14 @@ function Comunicados() {
   const queryClient = useQueryClient();
   const { year } = useSchoolContext();
 
-  const [titulo, setTitulo] = useState("");
+  const [title, setTitulo] = useState("");
   const [corpo, setCorpo] = useState("");
   const [publico, setPublico] = useState<Audience>("toda_a_escola");
   const [prioridade, setPrioridade] = useState<Priority>("normal");
   /** Quando preenchido, salvar cria uma retificação em vez de um comunicado novo. */
-  const [retificando, setRetificando] = useState<{ id: string; titulo: string } | null>(null);
+  const [retificando, setRetificando] = useState<{ id: string; title: string } | null>(null);
 
-  const lista = useQuery(trpc.communication.list.queryOptions({ academicYear: year }));
+  const list = useQuery(trpc.communication.list.queryOptions({ academicYear: year }));
   const alcance = useQuery(trpc.communication.previewAudience.queryOptions({ audience: publico }));
 
   const recarregar = () => queryClient.invalidateQueries({ queryKey: [["communication"]] });
@@ -111,7 +111,7 @@ function Comunicados() {
 
         {retificando ? (
           <Alert variant="info">
-            <AlertTitle>Retificando “{retificando.titulo}”</AlertTitle>
+            <AlertTitle>Retificando “{retificando.title}”</AlertTitle>
             <AlertDescription>
               O comunicado anterior fica no histórico marcado como retificado. Esta versão nasce
               como rascunho — nada vai para ninguém até você publicar.{" "}
@@ -126,7 +126,7 @@ function Comunicados() {
           <Label htmlFor="titulo-comunicado">Título</Label>
           <Input
             id="titulo-comunicado"
-            value={titulo}
+            value={title}
             onChange={(e) => setTitulo(e.target.value)}
             placeholder="Reunião de pais do 2º bimestre"
             maxLength={120}
@@ -188,21 +188,21 @@ function Comunicados() {
 
           <Button
             onClick={() => {
-              const dados = {
+              const data = {
                 academicYear: year,
-                title: titulo,
+                title: title,
                 body: corpo,
                 audience: publico,
                 priority: prioridade,
                 requiresAck: false,
               };
-              if (retificando) retificar.mutate({ ...dados, replacesId: retificando.id });
-              else criar.mutate(dados);
+              if (retificando) retificar.mutate({ ...data, replacesId: retificando.id });
+              else criar.mutate(data);
             }}
             disabled={
               criar.isPending ||
               retificar.isPending ||
-              titulo.trim().length < 3 ||
+              title.trim().length < 3 ||
               corpo.trim().length < 10
             }
           >
@@ -216,7 +216,7 @@ function Comunicados() {
         <p className="text-meta text-muted-foreground">
           {alcance.data === undefined
             ? "Calculando o público…"
-            : `Alcança ${inteiro(alcance.data)} pessoa${alcance.data === 1 ? "" : "s"} nesta escola.`}
+            : `Alcança ${integerText(alcance.data)} pessoa${alcance.data === 1 ? "" : "s"} nesta escola.`}
         </p>
 
         {criar.isError || retificar.isError ? (
@@ -238,21 +238,21 @@ function Comunicados() {
       <Card className="flex flex-col gap-3">
         <CardEyebrow>Comunicados de {year}</CardEyebrow>
 
-        {lista.isLoading ? (
+        {list.isLoading ? (
           <ListSkeleton rows={4} />
-        ) : lista.isError ? (
+        ) : list.isError ? (
           <ErrorState
             title="Não foi possível carregar os comunicados"
             description="Atualize a página em instantes."
           />
-        ) : lista.data?.length === 0 ? (
+        ) : list.data?.length === 0 ? (
           <EmptyState
             title="Nenhum comunicado ainda"
             description="Rascunhos ficam só com você até serem publicados."
           />
         ) : (
           <ul className="flex flex-col">
-            {lista.data?.map((comunicado) => (
+            {list.data?.map((comunicado) => (
               <li
                 key={comunicado.id}
                 className="flex flex-wrap items-center gap-3 border-border border-t py-3 text-corpo first:border-t-0"
@@ -262,10 +262,10 @@ function Comunicados() {
                   <p className="text-meta text-muted-foreground">
                     {AUDIENCE_LABEL[comunicado.audience as Audience]}
                     {comunicado.publico !== null
-                      ? ` · ${inteiro(comunicado.publico)} destinatários`
+                      ? ` · ${integerText(comunicado.publico)} destinatários`
                       : null}
-                    {comunicado.taxaDeLeitura !== null
-                      ? ` · ${percentualCurto(comunicado.taxaDeLeitura)} leram`
+                    {comunicado.readRate !== null
+                      ? ` · ${shortPercentText(comunicado.readRate)} leram`
                       : null}
                   </p>
                 </div>
@@ -276,7 +276,7 @@ function Comunicados() {
                   </Badge>
                 ) : null}
                 <Badge variant={STATUS[comunicado.status as keyof typeof STATUS].variante}>
-                  {STATUS[comunicado.status as keyof typeof STATUS].rotulo}
+                  {STATUS[comunicado.status as keyof typeof STATUS].label}
                 </Badge>
 
                 {comunicado.status === "publicado" ? (
@@ -284,7 +284,7 @@ function Comunicados() {
                     variant="secondary"
                     size="sm"
                     onClick={() => {
-                      setRetificando({ id: comunicado.id, titulo: comunicado.title });
+                      setRetificando({ id: comunicado.id, title: comunicado.title });
                       setTitulo(`${comunicado.title} — retificação`);
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}

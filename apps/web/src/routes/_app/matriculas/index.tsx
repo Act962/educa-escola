@@ -31,15 +31,15 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, LayoutGrid, List, Plus, Search } from "lucide-react";
 import { useState } from "react";
-import { MatriculasQuadro } from "@/components/matriculas-quadro";
+import { EnrollmentsBoard } from "@/components/enrollments-board";
 import {
-  inteiro,
-  parentesco,
-  prazo,
-  situacaoEnrollment,
-  situacaoLink,
-  telefoneMascarado,
-  turno,
+  deadlineText,
+  enrollmentStatusBadge,
+  integerText,
+  linkStatusBadge,
+  maskedPhoneText,
+  relationshipText,
+  shiftText,
 } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
@@ -95,12 +95,12 @@ function Matriculas() {
   const trpc = useTRPC();
   const [filtro, setFiltro] = useState<Filtro>("pendente");
   const [search, setSearch] = useState("");
-  const [turmaId, setTurmaId] = useState(TODOS);
+  const [classroomId, setTurmaId] = useState(TODOS);
   const [turnoFiltro, setTurnoFiltro] = useState<string>(TODOS);
   const [modo, setModo] = useState<Modo>("lista");
   const [page, setPage] = useState(0);
 
-  const turmas = useQuery(trpc.classroom.list.queryOptions());
+  const classrooms = useQuery(trpc.classroom.list.queryOptions());
 
   const trocarFiltro = (value: Filtro) => {
     setFiltro(value);
@@ -113,7 +113,7 @@ function Matriculas() {
       search: search.trim() || undefined,
       academicYear: ANO_LETIVO,
       // Os dois recortes do disparo em massa: uma turma, ou um turno inteiro.
-      classroomId: turmaId === TODOS ? undefined : turmaId,
+      classroomId: classroomId === TODOS ? undefined : classroomId,
       shift: turnoFiltro === TODOS ? undefined : (turnoFiltro as "manha" | "tarde" | "noite"),
       limit: POR_PAGINA,
       offset: page * POR_PAGINA,
@@ -148,7 +148,7 @@ function Matriculas() {
 
   const itens = matriculas.data?.items ?? [];
   const total = matriculas.data?.total ?? 0;
-  const pendentes = contagens.data?.pendente ?? 0;
+  const pending = contagens.data?.pendente ?? 0;
 
   // A contagem vai em campo próprio, e não emendada no rótulo: dentro do
   // texto ela quebrava a opção no meio quando faltava largura, e o leitor de
@@ -165,9 +165,9 @@ function Matriculas() {
           <CardEyebrow>Secretaria</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Matrículas</h1>
           <p className="text-corpo text-muted-foreground">
-            {pendentes === 0
+            {pending === 0
               ? `Nenhuma pendência no ano letivo de ${ANO_LETIVO}.`
-              : `${inteiro(pendentes)} aguardando ação · ano letivo de ${ANO_LETIVO}`}
+              : `${integerText(pending)} aguardando ação · ano letivo de ${ANO_LETIVO}`}
           </p>
         </div>
         <Button render={<Link to="/matriculas/nova" />}>
@@ -233,11 +233,11 @@ function Matriculas() {
           <Select
             items={[
               { value: TODOS, label: "Todas as turmas" },
-              ...(turmas.data ?? [])
+              ...(classrooms.data ?? [])
                 .filter((turma) => turma.academicYear === ANO_LETIVO)
                 .map((turma) => ({ value: turma.id, label: turma.name })),
             ]}
-            value={turmaId}
+            value={classroomId}
             onValueChange={(valor) => {
               setTurmaId(valor ?? TODOS);
               setPage(0);
@@ -248,7 +248,7 @@ function Matriculas() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={TODOS}>Todas as turmas</SelectItem>
-              {(turmas.data ?? [])
+              {(classrooms.data ?? [])
                 .filter((turma) => turma.academicYear === ANO_LETIVO)
                 .map((turma) => (
                   <SelectItem key={turma.id} value={turma.id}>
@@ -280,11 +280,11 @@ function Matriculas() {
         </div>
 
         {modo === "quadro" ? (
-          <MatriculasQuadro
+          <EnrollmentsBoard
             filtros={{
               academicYear: ANO_LETIVO,
               search: search.trim() || undefined,
-              classroomId: turmaId === TODOS ? undefined : turmaId,
+              classroomId: classroomId === TODOS ? undefined : classroomId,
               shift:
                 turnoFiltro === TODOS ? undefined : (turnoFiltro as "manha" | "tarde" | "noite"),
             }}
@@ -309,7 +309,7 @@ function Matriculas() {
           <>
             <Table className="min-w-[62rem]">
               <TableCaption>
-                O código é série e turno — `6M` é 6º ano da manhã. Ele é calculado a partir da
+                O código é série e shiftText — `6M` é 6º ano da manhã. Ele é calculado a partir da
                 turma, então acompanha o aluno quando ela muda. O telefone aparece parcial: a ficha
                 completa está no detalhe.
               </TableCaption>
@@ -327,9 +327,9 @@ function Matriculas() {
               </TableHeader>
               <TableBody>
                 {itens.map((item) => {
-                  const situacao = situacaoEnrollment(item.status);
-                  const link = situacaoLink(item.linkStatus);
-                  const restante = prazo(item.expiresAt);
+                  const situation = enrollmentStatusBadge(item.status);
+                  const link = linkStatusBadge(item.linkStatus);
+                  const restante = deadlineText(item.expiresAt);
                   const urgente =
                     item.status === "pendente" &&
                     (restante === "vence hoje" || restante === "vencido");
@@ -351,7 +351,9 @@ function Matriculas() {
                       </TableCell>
                       <TableCell>
                         <div className="text-corpo">{item.classroomName ?? "A definir"}</div>
-                        <div className="text-meta text-muted-foreground">{turno(item.shift)}</div>
+                        <div className="text-meta text-muted-foreground">
+                          {shiftText(item.shift)}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {item.classCode ? (
@@ -365,16 +367,18 @@ function Matriculas() {
                       <TableCell>
                         <div className="text-corpo">{item.guardianName ?? "—"}</div>
                         <div className="text-meta text-muted-foreground">
-                          {item.guardianRelationship ? parentesco(item.guardianRelationship) : "—"}
+                          {item.guardianRelationship
+                            ? relationshipText(item.guardianRelationship)
+                            : "—"}
                           {" · "}
-                          {telefoneMascarado(item.guardianPhone)}
+                          {maskedPhoneText(item.guardianPhone)}
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={link.tone}>{link.label}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={situacao.tone}>{situacao.label}</Badge>
+                        <Badge variant={situation.tone}>{situation.label}</Badge>
                       </TableCell>
                       <TableCell>
                         <span
@@ -410,7 +414,7 @@ function Matriculas() {
             <div className="flex items-center justify-between gap-4">
               <span className="text-meta text-muted-foreground">
                 {page * POR_PAGINA + 1}–{Math.min((page + 1) * POR_PAGINA, total)} de{" "}
-                {inteiro(total)} matrículas
+                {integerText(total)} matrículas
               </span>
               <div className="flex gap-2">
                 <Button

@@ -14,9 +14,9 @@ import { BookOpen, CalendarDays, IdCard, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import z from "zod";
 
-import { SegurancaDaConta } from "@/components/seguranca-da-conta";
+import { AccountSecurity } from "@/components/account-security";
 import { authClient } from "@/lib/auth-client";
-import { dataDoInstante, inteiro, situacaoMatricula, turno } from "@/lib/format";
+import { instantDateText, integerText, shiftText, studentStatusBadge } from "@/lib/format";
 import { roleLabel } from "@/lib/navigation";
 import { useSchoolContext } from "@/lib/school-context";
 import { type RouterOutputs, useTRPC } from "@/utils/trpc";
@@ -66,7 +66,7 @@ function MeuPerfil() {
         <>
           <Identificacao perfil={perfil.data} />
           <MeuVinculo perfil={perfil.data} />
-          <SegurancaDaConta />
+          <AccountSecurity />
         </>
       )}
     </>
@@ -157,9 +157,9 @@ function Identificacao({ perfil }: { perfil: PerfilCarregado }) {
               <p className="text-meta text-muted-foreground">
                 É como você aparece na chamada, no diário e nos comunicados.
               </p>
-              {field.state.meta.errors.map((erro) => (
-                <p key={erro?.message} className="text-danger text-meta">
-                  {erro?.message}
+              {field.state.meta.errors.map((error) => (
+                <p key={error?.message} className="text-danger text-meta">
+                  {error?.message}
                 </p>
               ))}
             </div>
@@ -168,17 +168,17 @@ function Identificacao({ perfil }: { perfil: PerfilCarregado }) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <CampoFixo
-            rotulo="E-mail de acesso"
+            label="E-mail de acesso"
             valor={perfil.email}
             nota="Trocar o e-mail muda o login: quem faz isso é a secretaria."
           />
           <CampoFixo
-            rotulo="Papel nesta escola"
+            label="Papel nesta escola"
             valor={roleLabel(perfil.role)}
             nota="Definido pelo vínculo. Não se altera por esta tela."
           />
-          <CampoFixo rotulo="Na escola desde" valor={dataDoInstante(perfil.naEscolaDesde)} />
-          <CampoFixo rotulo="Conta criada em" valor={dataDoInstante(perfil.contaCriadaEm)} />
+          <CampoFixo label="Na escola desde" valor={instantDateText(perfil.atSchoolSince)} />
+          <CampoFixo label="Conta criada em" valor={instantDateText(perfil.contaCriadaEm)} />
         </div>
 
         <form.Subscribe
@@ -213,11 +213,11 @@ function Identificacao({ perfil }: { perfil: PerfilCarregado }) {
  * que está quebrado, e a pessoa fica clicando nele. Aqui é texto, com a razão
  * de ser fixo logo abaixo.
  */
-function CampoFixo({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: string }) {
+function CampoFixo({ label, valor, nota }: { label: string; valor: string; nota?: string }) {
   return (
     <div className="flex flex-col gap-1 rounded-control bg-muted px-4 py-3">
       <span className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
-        {rotulo}
+        {label}
       </span>
       <span className="truncate font-bold text-corpo">{valor}</span>
       {nota ? <span className="text-meta text-muted-foreground">{nota}</span> : null}
@@ -227,9 +227,9 @@ function CampoFixo({ rotulo, valor, nota }: { rotulo: string; valor: string; not
 
 function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
   const { year } = useSchoolContext();
-  const vinculo = perfil.vinculo;
+  const affiliation = perfil.affiliation;
 
-  if (vinculo.tipo === "gestao") {
+  if (affiliation.tipo === "gestao") {
     return (
       <Card className="flex flex-col gap-3">
         <CardEyebrow>Vínculo</CardEyebrow>
@@ -253,25 +253,25 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
     );
   }
 
-  if (vinculo.tipo === "professor") {
+  if (affiliation.tipo === "professor") {
     return (
       <Card className="flex flex-col gap-4">
         <CardEyebrow>Vínculo</CardEyebrow>
         <h2 className="font-extrabold text-lg tracking-[-0.3px]">Sua carga em {year}</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
           <StatCard icon={LayoutGrid} label="Turmas" hint="com aula na grade">
-            {inteiro(vinculo.turmas)}
+            {integerText(affiliation.classrooms)}
           </StatCard>
           <StatCard icon={BookOpen} label="Disciplinas" hint="que você leciona">
-            {inteiro(vinculo.disciplinas)}
+            {integerText(affiliation.subjects)}
           </StatCard>
           <StatCard icon={CalendarDays} label="Aulas no ano" hint="previstas na grade">
-            {inteiro(vinculo.aulas)}
+            {integerText(affiliation.lessons)}
           </StatCard>
         </div>
         {/* Zero não é erro: professor recém-vinculado ainda não entrou na
             grade, e a tela precisa dizer isso em vez de parecer quebrada. */}
-        {vinculo.aulas === 0 ? (
+        {affiliation.lessons === 0 ? (
           <p className="text-apoio text-muted-foreground">
             Você ainda não tem aula na grade de {year}. Quem monta a grade é a coordenação.
           </p>
@@ -280,14 +280,14 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
     );
   }
 
-  const situacao = vinculo.situacao ? situacaoMatricula(vinculo.situacao) : null;
+  const situation = affiliation.situation ? studentStatusBadge(affiliation.situation) : null;
 
   return (
     <Card className="flex flex-col gap-4">
       <CardEyebrow>Vínculo</CardEyebrow>
       <h2 className="font-extrabold text-lg tracking-[-0.3px]">Sua matrícula</h2>
 
-      {vinculo.matricula === null ? (
+      {affiliation.matricula === null ? (
         <p className="text-corpo text-muted-foreground">
           Sua conta ainda não está ligada a uma ficha de aluno. Fale com a secretaria — o acesso
           funciona, mas turma e boletim só aparecem depois dessa ligação.
@@ -295,16 +295,19 @@ function MeuVinculo({ perfil }: { perfil: PerfilCarregado }) {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2">
-            <CampoFixo rotulo="Número de matrícula" valor={vinculo.matricula} />
-            <CampoFixo rotulo="Turma" valor={vinculo.turma ?? "Ainda sem turma"} />
-            <CampoFixo rotulo="Turno" valor={vinculo.turno ? turno(vinculo.turno) : "—"} />
+            <CampoFixo label="Número de matrícula" valor={affiliation.matricula} />
+            <CampoFixo label="Turma" valor={affiliation.turma ?? "Ainda sem turma"} />
+            <CampoFixo
+              label="Turno"
+              valor={affiliation.turno ? shiftText(affiliation.turno) : "—"}
+            />
             <div className="flex flex-col gap-1 rounded-control bg-muted px-4 py-3">
               <span className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
                 Situação
               </span>
-              {situacao ? (
-                <Badge variant={situacao.tone} className="self-start">
-                  {situacao.label}
+              {situation ? (
+                <Badge variant={situation.tone} className="self-start">
+                  {situation.label}
                 </Badge>
               ) : (
                 <span className="font-bold text-corpo">—</span>

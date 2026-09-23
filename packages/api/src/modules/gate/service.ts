@@ -1,19 +1,19 @@
 import { ConflictError, NotFoundError, ValidationError } from "../../errors";
 import { ENROLLED_STATUSES } from "../student/schema";
-import { identificar, type Veredito } from "./reconhecimento";
+import { identify, type Verdict } from "./recognition";
 import type { GateRepository } from "./repository";
 import type {
-  CadastrarMoldeInput,
-  ExcluirPassagemInput,
-  PassagensInput,
-  RegistrarInput,
+  DeleteEntryInput,
+  EnrollTemplateInput,
+  EntriesInput,
+  RecordEntryInput,
 } from "./schema";
-import { cifrarMolde, decifrarMolde } from "./segredo";
+import { decryptTemplate, encryptTemplate } from "./secret";
 
-export interface DepsDaPortaria {
+export interface GateDeps {
   now: () => Date;
   /** A chave de cifragem dos moldes. Vive fora do banco, como a da foto. */
-  chave: string | undefined;
+  key: string | undefined;
   actor: { userId: string };
 }
 
@@ -37,7 +37,7 @@ export const VALIDADE_DO_LOTE_MS = 10 * 60 * 1000;
  * Um minuto porque é o que cobre a fila do portão sem cobrir uma ida e volta
  * de verdade: ninguém entra na escola e sai dela em cinquenta segundos.
  */
-export const JANELA_DE_RELEITURA_MS = 60_000;
+export const RESCAN_WINDOW_MS = 60_000;
 
 /**
  * A portaria.
@@ -56,15 +56,15 @@ export const JANELA_DE_RELEITURA_MS = 60_000;
  */
 const LIMITE_DA_LISTA = 300;
 
-export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
+export function createGateService(repo: GateRepository, deps: GateDeps) {
   function inicioDoDia(): Date {
     const agora = deps.now();
     return new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
   }
 
   /** O dia seguinte, à meia-noite: o fim aberto da janela do dia. */
-  function fimDoDia(inicio: Date): Date {
-    return new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + 1);
+  function fimDoDia(start: Date): Date {
+    return new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
   }
 
   /**
@@ -75,8 +75,8 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
    * começaria às 21h do dia 21.
    */
   function diaCivil(texto: string): Date {
-    const [ano, mes, dia] = texto.split("-").map(Number);
-    return new Date(ano as number, (mes as number) - 1, dia as number);
+    const [year, mes, day] = texto.split("-").map(Number);
+    return new Date(year as number, (mes as number) - 1, day as number);
   }
 
   /** Aluno fora de `ENROLLED_STATUSES` não abre portão. */
@@ -103,7 +103,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
      */
     async lote() {
       const gravados = await repo.listTemplates();
-      const alunos: { studentId: string; descritor: number[] }[] = [];
+      const alunos: { studentId: string; descriptor: number[] }[] = [];
 
       let extractor: string | null = null;
       for (const molde of gravados) {
@@ -115,9 +115,9 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
 
         alunos.push({
           studentId: molde.studentId,
-          descritor: decifrarMolde(
+          descriptor: decryptTemplate(
             { cipher: molde.cipher, iv: molde.iv, authTag: molde.authTag },
-            deps.chave,
+            deps.key,
           ),
         });
       }
@@ -125,7 +125,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
       return {
         extractor,
         alunos,
-        pendentesDeRecadastro: gravados.length - alunos.length,
+        pendingReenrollment: gravados.length - alunos.length,
         validoAte: new Date(deps.now().getTime() + VALIDADE_DO_LOTE_MS),
       };
     },
@@ -135,10 +135,10 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
      *
      * Existe ao lado do lote porque o tablet nem sempre pode comparar: lote
      * vencido, memória perdida numa recarga, ou aparelho fraco demais para
-     * segurar os moldes. O caminho é o mesmo e a regra é a mesma — `identificar`
+     * segurar os moldes. O caminho é o mesmo e a regra é a mesma — `identify`
      * é a única implementação, nos dois lados.
      */
-    async identificarRosto(entrada: { descritor: number[]; extractor: string }) {
+    async identificarRosto(entrada: { descriptor: number[]; extractor: string }) {
       const { alunos, extractor } = await this.lote();
 
       if (extractor && entrada.extractor !== extractor) {
@@ -147,30 +147,30 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
         );
       }
 
-      const veredito = identificar(entrada.descritor, alunos);
-      return this.cartaoDoVeredito(veredito);
+      const verdict = identify(entrada.descriptor, alunos);
+      return this.verdictCard(verdict);
     },
 
     /** Traduz o veredito em algo que a tela possa mostrar sem decidir nada. */
-    async cartaoDoVeredito(veredito: Veredito) {
-      if (veredito.tipo !== "reconhecido") {
+    async verdictCard(verdict: Verdict) {
+      if (verdict.tipo !== "reconhecido") {
         // Ambíguo e desconhecido dão o mesmo resultado na tela de propósito:
         // "não identificado, use a carteirinha". Dizer "você parece com outro
         // aluno" na frente da fila não ajuda ninguém e expõe as duas crianças.
-        return { encontrado: false as const, motivo: veredito.tipo };
+        return { encontrado: false as const, motivo: verdict.tipo };
       }
 
-      const aluno = await repo.findStudent(veredito.studentId);
+      const aluno = await repo.findStudent(verdict.studentId);
       if (!aluno) return { encontrado: false as const, motivo: "ninguem" as const };
 
-      return { encontrado: true as const, aluno, distancia: veredito.distancia };
+      return { encontrado: true as const, aluno, distance: verdict.distance };
     },
 
     /** O caminho da carteirinha: o QR carrega o número de matrícula. */
-    async porMatricula(registration: string) {
+    async byRegistration(registration: string) {
       const aluno = await repo.findByRegistration(registration);
       if (!aluno) return { encontrado: false as const, motivo: "ninguem" as const };
-      return { encontrado: true as const, aluno, distancia: null };
+      return { encontrado: true as const, aluno, distance: null };
     },
 
     /**
@@ -190,7 +190,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
      * tela mostra o cartão do mesmo jeito, porque para quem está no portão
      * nada deu errado.
      */
-    async registrar(input: RegistrarInput & { deviceLabel?: string | null }) {
+    async registrar(input: RecordEntryInput & { deviceLabel?: string | null }) {
       const aluno = await repo.findStudent(input.studentId);
       if (!aluno) throw new NotFoundError("Aluno não encontrado nesta escola.");
 
@@ -215,8 +215,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
        * de quem está dentro mentindo justamente no dia em que alguém precisar
        * dela.
        */
-      const repetida =
-        !!ultima && agora.getTime() - ultima.occurredAt.getTime() < JANELA_DE_RELEITURA_MS;
+      const repetida = !!ultima && agora.getTime() - ultima.occurredAt.getTime() < RESCAN_WINDOW_MS;
 
       if (!repetida) {
         await repo.recordEntry({
@@ -247,7 +246,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
      * reconhecimento na entrada. A checagem é aqui e não na tela porque tela
      * se contorna.
      */
-    async cadastrarMolde(input: CadastrarMoldeInput) {
+    async enrollTemplate(input: EnrollTemplateInput) {
       const aluno = await repo.findStudent(input.studentId);
       if (!aluno) throw new NotFoundError("Aluno não encontrado nesta escola.");
 
@@ -258,18 +257,18 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
         );
       }
 
-      const cifrado = cifrarMolde(input.descritor, deps.chave);
+      const encrypted = encryptTemplate(input.descriptor, deps.key);
       await repo.saveTemplate({
         studentId: input.studentId,
-        cipher: cifrado.cipher,
-        iv: cifrado.iv,
-        authTag: cifrado.authTag,
-        dimensions: input.descritor.length,
+        cipher: encrypted.cipher,
+        iv: encrypted.iv,
+        authTag: encrypted.authTag,
+        dimensions: input.descriptor.length,
         extractor: input.extractor,
         enrolledByUserId: deps.actor.userId,
       });
 
-      return { studentId: input.studentId, dimensions: input.descritor.length };
+      return { studentId: input.studentId, dimensions: input.descriptor.length };
     },
 
     /**
@@ -284,7 +283,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
     },
 
     /** O rodapé do quiosque: quantos estão dentro, e o movimento de hoje. */
-    async situacao() {
+    async situation() {
       const desde = inicioDoDia();
       const [dentro, passagens] = await Promise.all([
         repo.presentCount(desde),
@@ -299,8 +298,8 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
      * Sem `dia`, hoje: quem abre a tela quer o movimento de agora, e obrigar a
      * escolher data antes de ver qualquer coisa é ruído no caminho comum.
      */
-    async passagens(input: PassagensInput) {
-      const desde = input.dia ? diaCivil(input.dia) : inicioDoDia();
+    async passagens(input: EntriesInput) {
+      const desde = input.day ? diaCivil(input.day) : inicioDoDia();
       return repo.listEntries({
         desde,
         ate: fimDoDia(desde),
@@ -317,7 +316,7 @@ export function createGateService(repo: GateRepository, deps: DepsDaPortaria) {
      * chamou, o efeito é o mesmo, e sobrescrever o autor apagaria justamente
      * o registro que uma conferência vai procurar.
      */
-    async excluir(input: ExcluirPassagemInput) {
+    async excluir(input: DeleteEntryInput) {
       const removida = await repo.softDelete(input.id, deps.actor.userId, deps.now());
       if (!removida) {
         throw new NotFoundError("Esta passagem não existe ou já foi excluída.");

@@ -8,7 +8,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, ExternalLink, Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { appOrbitaDe } from "@/lib/apps-orbita";
+import { orbitaAppFor } from "@/lib/orbita-apps";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_app/apps/$appKey")({
@@ -76,11 +76,11 @@ async function respondeu(endereco: string): Promise<boolean> {
 function AppEmbutido() {
   const { appKey } = Route.useParams();
   const trpc = useTRPC();
-  const app = appOrbitaDe(appKey);
+  const app = orbitaAppFor(appKey);
 
   const [estado, setEstado] = useState<Estado>("pedindo");
   const [url, setUrl] = useState<string | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
+  const [error, setErro] = useState<string | null>(null);
   const prazo = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const abrir = useMutation(trpc.orbita.openApp.mutationOptions());
@@ -113,8 +113,8 @@ function AppEmbutido() {
         const resultado = await pedirAoServidor.current({ appKey: app.key, embedded });
         return resultado.url;
       } catch (falha) {
-        const mensagem = falha instanceof Error ? falha.message : "Não foi possível abrir o app.";
-        setErro(mensagem);
+        const message = falha instanceof Error ? falha.message : "Não foi possível abrir o app.";
+        setErro(message);
         setEstado("recusado");
         return null;
       }
@@ -209,8 +209,8 @@ function AppEmbutido() {
         <header className="flex flex-wrap items-center justify-between gap-3 border-border border-b px-5 py-3">
           <div className="flex items-center gap-3">
             <Icone size={18} strokeWidth={1.7} aria-hidden />
-            <h1 className="font-extrabold text-sm">{app.nome}</h1>
-            <span className="text-meta text-muted-foreground">{app.resumo}</span>
+            <h1 className="font-extrabold text-sm">{app.name}</h1>
+            <span className="text-meta text-muted-foreground">{app.summary}</span>
             {/* Dizer de onde vem o conteúdo: no dia em que quebrar, é o que
                 faz a pessoa procurar o suporte certo. */}
             <Badge variant="secondary">Órbita</Badge>
@@ -229,9 +229,9 @@ function AppEmbutido() {
         <div className="relative min-h-0 flex-1 bg-muted">
           {estado === "recusado" ? (
             <div className="grid h-full place-items-center p-6">
-              {erro?.includes("não está instalado") ? (
+              {error?.includes("não está instalado") ? (
                 <EmptyState
-                  title={`${app.nome} não está instalado`}
+                  title={`${app.name} não está instalado`}
                   description="Instale o app na aba Apps antes de abri-lo."
                   action={
                     <Button nativeButton={false} render={<Link to="/apps" />}>
@@ -239,7 +239,7 @@ function AppEmbutido() {
                     </Button>
                   }
                 />
-              ) : erro?.includes("perfil") ? (
+              ) : error?.includes("perfil") ? (
                 <PermissionState
                   title="Seu perfil não abre este app"
                   description="Fale com a direção da escola se precisa de acesso."
@@ -247,7 +247,7 @@ function AppEmbutido() {
               ) : (
                 <ErrorState
                   title="Não foi possível abrir"
-                  description={erro ?? "Tente de novo em instantes."}
+                  description={error ?? "Tente de novo em instantes."}
                   action={
                     <Button variant="secondary" onClick={() => window.location.reload()}>
                       Tentar de novo
@@ -299,7 +299,7 @@ function AppEmbutido() {
           {url && (estado === "carregando" || estado === "pronto") ? (
             <iframe
               src={url}
-              title={`${app.nome} — Órbita`}
+              title={`${app.name} — Órbita`}
               className="size-full border-0"
               // Sem `allow-same-origin` o app não enxerga os próprios cookies
               // e nada carrega. O que fica de fora é o que ele não deve poder:

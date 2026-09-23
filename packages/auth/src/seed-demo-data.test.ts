@@ -5,15 +5,15 @@ import {
   assignTeachers,
   birthDateOf,
   buildClassrooms,
+  DEMO_TEACHER,
   type DemoClassroom,
-  DISCIPLINAS,
-  GRADE_SEMANAL,
-  NOTAS_DO_ROTEIRO,
-  PROFESSOR_DEMO,
-  PROFESSORES,
+  SCRIPTED_GRADES,
+  SUBJECTS,
   scoreFor,
   spreadIndexes,
+  TEACHERS,
   timetableOf,
+  WEEKLY_TIMETABLE,
 } from "./seed-demo-data";
 
 /**
@@ -31,8 +31,8 @@ const comHorario = escola.map((turma, index) => ({
   timetable: timetableOf(index, turma.shift, turma.room),
 }));
 
-const alunosDe = (nome: string) =>
-  (escola.find((turma) => turma.name === nome) as DemoClassroom).students;
+const alunosDe = (name: string) =>
+  (escola.find((turma) => turma.name === name) as DemoClassroom).students;
 
 describe("grade horária", () => {
   it("dá 20 aulas por semana a cada turma, quatro por dia útil", () => {
@@ -48,11 +48,11 @@ describe("grade horária", () => {
 
   it("mantém a carga semanal de cada disciplina em todas as turmas", () => {
     const esperado = new Map<string, number>();
-    for (const nome of GRADE_SEMANAL) esperado.set(nome, (esperado.get(nome) ?? 0) + 1);
+    for (const name of WEEKLY_TIMETABLE) esperado.set(name, (esperado.get(name) ?? 0) + 1);
 
     for (const turma of comHorario) {
-      for (const [nome, aulas] of esperado) {
-        expect(turma.timetable.filter((slot) => slot.subject === nome)).toHaveLength(aulas);
+      for (const [name, lessons] of esperado) {
+        expect(turma.timetable.filter((slot) => slot.subject === name)).toHaveLength(lessons);
       }
     }
   });
@@ -63,7 +63,7 @@ describe("alocação de professores", () => {
 
   it("cobre toda disciplina de toda turma", () => {
     for (const turma of comHorario) {
-      for (const disciplina of DISCIPLINAS) {
+      for (const disciplina of SUBJECTS) {
         expect(assignment.get(`${turma.name}|${disciplina}`)).toBeDefined();
       }
     }
@@ -80,9 +80,9 @@ describe("alocação de professores", () => {
     for (const turma of comHorario) {
       for (const slot of turma.timetable) {
         const email = assignment.get(`${turma.name}|${slot.subject}`);
-        const chave = `${email}|${turma.shift}|${slot.weekday}|${slot.period}`;
-        if (ocupado.has(chave)) choques.push(`${turma.name} ${slot.subject} ${chave}`);
-        ocupado.add(chave);
+        const key = `${email}|${turma.shift}|${slot.weekday}|${slot.period}`;
+        if (ocupado.has(key)) choques.push(`${turma.name} ${slot.subject} ${key}`);
+        ocupado.add(key);
       }
     }
 
@@ -91,23 +91,23 @@ describe("alocação de professores", () => {
 
   it("dá ao professor da demonstração as três turmas do roteiro", () => {
     for (const turma of ["8º A", "9º B", "7º C"]) {
-      expect(assignment.get(`${turma}|${PROFESSOR_DEMO.subject}`)).toBe(PROFESSOR_DEMO.email);
+      expect(assignment.get(`${turma}|${DEMO_TEACHER.subject}`)).toBe(DEMO_TEACHER.email);
     }
   });
 
   it("não deixa professor sem turma — quadro inteiro aparece na escola", () => {
     const alocados = new Set(assignment.values());
-    const ociosos = PROFESSORES.filter((teacher) => !alocados.has(teacher.email));
+    const ociosos = TEACHERS.filter((teacher) => !alocados.has(teacher.email));
     expect(ociosos.map((teacher) => teacher.name)).toEqual([]);
   });
 });
 
 describe("turmas e alunos", () => {
   it("mantém as turmas e as matrículas do roteiro", () => {
-    const nomes = escola.map((turma) => turma.name);
-    expect(nomes).toContain("8º A");
-    expect(nomes).toContain("9º B");
-    expect(nomes).toContain("7º C");
+    const names = escola.map((turma) => turma.name);
+    expect(names).toContain("8º A");
+    expect(names).toContain("9º B");
+    expect(names).toContain("7º C");
     expect(alunosDe("8º A")[0]?.name).toBe("Ana Clara Souza Lima");
   });
 
@@ -123,8 +123,8 @@ describe("turmas e alunos", () => {
    * isso — só olhar a tela, ou este teste.
    */
   it("não repete nome completo, nem sobrenome ao longo da chamada", () => {
-    const nomes = escola.flatMap((turma) => turma.students.map((aluno) => aluno.name));
-    expect(new Set(nomes).size).toBe(nomes.length);
+    const names = escola.flatMap((turma) => turma.students.map((aluno) => aluno.name));
+    expect(new Set(names).size).toBe(names.length);
 
     for (const turma of escola) {
       const sobrenomes = turma.students.map((aluno) => aluno.name.split(" ").pop());
@@ -219,7 +219,7 @@ describe("distribuição sem sorteio", () => {
 describe("notas geradas", () => {
   it("fica na escala de 0 a 10, em passos de meio ponto", () => {
     for (let seat = 0; seat < 35; seat += 1) {
-      for (let subjectIndex = 0; subjectIndex < DISCIPLINAS.length; subjectIndex += 1) {
+      for (let subjectIndex = 0; subjectIndex < SUBJECTS.length; subjectIndex += 1) {
         for (const assessmentIndex of [1, 2, 3]) {
           const nota = scoreFor(seat, subjectIndex, assessmentIndex);
           expect(nota).toBeGreaterThanOrEqual(0);
@@ -232,8 +232,8 @@ describe("notas geradas", () => {
 
   /** Boletim de régua reta não mostra nada: o gráfico por disciplina some. */
   it("varia entre disciplinas para o mesmo aluno", () => {
-    const doAluno = DISCIPLINAS.map((_, subjectIndex) => scoreFor(9, subjectIndex, 1));
-    expect(new Set(doAluno).size).toBeGreaterThan(2);
+    const ofStudent = SUBJECTS.map((_, subjectIndex) => scoreFor(9, subjectIndex, 1));
+    expect(new Set(ofStudent).size).toBeGreaterThan(2);
   });
 
   /**
@@ -246,7 +246,7 @@ describe("notas geradas", () => {
     const ana = alunosDe("8º A").find((aluno) => aluno.name.startsWith("Ana Clara"));
     expect(ana?.aptitude).toBeCloseTo(8.33, 1);
 
-    const boletim = DISCIPLINAS.map(
+    const boletim = SUBJECTS.map(
       (_, subjectIndex) =>
         [1, 2, 3].reduce(
           (soma, avaliacao) => soma + scoreFor(0, subjectIndex, avaliacao, ana?.aptitude),
@@ -254,23 +254,23 @@ describe("notas geradas", () => {
         ) / 3,
     );
 
-    const geral = boletim.reduce((soma, media) => soma + media, 0) / boletim.length;
+    const geral = boletim.reduce((soma, average) => soma + average, 0) / boletim.length;
     expect(geral).toBeGreaterThan(7.5);
     // Nenhuma disciplina desaba: a variação é de desempenho, não de identidade.
     expect(Math.min(...boletim)).toBeGreaterThan(6.5);
   });
 
   it("produz aluno aprovado e aluno em recuperação", () => {
-    const medias = Array.from(
+    const averages = Array.from(
       { length: 30 },
       (_, seat) => [1, 2, 3].reduce((sum, index) => sum + scoreFor(seat, 0, index), 0) / 3,
     );
-    expect(medias.some((media) => media >= 6)).toBe(true);
-    expect(medias.some((media) => media < 6)).toBe(true);
+    expect(averages.some((average) => average >= 6)).toBe(true);
+    expect(averages.some((average) => average < 6)).toBe(true);
   });
 
   it("deixa exatamente dois alunos do 8º A sem a Prova 2", () => {
-    const semNota = Object.values(NOTAS_DO_ROTEIRO).filter((notas) => notas[2] === null);
+    const semNota = Object.values(SCRIPTED_GRADES).filter((grades) => grades[2] === null);
     expect(semNota).toHaveLength(2);
   });
 });

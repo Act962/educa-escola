@@ -49,6 +49,14 @@ pnpm run db:migrate
 pnpm --filter @educa-escola/auth run provision --   --name "Escola Municipal X" --slug escola-x   --owner-name "Maria Diretora"   --owner-email diretoria@escola-x.br --owner-password "uma-senha-forte"
 ```
 
+Para uma escola pronta para operar — um acesso por papel (direcao, secretaria,
+professor e aluno), as disciplinas da base e uma turma —, use o seed de
+producao. Ele nunca apaga, e mostra as senhas geradas uma unica vez:
+
+```bash
+pnpm run seed:producao --   --name "Escola Municipal X" --slug escola-x --dominio escola-x.br
+```
+
 Then, run the development server:
 
 ```bash
@@ -139,6 +147,8 @@ educa-escola/
 - `pnpm run db:generate`: Generate database client/types
 - `pnpm run db:migrate`: Run database migrations
 - `pnpm run db:studio`: Open database studio UI
+- `pnpm run seed:demo`: Populate the demo school (rewrites it if present)
+- `pnpm run seed:producao`: Prepare a real school with one login per role (never deletes)
 - `pnpm run check`: Run Biome formatting and linting
 - `pnpm run docker:build`: Build the Docker Compose images
 - `pnpm run docker:up`: Build and start the Docker Compose stack

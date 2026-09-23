@@ -115,9 +115,9 @@ describe("createEnrollmentRepository", () => {
         actor: "gestao",
       });
 
-      const eventos = await repo.listEvents(matricula.id);
+      const events = await repo.listEvents(matricula.id);
 
-      expect(eventos).toHaveLength(2);
+      expect(events).toHaveLength(2);
       // O repositório não expõe update nem delete de evento — é a trilha.
       expect(Object.keys(repo)).not.toContain("updateEvent");
       expect(Object.keys(repo)).not.toContain("removeEvent");
@@ -312,8 +312,8 @@ describe("createEnrollmentService, contra o banco", () => {
       const token = criada.url.split("/matricula/")[1] ?? "";
       expect(token.length).toBeGreaterThan(20);
 
-      const detalhe = await service.get(criada.id);
-      expect(JSON.stringify(detalhe)).not.toContain(token);
+      const detail = await service.get(criada.id);
+      expect(JSON.stringify(detail)).not.toContain(token);
     });
   });
 });
@@ -363,8 +363,8 @@ describe("numeração da matrícula", () => {
         expiryDays: 7,
       });
 
-      const detalhe = await service.get(criada.id);
-      expect(detalhe.registration).toBe(`${ANO}-0042`);
+      const detail = await service.get(criada.id);
+      expect(detail.registration).toBe(`${ANO}-0042`);
     });
   });
 
@@ -421,7 +421,7 @@ describe("autorização de biometria depois da matrícula confirmada", () => {
     });
     await service.confirm({ id: criada.id });
 
-    return { escola, service, enrollmentId: criada.id, linkDaFicha: criada.url };
+    return { escola, service, enrollmentId: criada.id, recordLink: criada.url };
   }
 
   it("a secretaria pede, a família autoriza, e o consentimento passa a valer", async () => {
@@ -448,8 +448,8 @@ describe("autorização de biometria depois da matrícula confirmada", () => {
 
       const { createGateRepository } = await import("../gate/repository");
       const portaria = createGateRepository(tx, { schoolId: c.escola.id });
-      const detalhe = await repo.findDetail(c.enrollmentId);
-      const studentId = detalhe?.enrollment.studentId as string;
+      const detail = await repo.findDetail(c.enrollmentId);
+      const studentId = detail?.enrollment.studentId as string;
       expect(studentId).toBeTruthy();
       expect(await portaria.hasBiometricConsent(studentId)).toBe(true);
     });
@@ -470,13 +470,13 @@ describe("autorização de biometria depois da matrícula confirmada", () => {
       await link.autorizarBiometria({ token, autoriza: false, acceptedBy: "Vera Prado" }, {});
 
       const repo = createEnrollmentRepository(tx, { schoolId: c.escola.id });
-      const eventos = await repo.listEvents(c.enrollmentId);
-      expect(eventos.some((e) => e.type === "consentimento_atualizado")).toBe(true);
+      const events = await repo.listEvents(c.enrollmentId);
+      expect(events.some((e) => e.type === "consentimento_atualizado")).toBe(true);
 
       const { createGateRepository } = await import("../gate/repository");
       const portaria = createGateRepository(tx, { schoolId: c.escola.id });
-      const detalhe = await repo.findDetail(c.enrollmentId);
-      const studentId = detalhe?.enrollment.studentId as string;
+      const detail = await repo.findDetail(c.enrollmentId);
+      const studentId = detail?.enrollment.studentId as string;
       // Sem esta linha o teste passaria por acidente: um id indefinido também
       // não acha consentimento, e "false" diria nada.
       expect(studentId).toBeTruthy();
@@ -575,12 +575,10 @@ describe("autorização registrada presencialmente", () => {
       // sozinha" ficam idênticos no banco.
       expect(biometria?.registeredByUserId).toBeTruthy();
 
-      const detalhe = await repo.findDetail(criada.id);
+      const detail = await repo.findDetail(criada.id);
       const { createGateRepository } = await import("../gate/repository");
       const portaria = createGateRepository(tx, { schoolId: escola.id });
-      expect(await portaria.hasBiometricConsent(detalhe?.enrollment.studentId as string)).toBe(
-        true,
-      );
+      expect(await portaria.hasBiometricConsent(detail?.enrollment.studentId as string)).toBe(true);
     });
   });
 

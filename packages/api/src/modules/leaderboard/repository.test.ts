@@ -18,21 +18,21 @@ afterAll(async () => {
 
 async function escolaPublicada(
   tx: Parameters<Parameters<typeof withRollback>[0]>[0],
-  nome: string,
+  name: string,
   points: number,
 ) {
-  const escola = await createTestSchool(tx, nome);
+  const escola = await createTestSchool(tx, name);
   const usuario = await createTestUser(tx);
   const repo = createLeaderboardRepository(tx, { schoolId: escola.id });
 
-  await repo.optIn({ displayName: nome, academicYear: 2026, userId: usuario.id });
+  await repo.optIn({ displayName: name, academicYear: 2026, userId: usuario.id });
   await repo.publish({
-    displayName: nome,
+    displayName: name,
     academicYear: 2026,
     points,
-    chamadaNoPrazo: points,
-    notasSemPendencia: 0,
-    frequenciaMedia: 0,
+    attendanceOnTime: points,
+    gradesWithoutPending: 0,
+    averageAttendance: 0,
   });
 
   return { escola, repo };
@@ -102,10 +102,10 @@ describe("createLeaderboardLookup", () => {
       const [linha] = await createLeaderboardLookup(tx).scoreboard(2026);
 
       expect(Object.keys(linha ?? {}).sort()).toEqual([
-        "chamadaNoPrazo",
+        "attendanceOnTime",
+        "averageAttendance",
         "displayName",
-        "frequenciaMedia",
-        "notasSemPendencia",
+        "gradesWithoutPending",
         "points",
         "schoolId",
       ]);
@@ -125,9 +125,9 @@ describe("createLeaderboardLookup", () => {
         displayName: "Não aderiu",
         academicYear: 2026,
         points: 300,
-        chamadaNoPrazo: 100,
-        notasSemPendencia: 100,
-        frequenciaMedia: 100,
+        attendanceOnTime: 100,
+        gradesWithoutPending: 100,
+        averageAttendance: 100,
       });
 
       const placar = await createLeaderboardLookup(tx).scoreboard(2026);
@@ -186,7 +186,7 @@ describe("contagens da escola", () => {
         schoolId: escola.id,
       }).contagens(2026);
 
-      expect(contagens).toMatchObject({ aulasComChamada: 1, aulasNoPrazo: 1 });
+      expect(contagens).toMatchObject({ lessonsWithAttendance: 1, lessonsOnTime: 1 });
     });
   });
 });

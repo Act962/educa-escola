@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { PortariaQuiosque } from "@/components/portaria-quiosque";
+import { GateKiosk } from "@/components/gate-kiosk";
 import { getUser } from "@/functions/get-user";
 import { useTRPC } from "@/utils/trpc";
 
@@ -67,5 +67,5 @@ function Portaria() {
     );
   }
 
-  return <PortariaQuiosque deviceLabel={me.data.schoolName ?? "Portaria"} sentido={sentido} />;
+  return <GateKiosk deviceLabel={me.data.schoolName ?? "Portaria"} sentido={sentido} />;
 }

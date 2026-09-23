@@ -15,14 +15,14 @@ const NA_SALA = ["ativo", "documentacao_pendente"] as const;
 
 /** Único lugar do módulo que monta query. Recebe `(db, tenant)`. */
 export function createCommunicationRepository(db: DbHandle, tenant: TenantContext) {
-  const naEscola = eq(communication.schoolId, tenant.schoolId);
+  const atSchool = eq(communication.schoolId, tenant.schoolId);
 
   return {
     async list(academicYear: number) {
       return db
         .select()
         .from(communication)
-        .where(and(naEscola, eq(communication.academicYear, academicYear)))
+        .where(and(atSchool, eq(communication.academicYear, academicYear)))
         .orderBy(desc(communication.createdAt));
     },
 
@@ -30,7 +30,7 @@ export function createCommunicationRepository(db: DbHandle, tenant: TenantContex
       const [row] = await db
         .select()
         .from(communication)
-        .where(and(naEscola, eq(communication.id, id)))
+        .where(and(atSchool, eq(communication.id, id)))
         .limit(1);
       return row ?? null;
     },
@@ -52,7 +52,7 @@ export function createCommunicationRepository(db: DbHandle, tenant: TenantContex
       const [row] = await db
         .update(communication)
         .set({ status: "publicado", publishedAt: now })
-        .where(and(naEscola, eq(communication.id, id)))
+        .where(and(atSchool, eq(communication.id, id)))
         .returning();
       return row ?? null;
     },
@@ -61,7 +61,7 @@ export function createCommunicationRepository(db: DbHandle, tenant: TenantContex
       const [row] = await db
         .update(communication)
         .set({ status: "retificado" })
-        .where(and(naEscola, eq(communication.id, id)))
+        .where(and(atSchool, eq(communication.id, id)))
         .returning({ id: communication.id });
       return row ?? null;
     },
@@ -69,7 +69,7 @@ export function createCommunicationRepository(db: DbHandle, tenant: TenantContex
     async removeDraft(id: string) {
       const [row] = await db
         .delete(communication)
-        .where(and(naEscola, eq(communication.id, id), eq(communication.status, "rascunho")))
+        .where(and(atSchool, eq(communication.id, id), eq(communication.status, "rascunho")))
         .returning({ id: communication.id });
       return row ?? null;
     },
@@ -102,7 +102,7 @@ export function createCommunicationRepository(db: DbHandle, tenant: TenantContex
         return row?.total ?? 0;
       }
 
-      const [docentes] = await db
+      const [teachers] = await db
         .select({ total: count(member.id) })
         .from(member)
         .where(and(eq(member.organizationId, tenant.schoolId), eq(member.role, "teacher")));
@@ -111,7 +111,7 @@ export function createCommunicationRepository(db: DbHandle, tenant: TenantContex
         .from(student)
         .where(and(eq(student.schoolId, tenant.schoolId), inArray(student.status, NA_SALA)));
 
-      return (docentes?.total ?? 0) + (alunos?.total ?? 0);
+      return (teachers?.total ?? 0) + (alunos?.total ?? 0);
     },
 
     /** Quantos leram cada comunicado. Base da taxa de leitura. */
@@ -200,7 +200,7 @@ export function createCommunicationRepository(db: DbHandle, tenant: TenantContex
         )
         .where(
           and(
-            naEscola,
+            atSchool,
             eq(communication.academicYear, input.academicYear),
             eq(communication.status, "publicado"),
             alcance,

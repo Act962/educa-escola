@@ -35,7 +35,7 @@ const SALA_ESPECIAL: Record<string, string> = {
  * (1º, 2º, 3º e 4º tempos). Se caísse sempre no mesmo tempo, um professor com
  * três turmas estaria em três salas ao mesmo tempo todo dia.
  */
-export const GRADE_SEMANAL = [
+export const WEEKLY_TIMETABLE = [
   "Matemática",
   "Língua Portuguesa",
   "Ciências",
@@ -58,7 +58,7 @@ export const GRADE_SEMANAL = [
   "Matemática",
 ] as const;
 
-export const DISCIPLINAS = [...new Set<string>(GRADE_SEMANAL)];
+export const SUBJECTS = [...new Set<string>(WEEKLY_TIMETABLE)];
 
 /** Tempos de aula por turno. Quatro por dia, com intervalo entre o 2º e o 3º. */
 const TEMPOS: Record<Shift, { startsAt: string; endsAt: string }[]> = {
@@ -95,10 +95,10 @@ export interface TimetableSlot {
  * é o que permite um professor atender várias turmas sem se duplicar.
  */
 export function timetableOf(classroomIndex: number, shift: Shift, room: string): TimetableSlot[] {
-  const shiftBy = (classroomIndex * 3) % GRADE_SEMANAL.length;
+  const shiftBy = (classroomIndex * 3) % WEEKLY_TIMETABLE.length;
 
-  return GRADE_SEMANAL.map((_, cell) => {
-    const subject = GRADE_SEMANAL[(cell + shiftBy) % GRADE_SEMANAL.length] as string;
+  return WEEKLY_TIMETABLE.map((_, cell) => {
+    const subject = WEEKLY_TIMETABLE[(cell + shiftBy) % WEEKLY_TIMETABLE.length] as string;
     const period = cell % 4;
     const tempo = TEMPOS[shift][period] as { startsAt: string; endsAt: string };
 
@@ -123,13 +123,13 @@ export interface Person {
   role: "owner" | "admin" | "teacher" | "student";
 }
 
-export const DIRETORA: Person = {
+export const PRINCIPAL: Person = {
   name: "Marina Duarte",
   email: "marina.duarte@dompedroii.edu.br",
   role: "owner",
 };
 
-export const SECRETARIA: Person = {
+export const SECRETARY: Person = {
   name: "Vera Lúcia Amorim",
   email: "vera.amorim@dompedroii.edu.br",
   role: "admin",
@@ -140,7 +140,7 @@ export const SECRETARIA: Person = {
  * alocação — **Ricardo Alves vem primeiro em Matemática de propósito**: é o
  * professor da demonstração, e precisa ficar com as turmas do roteiro.
  */
-export const PROFESSORES: (Person & { subject: string })[] = (
+export const TEACHERS: (Person & { subject: string })[] = (
   [
     { name: "Ricardo Alves", subject: "Matemática", email: "ricardo.alves", role: "teacher" },
     { name: "Beatriz Nogueira", subject: "Matemática", email: "beatriz.nogueira", role: "teacher" },
@@ -184,9 +184,9 @@ export const PROFESSORES: (Person & { subject: string })[] = (
 }));
 
 /** O professor que a demonstração usa. */
-export const PROFESSOR_DEMO = PROFESSORES[0] as (typeof PROFESSORES)[number];
+export const DEMO_TEACHER = TEACHERS[0] as (typeof TEACHERS)[number];
 
-export const ALUNA_COM_ACESSO = {
+export const STUDENT_WITH_ACCESS = {
   name: "Ana Clara Souza Lima",
   email: "ana.clara@aluno.dompedroii.edu.br",
 };
@@ -199,7 +199,7 @@ export const ALUNA_COM_ACESSO = {
  * carregado" para o Ricardo perder o 9º B e o roteiro apontar para a pessoa
  * errada.
  */
-export const TURMAS_DO_PROFESSOR_DEMO = ["8º A", "9º B", "7º C"];
+export const DEMO_TEACHER_CLASSROOMS = ["8º A", "9º B", "7º C"];
 
 /**
  * Aloca professor por (turma, disciplina) sem choque de horário.
@@ -222,15 +222,15 @@ export function assignTeachers(
   const keyOf = (shift: Shift, slot: TimetableSlot) => `${shift}-${slot.weekday}-${slot.period}`;
 
   for (const room of classrooms) {
-    for (const subject of DISCIPLINAS) {
+    for (const subject of SUBJECTS) {
       const slots = room.timetable.filter((slot) => slot.subject === subject);
       if (slots.length === 0) continue;
 
-      const pool = PROFESSORES.filter((teacher) => teacher.subject === subject);
+      const pool = TEACHERS.filter((teacher) => teacher.subject === subject);
 
       const fixo =
-        subject === PROFESSOR_DEMO.subject && TURMAS_DO_PROFESSOR_DEMO.includes(room.name)
-          ? PROFESSOR_DEMO
+        subject === DEMO_TEACHER.subject && DEMO_TEACHER_CLASSROOMS.includes(room.name)
+          ? DEMO_TEACHER
           : undefined;
 
       const free = pool.filter((teacher) => {
@@ -250,7 +250,7 @@ export function assignTeachers(
         (free.length > 0 ? free : pool).reduce(
           (least, teacher) =>
             (load.get(teacher.email) ?? 0) < (load.get(least.email) ?? 0) ? teacher : least,
-          (free[0] ?? pool[0]) as (typeof PROFESSORES)[number],
+          (free[0] ?? pool[0]) as (typeof TEACHERS)[number],
         );
       if (!chosen) continue;
 
@@ -306,15 +306,15 @@ export interface DemoStudent {
  * conferência do link pede exatamente este dado.
  */
 export function birthDateOf(registration: string, classroomName: string, year: number): string {
-  const serie = Number.parseInt(classroomName, 10);
-  const idade = (Number.isNaN(serie) ? 6 : serie) + 5;
+  const gradeLevel = Number.parseInt(classroomName, 10);
+  const idade = (Number.isNaN(gradeLevel) ? 6 : gradeLevel) + 5;
   const sequencial = Number.parseInt(registration.slice(-4), 10) || 1;
 
   const mes = ((sequencial * 5) % 12) + 1;
-  const dia = ((sequencial * 7) % 28) + 1;
+  const day = ((sequencial * 7) % 28) + 1;
 
   const dois = (valor: number) => String(valor).padStart(2, "0");
-  return `${year - idade}-${dois(mes)}-${dois(dia)}`;
+  return `${year - idade}-${dois(mes)}-${dois(day)}`;
 }
 
 export interface DemoClassroom {
@@ -330,7 +330,7 @@ export interface DemoClassroom {
  * São as que aparecem em `DEMO.md`: mexer em nome, matrícula ou frequência
  * daqui desalinha o roteiro da apresentação.
  */
-const TURMAS_DO_ROTEIRO: DemoClassroom[] = [
+const SCRIPTED_CLASSROOMS: DemoClassroom[] = [
   {
     name: "8º A",
     shift: "manha",
@@ -658,14 +658,14 @@ function comAptidaoDoRoteiro(turma: DemoClassroom): DemoClassroom {
   return {
     ...turma,
     students: turma.students.map((aluno) => {
-      const escritas = NOTAS_DO_ROTEIRO[aluno.registration];
+      const escritas = SCRIPTED_GRADES[aluno.registration];
       if (!escritas) return aluno;
 
       const lancadas = escritas.filter((nota): nota is number => nota !== null);
       if (lancadas.length === 0) return aluno;
 
-      const media = lancadas.reduce((soma, nota) => soma + nota, 0) / lancadas.length;
-      return { ...aluno, aptitude: media };
+      const average = lancadas.reduce((soma, nota) => soma + nota, 0) / lancadas.length;
+      return { ...aluno, aptitude: average };
     }),
   };
 }
@@ -677,16 +677,16 @@ function comAptidaoDoRoteiro(turma: DemoClassroom): DemoClassroom {
  * professores — quem vem antes escolhe primeiro.
  */
 export function buildClassrooms(): DemoClassroom[] {
-  const scripted = new Map(TURMAS_DO_ROTEIRO.map((turma) => [turma.name, turma]));
+  const scripted = new Map(SCRIPTED_CLASSROOMS.map((turma) => [turma.name, turma]));
   const generated: DemoClassroom[] = [];
   let matricula = 1000;
   let indice = 0;
   let sizeIndex = 0;
   let freqIndex = 0;
 
-  for (const serie of SERIES) {
+  for (const gradeLevel of SERIES) {
     for (const [letraIndex, letra] of LETRAS.entries()) {
-      const name = `${serie}º ${letra}`;
+      const name = `${gradeLevel}º ${letra}`;
       if (scripted.has(name)) continue;
 
       // A turma C estuda à tarde; as demais, de manhã.
@@ -696,15 +696,15 @@ export function buildClassrooms(): DemoClassroom[] {
 
       const students: DemoStudent[] = [];
       for (let seat = 0; seat < size; seat += 1) {
-        const nome = nomeDoAluno(indice);
-        const sobrenome = nome.split(" ").pop() as string;
+        const name = nomeDoAluno(indice);
+        const sobrenome = name.split(" ").pop() as string;
         indice += 1;
         matricula += 1;
         const attendance = FREQUENCIAS[freqIndex % FREQUENCIAS.length] as number;
         freqIndex += 1;
 
         students.push({
-          name: nome,
+          name: name,
           registration: `${DEMO_YEAR}-${matricula}`,
           guardian: `${RESPONSAVEIS[(matricula + seat) % RESPONSAVEIS.length]} ${sobrenome}`,
           attendance,
@@ -724,7 +724,7 @@ export function buildClassrooms(): DemoClassroom[] {
     }
   }
 
-  return [...TURMAS_DO_ROTEIRO.map(comAptidaoDoRoteiro), ...generated];
+  return [...SCRIPTED_CLASSROOMS.map(comAptidaoDoRoteiro), ...generated];
 }
 
 // ---------------------------------------------------------------------------
@@ -736,7 +736,7 @@ export function buildClassrooms(): DemoClassroom[] {
  * abre. `null` é lançamento faltando, e é ele que faz a publicação ser
  * recusada.
  */
-export const NOTAS_DO_ROTEIRO: Record<string, [number, number, number | null]> = {
+export const SCRIPTED_GRADES: Record<string, [number, number, number | null]> = {
   [`${DEMO_YEAR}-0301`]: [8.5, 9, 7.5],
   [`${DEMO_YEAR}-0305`]: [7, 8, 6.5],
   [`${DEMO_YEAR}-0309`]: [5, 6, null],
@@ -771,8 +771,8 @@ export function scoreFor(
   const porDisciplina = (((seatIndex + subjectIndex * 5) % 7) - 3) * 0.35;
   const porAvaliacao = ((assessmentIndex * 3 + seatIndex) % 5) * 0.2 - 0.4;
 
-  const bruto = aptidao + porDisciplina + porAvaliacao;
-  return Math.min(10, Math.max(2, Math.round(bruto * 2) / 2));
+  const raw = aptidao + porDisciplina + porAvaliacao;
+  return Math.min(10, Math.max(2, Math.round(raw * 2) / 2));
 }
 
 /**
@@ -791,9 +791,16 @@ export function spreadIndexes(total: number, count: number, offset = 0): Set<num
   return picked;
 }
 
-/** Faltas e atrasos de um aluno sobre um total de aulas, a partir da taxa alvo. */
+/**
+ * Faltas e atrasos de um aluno sobre um total de aulas, a partir da taxa alvo.
+ *
+ * Pede só os dois campos que usa, e não o `DemoStudent` inteiro: o seed de
+ * produção tem um aluno que já existe no banco, sem nome nem matrícula nesta
+ * lista, e obrigá-lo a fabricar um registro vazio só para satisfazer o tipo
+ * escondia o que a função de fato lê.
+ */
 export function absencesFor(
-  student: DemoStudent,
+  student: Pick<DemoStudent, "attendance" | "lates">,
   totalLessons: number,
 ): {
   absences: number;

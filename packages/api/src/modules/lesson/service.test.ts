@@ -10,7 +10,7 @@ import {
   summarizeAttendance,
 } from "./service";
 
-const AULA = {
+const LESSON = {
   id: "aula-1",
   date: "2026-09-09",
   startsAt: "08:20",
@@ -39,16 +39,16 @@ function repositories(roster: { id: string; name: string }[]) {
   };
 
   const lessons = {
-    listByTeacherAndDate: async () => [AULA],
-    listByClassroomAndDate: async () => [AULA],
+    listByTeacherAndDate: async () => [LESSON],
+    listByClassroomAndDate: async () => [LESSON],
     listPendingForTeacher: async () => [],
-    findById: async () => AULA,
+    findById: async () => LESSON,
     listAttendance: async () => gravado.entries,
     replaceAttendance: async (_id: string, entries: AttendanceEntry[], recordedAt: Date) => {
       gravado.entries = entries;
       gravado.recordedAt = recordedAt;
     },
-    saveDiary: async () => ({ id: AULA.id }),
+    saveDiary: async () => ({ id: LESSON.id }),
     countPendingByTeacher: async () => [],
     listTeacherClassrooms: async () => [],
     presenceTotals: async () => ({ present: 0, total: 0 }),
@@ -79,32 +79,32 @@ function repositories(roster: { id: string; name: string }[]) {
 
 describe("situação da aula", () => {
   it("chamada registrada vence o relógio", () => {
-    expect(lessonState({ ...AULA, attendanceRecordedAt: new Date() }, DIA_SEGUINTE)).toBe(
+    expect(lessonState({ ...LESSON, attendanceRecordedAt: new Date() }, DIA_SEGUINTE)).toBe(
       "registrada",
     );
   });
 
   it("aula que já terminou e não tem chamada está pendente", () => {
-    expect(lessonState(AULA, DEPOIS_DA_AULA)).toBe("pendente");
-    expect(lessonState(AULA, DIA_SEGUINTE)).toBe("pendente");
+    expect(lessonState(LESSON, DEPOIS_DA_AULA)).toBe("pendente");
+    expect(lessonState(LESSON, DIA_SEGUINTE)).toBe("pendente");
   });
 
   it("distingue a aula em curso da que ainda vem", () => {
-    expect(lessonState(AULA, DURANTE_A_AULA)).toBe("em_andamento");
-    expect(lessonState(AULA, new Date("2026-09-09T09:00:00Z"))).toBe("a_seguir");
+    expect(lessonState(LESSON, DURANTE_A_AULA)).toBe("em_andamento");
+    expect(lessonState(LESSON, new Date("2026-09-09T09:00:00Z"))).toBe("a_seguir");
   });
 });
 
 describe("resumo da chamada", () => {
   it("atraso entra na frequência mas é contado à parte", () => {
-    const resumo = summarizeAttendance([
+    const summary = summarizeAttendance([
       { studentId: "a", status: "presente" },
       { studentId: "b", status: "atraso" },
       { studentId: "c", status: "falta" },
       { studentId: "d", status: "falta" },
     ]);
 
-    expect(resumo).toEqual({ presentes: 1, faltas: 2, atrasos: 1, rate: 0.5 });
+    expect(summary).toEqual({ presentes: 1, faltas: 2, atrasos: 1, rate: 0.5 });
   });
 
   it("turma vazia não vira frequência zero", () => {
@@ -160,7 +160,7 @@ describe("registro da chamada", () => {
     const { lessons, students } = repositories(turma);
     const service = createLessonService(lessons, students);
 
-    expect(requiresJustification(AULA.date, DIA_SEGUINTE)).toBe(true);
+    expect(requiresJustification(LESSON.date, DIA_SEGUINTE)).toBe(true);
 
     await expect(
       service.saveAttendance({ lessonId: "aula-1", entries: [] }, DIA_SEGUINTE),

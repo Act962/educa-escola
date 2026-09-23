@@ -29,7 +29,7 @@ export interface ScoreRule {
  * frente e não move ninguém: o aluno que foi de 4,0 para 6,0 fez a coisa mais
  * difícil da escola inteira e não apareceria.
  */
-export const REGRAS_DO_ALUNO = [
+export const STUDENT_RULES = [
   {
     key: "aluno.presenca",
     subjectKind: "aluno",
@@ -91,7 +91,7 @@ export const REGRAS_DO_ALUNO = [
  * turma difícil e incentivam inflar nota; contagem de alunos "em risco"
  * incentiva não sinalizar risco.
  */
-export const REGRAS_DO_PROFESSOR = [
+export const TEACHER_RULES = [
   {
     key: "professor.chamada_no_prazo",
     subjectKind: "professor",
@@ -124,26 +124,26 @@ export const REGRAS_DO_PROFESSOR = [
   },
 ] as const satisfies readonly ScoreRule[];
 
-export const REGRAS = [...REGRAS_DO_ALUNO, ...REGRAS_DO_PROFESSOR] as const;
+export const RULES = [...STUDENT_RULES, ...TEACHER_RULES] as const;
 
-export type RuleKey = (typeof REGRAS)[number]["key"];
+export type RuleKey = (typeof RULES)[number]["key"];
 
-const PorChave = new Map<string, ScoreRule>(REGRAS.map((regra) => [regra.key, regra]));
+const PorChave = new Map<string, ScoreRule>(RULES.map((regra) => [regra.key, regra]));
 
-export function regraDe(key: string): ScoreRule | null {
+export function ruleFor(key: string): ScoreRule | null {
   return PorChave.get(key) ?? null;
 }
 
 /** Quanto vale uma regra. Ponto de leitura único: a apuração não repete número. */
-export function pontosDe(key: RuleKey): number {
+export function pointsFor(key: RuleKey): number {
   const regra = PorChave.get(key);
   if (!regra) throw new Error(`Regra de pontuação desconhecida: ${key}`);
   return regra.points;
 }
 
-export interface Nivel {
+export interface Level {
   ordem: number;
-  nome: string;
+  name: string;
   /** Pontos necessários para entrar neste nível. */
   minimo: number;
 }
@@ -155,25 +155,25 @@ export interface Nivel {
  * metal ("bronze, prata, ouro") faz o último colocado ler "você é o pior" —
  * aqui o primeiro degrau é um lugar de onde se parte, não um castigo.
  */
-export const NIVEIS = [
-  { ordem: 1, nome: "Decolagem", minimo: 0 },
-  { ordem: 2, nome: "Órbita baixa", minimo: 150 },
-  { ordem: 3, nome: "Órbita alta", minimo: 400 },
-  { ordem: 4, nome: "Estação", minimo: 800 },
-  { ordem: 5, nome: "Espaço profundo", minimo: 1500 },
-] as const satisfies readonly Nivel[];
+export const LEVELS = [
+  { ordem: 1, name: "Decolagem", minimo: 0 },
+  { ordem: 2, name: "Órbita baixa", minimo: 150 },
+  { ordem: 3, name: "Órbita alta", minimo: 400 },
+  { ordem: 4, name: "Estação", minimo: 800 },
+  { ordem: 5, name: "Espaço profundo", minimo: 1500 },
+] as const satisfies readonly Level[];
 
 /** O nível de quem tem estes pontos. Ponto negativo não existe, mas não quebra. */
-export function nivelDe(pontos: number): Nivel {
-  let atual: Nivel = NIVEIS[0];
-  for (const nivel of NIVEIS) {
-    if (pontos >= nivel.minimo) atual = nivel;
+export function levelOf(points: number): Level {
+  let atual: Level = LEVELS[0];
+  for (const level of LEVELS) {
+    if (points >= level.minimo) atual = level;
   }
   return atual;
 }
 
 /** Quanto falta para o próximo nível, e qual é. `null` no último. */
-export function proximoNivel(pontos: number): { nivel: Nivel; faltam: number } | null {
-  const seguinte = NIVEIS.find((nivel) => nivel.minimo > pontos);
-  return seguinte ? { nivel: seguinte, faltam: seguinte.minimo - pontos } : null;
+export function nextLevel(points: number): { level: Level; faltam: number } | null {
+  const seguinte = LEVELS.find((level) => level.minimo > points);
+  return seguinte ? { level: seguinte, faltam: seguinte.minimo - points } : null;
 }

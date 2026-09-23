@@ -8,45 +8,45 @@ type Ano = Awaited<ReturnType<CalendarRepository["findYear"]>>;
 type Evento = Awaited<ReturnType<CalendarRepository["listEvents"]>>[number];
 
 interface Estado {
-  ano?: { startsOn: string; endsOn: string; minimumSchoolDays: number } | null;
-  eventos?: Partial<Evento>[];
+  year?: { startsOn: string; endsOn: string; minimumSchoolDays: number } | null;
+  events?: Partial<Evento>[];
   /** Turmas que existem nesta escola, por id. */
-  turmas?: Record<string, string>;
+  classrooms?: Record<string, string>;
 }
 
 function fakeRepository(estado: Estado = {}): CalendarRepository {
   const criados: unknown[] = [];
   // `institucional` é o default da coluna: um evento de fixture sem escopo é
   // da escola inteira, como seria no banco.
-  const eventos = (estado.eventos ?? []).map((e) => ({
+  const events = (estado.events ?? []).map((e) => ({
     scope: "institucional",
     ...e,
   })) as Evento[];
-  const turmas = estado.turmas ?? {};
+  const classrooms = estado.classrooms ?? {};
 
   return {
-    findEvent: async (id) => (eventos.find((e) => e.id === id) ?? null) as never,
+    findEvent: async (id) => (events.find((e) => e.id === id) ?? null) as never,
     updateEvent: async (id, data) =>
-      eventos.some((e) => e.id === id) ? ({ id, ...data } as never) : null,
-    findYear: async () => (estado.ano ? ({ ...estado.ano } as unknown as Ano) : null),
+      events.some((e) => e.id === id) ? ({ id, ...data } as never) : null,
+    findYear: async () => (estado.year ? ({ ...estado.year } as unknown as Ano) : null),
     defineYear: async (data) => ({ ...data }) as never,
     // Reproduz o recorte do repositório: com turma, devolve os dela mais os da
     // escola inteira. Sem turma, devolve tudo.
     listEvents: async (_ano, classroomId) =>
       classroomId
-        ? eventos.filter((e) => e.classroomId === null || e.classroomId === classroomId)
-        : eventos,
-    findClassroom: async (id) => (turmas[id] ? { id, name: turmas[id] as string } : null),
+        ? events.filter((e) => e.classroomId === null || e.classroomId === classroomId)
+        : events,
+    findClassroom: async (id) => (classrooms[id] ? { id, name: classrooms[id] as string } : null),
     createEvent: async (data) => {
       criados.push(data);
       return { ...data, id: "novo" } as never;
     },
-    removeEvent: async (id) => ((estado.eventos ?? []).some((e) => e.id === id) ? { id } : null),
+    removeEvent: async (id) => ((estado.events ?? []).some((e) => e.id === id) ? { id } : null),
   };
 }
 
 /** O escopo vem do Zod com default; o service, chamado direto, exige-o. */
-const naEscola = { scope: "institucional" as const };
+const atSchool = { scope: "institucional" as const };
 
 const anoDefinido = { startsOn: "2026-02-02", endsOn: "2026-12-18", minimumSchoolDays: 200 };
 
@@ -58,34 +58,34 @@ describe("year", () => {
   it("sem ano definido devolve contagem nula, não zero", async () => {
     const visao = await createCalendarService(fakeRepository()).year(2026);
 
-    expect(visao.ano).toBeNull();
-    expect(visao.contagem).toBeNull();
+    expect(visao.year).toBeNull();
+    expect(visao.count).toBeNull();
   });
 
   it("com ano definido conta os dias letivos e compara com o mínimo", async () => {
     const visao = await createCalendarService(
       fakeRepository({
-        ano: anoDefinido,
-        eventos: [
+        year: anoDefinido,
+        events: [
           { startsOn: "2026-09-07", endsOn: "2026-09-07", dayEffect: "nao_letivo" },
         ] as Partial<Evento>[],
       }),
     ).year(2026);
 
-    expect(visao.contagem?.perdidos).toBe(1);
-    expect(visao.contagem?.minimo).toBe(200);
-    expect(visao.contagem?.cumpreOMinimo).toBe(true);
+    expect(visao.count?.perdidos).toBe(1);
+    expect(visao.count?.minimo).toBe(200);
+    expect(visao.count?.cumpreOMinimo).toBe(true);
   });
 
   it("alerta quando o ano fica abaixo do mínimo legal", async () => {
     const visao = await createCalendarService(
       fakeRepository({
-        ano: { startsOn: "2026-02-02", endsOn: "2026-06-30", minimumSchoolDays: 200 },
+        year: { startsOn: "2026-02-02", endsOn: "2026-06-30", minimumSchoolDays: 200 },
       }),
     ).year(2026);
 
-    expect(visao.contagem?.cumpreOMinimo).toBe(false);
-    expect(visao.contagem?.faltam).toBeGreaterThan(0);
+    expect(visao.count?.cumpreOMinimo).toBe(false);
+    expect(visao.count?.faltam).toBeGreaterThan(0);
   });
 });
 
@@ -117,30 +117,30 @@ describe("escopo por turma", () => {
    */
   it("evento de turma não tira dia letivo da escola", async () => {
     const visao = await createCalendarService(
-      fakeRepository({ ano: anoDefinido, eventos: [feriado, conselhoDo9C] }),
+      fakeRepository({ year: anoDefinido, events: [feriado, conselhoDo9C] }),
     ).year(2026);
 
-    expect(visao.contagem?.perdidos).toBe(1);
+    expect(visao.count?.perdidos).toBe(1);
   });
 
   it("filtrando pela turma, a contagem dela desconta os dois", async () => {
     const visao = await createCalendarService(
-      fakeRepository({ ano: anoDefinido, eventos: [feriado, conselhoDo9C] }),
+      fakeRepository({ year: anoDefinido, events: [feriado, conselhoDo9C] }),
     ).year(2026, "t1");
 
     // A da escola não muda: é o número que a secretaria de educação cobra.
-    expect(visao.contagem?.perdidos).toBe(1);
-    expect(visao.contagemDaTurma?.perdidos).toBe(2);
-    expect(visao.contagemDaTurma?.letivos).toBe((visao.contagem?.letivos ?? 0) - 1);
+    expect(visao.count?.perdidos).toBe(1);
+    expect(visao.classroomCount?.perdidos).toBe(2);
+    expect(visao.classroomCount?.letivos).toBe((visao.count?.letivos ?? 0) - 1);
   });
 
   /** Sem filtro não há segunda contagem: seria de qual turma? */
   it("sem filtro, a contagem da turma é nula", async () => {
     const visao = await createCalendarService(
-      fakeRepository({ ano: anoDefinido, eventos: [feriado, conselhoDo9C] }),
+      fakeRepository({ year: anoDefinido, events: [feriado, conselhoDo9C] }),
     ).year(2026);
 
-    expect(visao.contagemDaTurma).toBeNull();
+    expect(visao.classroomCount).toBeNull();
   });
 
   /**
@@ -149,18 +149,18 @@ describe("escopo por turma", () => {
    */
   it("o filtro por turma continua mostrando o que é da escola inteira", async () => {
     const visao = await createCalendarService(
-      fakeRepository({ ano: anoDefinido, eventos: [feriado, conselhoDo9C] }),
+      fakeRepository({ year: anoDefinido, events: [feriado, conselhoDo9C] }),
     ).year(2026, "t1");
 
-    expect(visao.eventos.map((e) => e.id)).toEqual(["ev-escola", "ev-turma"]);
+    expect(visao.events.map((e) => e.id)).toEqual(["ev-escola", "ev-turma"]);
   });
 
   it("não traz evento de outra turma", async () => {
     const visao = await createCalendarService(
-      fakeRepository({ ano: anoDefinido, eventos: [feriado, conselhoDo9C] }),
+      fakeRepository({ year: anoDefinido, events: [feriado, conselhoDo9C] }),
     ).year(2026, "t2");
 
-    expect(visao.eventos.map((e) => e.id)).toEqual(["ev-escola"]);
+    expect(visao.events.map((e) => e.id)).toEqual(["ev-escola"]);
   });
 
   /**
@@ -171,7 +171,7 @@ describe("escopo por turma", () => {
    */
   it("recusa turma que não é desta escola", async () => {
     const servico = createCalendarService(
-      fakeRepository({ ano: anoDefinido, turmas: { t1: "9º C" } }),
+      fakeRepository({ year: anoDefinido, classrooms: { t1: "9º C" } }),
     );
 
     const evento = {
@@ -198,7 +198,7 @@ describe("escopo por turma", () => {
    */
   it("apaga a turma quando o evento é da escola inteira", async () => {
     const criado = await createCalendarService(
-      fakeRepository({ ano: anoDefinido, turmas: { t1: "9º C" } }),
+      fakeRepository({ year: anoDefinido, classrooms: { t1: "9º C" } }),
     ).createEvent(
       {
         academicYear: 2026,
@@ -217,7 +217,7 @@ describe("escopo por turma", () => {
 
   /** O calendário brasileiro é da escola inteira, por definição. */
   it("a importação entra como institucional", async () => {
-    const servico = createCalendarService(fakeRepository({ ano: anoDefinido }));
+    const servico = createCalendarService(fakeRepository({ year: anoDefinido }));
     const resultado = await servico.importar(2026, "u1");
 
     expect(resultado.criados).toBeGreaterThan(0);
@@ -226,9 +226,9 @@ describe("escopo por turma", () => {
   it("mudar um evento da escola para uma turma também valida a turma", async () => {
     const servico = createCalendarService(
       fakeRepository({
-        ano: anoDefinido,
-        eventos: [feriado],
-        turmas: { t1: "9º C" },
+        year: anoDefinido,
+        events: [feriado],
+        classrooms: { t1: "9º C" },
       }),
     );
 
@@ -252,7 +252,7 @@ describe("escopo por turma", () => {
 
 describe("createEvent", () => {
   const evento = {
-    ...naEscola,
+    ...atSchool,
     academicYear: 2026,
     type: "feriado" as const,
     dayEffect: "nao_letivo" as const,
@@ -268,7 +268,7 @@ describe("createEvent", () => {
   });
 
   it("recusa evento fora do período, dizendo qual é o período", async () => {
-    const servico = createCalendarService(fakeRepository({ ano: anoDefinido }));
+    const servico = createCalendarService(fakeRepository({ year: anoDefinido }));
 
     await expect(servico.createEvent({ ...evento, startsOn: "2026-01-05" }, "u1")).rejects.toThrow(
       ValidationError,
@@ -280,7 +280,7 @@ describe("createEvent", () => {
 
   it("recusa evento que termina depois do fim do ano", async () => {
     await expect(
-      createCalendarService(fakeRepository({ ano: anoDefinido })).createEvent(
+      createCalendarService(fakeRepository({ year: anoDefinido })).createEvent(
         { ...evento, startsOn: "2026-12-15", endsOn: "2026-12-31" },
         "u1",
       ),
@@ -289,7 +289,7 @@ describe("createEvent", () => {
 
   /** Evento de um dia: o fim é o próprio início, não nulo. */
   it("fecha o intervalo quando só o início foi informado", async () => {
-    const criado = await createCalendarService(fakeRepository({ ano: anoDefinido })).createEvent(
+    const criado = await createCalendarService(fakeRepository({ year: anoDefinido })).createEvent(
       evento,
       "u1",
     );
@@ -298,7 +298,7 @@ describe("createEvent", () => {
   });
 
   it("guarda quem criou", async () => {
-    const criado = await createCalendarService(fakeRepository({ ano: anoDefinido })).createEvent(
+    const criado = await createCalendarService(fakeRepository({ year: anoDefinido })).createEvent(
       evento,
       "marina",
     );
@@ -317,7 +317,7 @@ describe("removeEvent", () => {
 
 describe("updateEvent", () => {
   const edicao = {
-    ...naEscola,
+    ...atSchool,
     id: "e1",
     type: "reuniao" as const,
     dayEffect: "nenhum" as const,
@@ -331,7 +331,7 @@ describe("updateEvent", () => {
 
   it("recusa evento que não é desta escola", async () => {
     await expect(
-      createCalendarService(fakeRepository({ ano: anoDefinido })).updateEvent(edicao),
+      createCalendarService(fakeRepository({ year: anoDefinido })).updateEvent(edicao),
     ).rejects.toThrow(NotFoundError);
   });
 
@@ -340,7 +340,7 @@ describe("updateEvent", () => {
    * avisar ninguém, o que é pior que recusar.
    */
   it("recusa mover o evento para fora do ano letivo", async () => {
-    const servico = createCalendarService(fakeRepository({ ano: anoDefinido, eventos: existente }));
+    const servico = createCalendarService(fakeRepository({ year: anoDefinido, events: existente }));
 
     await expect(servico.updateEvent({ ...edicao, startsOn: "2027-01-05" })).rejects.toThrow(
       ValidationError,
@@ -352,7 +352,7 @@ describe("updateEvent", () => {
 
   it("fecha o intervalo quando só o início foi informado", async () => {
     const atualizado = await createCalendarService(
-      fakeRepository({ ano: anoDefinido, eventos: existente }),
+      fakeRepository({ year: anoDefinido, events: existente }),
     ).updateEvent(edicao);
 
     expect(atualizado).toMatchObject({ startsOn: "2026-10-20", endsOn: "2026-10-20" });
@@ -360,7 +360,7 @@ describe("updateEvent", () => {
 
   it("troca tipo e efeito no dia letivo", async () => {
     const atualizado = await createCalendarService(
-      fakeRepository({ ano: anoDefinido, eventos: existente }),
+      fakeRepository({ year: anoDefinido, events: existente }),
     ).updateEvent({ ...edicao, type: "recesso", dayEffect: "nao_letivo" });
 
     expect(atualizado).toMatchObject({ type: "recesso", dayEffect: "nao_letivo" });

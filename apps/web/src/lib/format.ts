@@ -9,24 +9,24 @@ import type { BadgeTone } from "@educa-escola/ui/components/badge";
  */
 
 /** 7.8 -> "7,8"; `null` -> "—". Traço, e não "0", que seria nota de verdade. */
-export function nota(value: number | null | undefined): string {
+export function gradeText(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   return value.toFixed(1).replace(".", ",");
 }
 
 /** 0.9312 -> "93,1%". */
-export function percentual(rate: number | null | undefined, casas = 1): string {
+export function percentText(rate: number | null | undefined, casas = 1): string {
   if (rate === null || rate === undefined) return "—";
   return `${(rate * 100).toFixed(casas).replace(".", ",")}%`;
 }
 
 /** 0.94 -> "94%", para os números grandes de cartão. */
-export function percentualCurto(rate: number | null | undefined): string {
+export function shortPercentText(rate: number | null | undefined): string {
   if (rate === null || rate === undefined) return "—";
   return `${Math.round(rate * 100)}%`;
 }
 
-export function inteiro(value: number): string {
+export function integerText(value: number): string {
   return new Intl.NumberFormat("pt-BR").format(value);
 }
 
@@ -36,34 +36,34 @@ const TURNOS: Record<string, string> = {
   noite: "Noite",
 };
 
-export function turno(value: string): string {
+export function shiftText(value: string): string {
   return TURNOS[value] ?? value;
 }
 
-const SITUACOES_MATRICULA: Record<string, { label: string; tone: BadgeTone }> = {
+const STUDENT_STATUS_BADGES: Record<string, { label: string; tone: BadgeTone }> = {
   ativo: { label: "Ativo", tone: "success" },
   documentacao_pendente: { label: "Doc. pendente", tone: "warning" },
   transferido: { label: "Transferido", tone: "neutral" },
   inativo: { label: "Inativo", tone: "neutral" },
 };
 
-export function situacaoMatricula(value: string) {
-  return SITUACOES_MATRICULA[value] ?? { label: value, tone: "neutral" as BadgeTone };
+export function studentStatusBadge(value: string) {
+  return STUDENT_STATUS_BADGES[value] ?? { label: value, tone: "neutral" as BadgeTone };
 }
 
-const SITUACOES_NOTA: Record<string, { label: string; tone: BadgeTone }> = {
+const GRADE_SITUATION_BADGES: Record<string, { label: string; tone: BadgeTone }> = {
   aprovado: { label: "Aprovado", tone: "success" },
   recuperacao: { label: "Recuperação", tone: "danger" },
   reprovado: { label: "Reprovado", tone: "danger" },
   sem_nota: { label: "Sem nota", tone: "warning" },
 };
 
-export function situacaoNota(value: string) {
-  return SITUACOES_NOTA[value] ?? { label: value, tone: "neutral" as BadgeTone };
+export function gradeSituationBadge(value: string) {
+  return GRADE_SITUATION_BADGES[value] ?? { label: value, tone: "neutral" as BadgeTone };
 }
 
 /** Saudação pelo horário local de quem está lendo. */
-export function saudacao(now = new Date()): string {
+export function greeting(now = new Date()): string {
   const hour = now.getHours();
   if (hour < 12) return "Bom dia";
   if (hour < 18) return "Boa tarde";
@@ -71,7 +71,7 @@ export function saudacao(now = new Date()): string {
 }
 
 /** "Ana Clara Souza Lima" -> "Ana Clara". */
-export function primeiroNome(name: string): string {
+export function firstName(name: string): string {
   const parts = name.trim().split(/\s+/);
   return parts.slice(0, 2).join(" ");
 }
@@ -85,7 +85,7 @@ const SITUACOES_ENROLLMENT: Record<string, { label: string; tone: BadgeTone }> =
   concluida: { label: "Concluída", tone: "info" },
 };
 
-export function situacaoEnrollment(value: string) {
+export function enrollmentStatusBadge(value: string) {
   return SITUACOES_ENROLLMENT[value] ?? { label: value, tone: "neutral" as BadgeTone };
 }
 
@@ -103,7 +103,7 @@ const SITUACOES_LINK: Record<string, { label: string; tone: BadgeTone }> = {
   revogado: { label: "Revogado", tone: "neutral" },
 };
 
-export function situacaoLink(value: string) {
+export function linkStatusBadge(value: string) {
   return SITUACOES_LINK[value] ?? { label: value, tone: "neutral" as BadgeTone };
 }
 
@@ -115,7 +115,7 @@ const PARENTESCOS: Record<string, string> = {
   outro: "Outro",
 };
 
-export function parentesco(value: string): string {
+export function relationshipText(value: string): string {
   return PARENTESCOS[value] ?? value;
 }
 
@@ -128,7 +128,7 @@ const MOTIVOS_CANCELAMENTO: Record<string, string> = {
   outro: "Outro",
 };
 
-export function motivoCancelamento(value: string): string {
+export function cancelReasonText(value: string): string {
   return MOTIVOS_CANCELAMENTO[value] ?? value;
 }
 
@@ -139,7 +139,7 @@ export function motivoCancelamento(value: string): string {
  * se trata, e a §24.3 pede mascaramento parcial quando o dado completo não é
  * necessário na tela.
  */
-export function telefoneMascarado(value: string | null | undefined): string {
+export function maskedPhoneText(value: string | null | undefined): string {
   if (!value) return "—";
   const digits = value.replace(/\D/g, "");
   if (digits.length < 6) return "—";
@@ -149,7 +149,7 @@ export function telefoneMascarado(value: string | null | undefined): string {
 }
 
 /** "+5586998122039" -> "(86) 99812-2039". Só no detalhe, nunca em listagem. */
-export function telefone(value: string | null | undefined): string {
+export function phoneText(value: string | null | undefined): string {
   if (!value) return "—";
   const digits = value.replace(/\D/g, "");
   const nacional = digits.startsWith("55") ? digits.slice(2) : digits;
@@ -160,41 +160,41 @@ export function telefone(value: string | null | undefined): string {
 }
 
 /** "2015-03-14" -> "14/03/2015". Data civil não passa por fuso. */
-export function dataCivil(value: string | null | undefined): string {
+export function civilDateText(value: string | null | undefined): string {
   if (!value) return "—";
-  const [ano, mes, dia] = value.split("-");
-  return `${dia}/${mes}/${ano}`;
+  const [year, mes, day] = value.split("-");
+  return `${day}/${mes}/${year}`;
 }
 
 /** Instante -> "21/09 às 14h32", no fuso de quem lê. */
-export function dataHora(value: Date | string | null | undefined): string {
+export function dateTimeText(value: Date | string | null | undefined): string {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;
-  const dia = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-  const hora = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  return `${dia} às ${hora.replace(":", "h")}`;
+  const day = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const time = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return `${day} às ${time.replace(":", "h")}`;
 }
 
 /**
  * Instante -> "21/09/2025", no fuso de quem lê.
  *
- * Existe separado de `dataHora` porque aquele omite o ano de propósito — serve
+ * Existe separado de `dateTimeText` porque aquele omite o ano de propósito — serve
  * a evento recente, onde "21/09 às 14h32" basta. Em data de cadastro o ano é
  * justamente a informação: "na escola desde 21/09" não diz nada.
  */
-export function dataDoInstante(value: Date | string | null | undefined): string {
+export function instantDateText(value: Date | string | null | undefined): string {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;
   return date.toLocaleDateString("pt-BR");
 }
 
 /** "vence hoje", "em 4 dias", "vencido" — o que a fila precisa dizer. */
-export function prazo(value: Date | string | null | undefined, agora = new Date()): string {
+export function deadlineText(value: Date | string | null | undefined, agora = new Date()): string {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;
-  const dias = Math.ceil((date.getTime() - agora.getTime()) / 86_400_000);
-  if (dias < 0) return "vencido";
-  if (dias === 0) return "vence hoje";
-  if (dias === 1) return "1 dia";
-  return `${dias} dias`;
+  const days = Math.ceil((date.getTime() - agora.getTime()) / 86_400_000);
+  if (days < 0) return "vencido";
+  if (days === 0) return "vence hoje";
+  if (days === 1) return "1 dia";
+  return `${days} dias`;
 }

@@ -1,75 +1,75 @@
 import { describe, expect, it } from "vitest";
 
-import { dataParaISO, idadeEm, isoParaData, mascararCelular, mascararData } from "./masks";
+import { dateToISO, idadeEm, isoToDate, maskDate, maskPhone } from "./masks";
 
 describe("mascararCelular", () => {
   it("formata celular de nove dígitos", () => {
-    expect(mascararCelular("86998122039")).toBe("(86) 99812-2039");
+    expect(maskPhone("86998122039")).toBe("(86) 99812-2039");
   });
 
   it("formata fixo de oito dígitos sem ramificar", () => {
-    expect(mascararCelular("8632154400")).toBe("(86) 3215-4400");
+    expect(maskPhone("8632154400")).toBe("(86) 3215-4400");
   });
 
   it("acompanha a digitação, caractere a caractere", () => {
-    expect(mascararCelular("8")).toBe("(8");
-    expect(mascararCelular("86")).toBe("(86");
-    expect(mascararCelular("869")).toBe("(86) 9");
-    expect(mascararCelular("8699812")).toBe("(86) 9-9812");
+    expect(maskPhone("8")).toBe("(8");
+    expect(maskPhone("86")).toBe("(86");
+    expect(maskPhone("869")).toBe("(86) 9");
+    expect(maskPhone("8699812")).toBe("(86) 9-9812");
   });
 
   it("ignora o que já está formatado e descarta o excesso", () => {
-    expect(mascararCelular("(86) 99812-2039")).toBe("(86) 99812-2039");
-    expect(mascararCelular("869981220399999")).toBe("(86) 99812-2039");
+    expect(maskPhone("(86) 99812-2039")).toBe("(86) 99812-2039");
+    expect(maskPhone("869981220399999")).toBe("(86) 99812-2039");
   });
 });
 
 describe("mascararData", () => {
   it("insere as barras conforme se digita", () => {
-    expect(mascararData("1")).toBe("1");
-    expect(mascararData("14")).toBe("14");
-    expect(mascararData("1403")).toBe("14/03");
-    expect(mascararData("14032015")).toBe("14/03/2015");
+    expect(maskDate("1")).toBe("1");
+    expect(maskDate("14")).toBe("14");
+    expect(maskDate("1403")).toBe("14/03");
+    expect(maskDate("14032015")).toBe("14/03/2015");
   });
 
   it("não deixa passar do ano", () => {
-    expect(mascararData("140320159999")).toBe("14/03/2015");
+    expect(maskDate("140320159999")).toBe("14/03/2015");
   });
 
   /** Apagar no meio não pode travar o campo. */
   it("reconstrói a partir dos dígitos, não do texto", () => {
-    expect(mascararData("14/0/2015")).toBe("14/02/015");
-    expect(mascararData("")).toBe("");
+    expect(maskDate("14/0/2015")).toBe("14/02/015");
+    expect(maskDate("")).toBe("");
   });
 });
 
 describe("dataParaISO", () => {
   it("converte data completa", () => {
-    expect(dataParaISO("14/03/2015")).toBe("2015-03-14");
+    expect(dateToISO("14/03/2015")).toBe("2015-03-14");
   });
 
   it("recusa data incompleta", () => {
-    expect(dataParaISO("14/03")).toBeNull();
-    expect(dataParaISO("")).toBeNull();
+    expect(dateToISO("14/03")).toBeNull();
+    expect(dateToISO("")).toBeNull();
   });
 
   /** O `Date` rola 31/02 para 03/03 sem reclamar — daí a checagem de volta. */
   it("recusa dia que não existe no mês", () => {
-    expect(dataParaISO("31/02/2015")).toBeNull();
-    expect(dataParaISO("31/04/2015")).toBeNull();
-    expect(dataParaISO("29/02/2015")).toBeNull();
-    expect(dataParaISO("29/02/2016")).toBe("2016-02-29");
+    expect(dateToISO("31/02/2015")).toBeNull();
+    expect(dateToISO("31/04/2015")).toBeNull();
+    expect(dateToISO("29/02/2015")).toBeNull();
+    expect(dateToISO("29/02/2016")).toBe("2016-02-29");
   });
 
   it("recusa mês impossível", () => {
-    expect(dataParaISO("14/13/2015")).toBeNull();
+    expect(dateToISO("14/13/2015")).toBeNull();
   });
 });
 
 describe("isoParaData", () => {
   it("volta ao formato do campo", () => {
-    expect(isoParaData("2015-03-14")).toBe("14/03/2015");
-    expect(isoParaData(null)).toBe("");
+    expect(isoToDate("2015-03-14")).toBe("14/03/2015");
+    expect(isoToDate(null)).toBe("");
   });
 });
 

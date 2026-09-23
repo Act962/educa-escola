@@ -18,7 +18,7 @@ export function audiencesDoPapel(role: string): Audience[] {
   return ["toda_a_escola", "professores", "alunos"];
 }
 
-export interface ComunicadoNaLista {
+export interface CommunicationListItem {
   id: string;
   title: string;
   status: string;
@@ -30,13 +30,13 @@ export interface ComunicadoNaLista {
   leram: number;
   confirmaram: number;
   /** Taxa de leitura de 0 a 1. `null` em rascunho — ninguém podia ler. */
-  taxaDeLeitura: number | null;
+  readRate: number | null;
 }
 
 export function createCommunicationService(repo: CommunicationRepository) {
   return {
     /** O painel da gestão: rascunhos, publicados e quem leu. */
-    async list(academicYear: number): Promise<ComunicadoNaLista[]> {
+    async list(academicYear: number): Promise<CommunicationListItem[]> {
       const comunicados = await repo.list(academicYear);
       const publicados = comunicados.filter((c) => c.status !== "rascunho");
       const recibos = await repo.receiptCounts(publicados.map((c) => c.id));
@@ -65,7 +65,7 @@ export function createCommunicationService(repo: CommunicationRepository) {
             publico,
             leram,
             confirmaram: recibo?.confirmaram ?? 0,
-            taxaDeLeitura: publico && publico > 0 ? leram / publico : null,
+            readRate: publico && publico > 0 ? leram / publico : null,
           };
         }),
       );

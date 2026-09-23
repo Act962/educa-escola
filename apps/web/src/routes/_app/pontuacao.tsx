@@ -15,7 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { RefreshCw, TriangleAlert } from "lucide-react";
 
-import { inteiro } from "@/lib/format";
+import { integerText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -36,10 +36,8 @@ function Pontuacao() {
   const queryClient = useQueryClient();
   const { year } = useSchoolContext();
 
-  const alunos = useQuery(trpc.score.rankingDeAlunos.queryOptions({ academicYear: year }));
-  const professores = useQuery(
-    trpc.score.rankingDeProfessores.queryOptions({ academicYear: year }),
-  );
+  const alunos = useQuery(trpc.score.studentRanking.queryOptions({ academicYear: year }));
+  const professores = useQuery(trpc.score.teacherRanking.queryOptions({ academicYear: year }));
 
   const apurar = useMutation(
     trpc.score.apurar.mutationOptions({
@@ -91,8 +89,8 @@ function Pontuacao() {
         <Alert variant="success">
           <AlertTitle>Apuração concluída</AlertTitle>
           <AlertDescription>
-            {inteiro(apurar.data.novos)} pontuações novas de {inteiro(apurar.data.apurados)} fatos
-            conferidos.
+            {integerText(apurar.data.novos)} pontuações novas de {integerText(apurar.data.tallied)}{" "}
+            fatos conferidos.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -125,11 +123,13 @@ function Pontuacao() {
               {alunos.data?.map((linha) => (
                 <TableRow key={linha.subjectId}>
                   <TableCell className="text-muted-foreground">{linha.posicao}</TableCell>
-                  <TableCell className="font-bold">{linha.nome}</TableCell>
+                  <TableCell className="font-bold">{linha.name}</TableCell>
                   <TableCell>
-                    <Badge variant="info">{linha.nivel.nome}</Badge>
+                    <Badge variant="info">{linha.level.name}</Badge>
                   </TableCell>
-                  <TableCell className="text-right font-bold">{inteiro(linha.pontos)}</TableCell>
+                  <TableCell className="text-right font-bold">
+                    {integerText(linha.points)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -159,8 +159,10 @@ function Pontuacao() {
               {professores.data?.map((linha) => (
                 <TableRow key={linha.subjectId}>
                   <TableCell className="text-muted-foreground">{linha.posicao}</TableCell>
-                  <TableCell className="font-bold">{linha.nome}</TableCell>
-                  <TableCell className="text-right font-bold">{inteiro(linha.pontos)}</TableCell>
+                  <TableCell className="font-bold">{linha.name}</TableCell>
+                  <TableCell className="text-right font-bold">
+                    {integerText(linha.points)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

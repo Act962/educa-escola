@@ -1,14 +1,14 @@
 import { weightedAverage } from "../assessment/service";
-import type { MediaDoBimestre, NovoEvento } from "./apuracao";
-import {
-  apurarAulas,
-  apurarAvaliacoes,
-  apurarEvolucao,
-  apurarFrequenciaDoAno,
-  apurarPresencas,
-} from "./apuracao";
 import type { ScoreRepository } from "./repository";
-import { type Nivel, nivelDe, proximoNivel, regraDe, type SubjectKind } from "./rules";
+import { type Level, levelOf, nextLevel, ruleFor, type SubjectKind } from "./rules";
+import type { NewEvent, TermAverage } from "./tally";
+import {
+  tallyAssessments,
+  tallyAttendance,
+  tallyImprovement,
+  tallyLessons,
+  tallyYearAttendance,
+} from "./tally";
 
 export interface PosicaoNoPlacar {
   /** 1 é o primeiro. `null` quando a pessoa ainda não pontuou. */
@@ -17,10 +17,10 @@ export interface PosicaoNoPlacar {
   total: number;
 }
 
-export interface PainelDePontos {
-  pontos: number;
-  nivel: Nivel;
-  proximo: ReturnType<typeof proximoNivel>;
+export interface ScorePanel {
+  points: number;
+  level: Level;
+  proximo: ReturnType<typeof nextLevel>;
   extrato: {
     id: string;
     ruleKey: string;
@@ -54,19 +54,19 @@ export function posicaoEm(
 }
 
 /** Média de pontos de um grupo. `null` com grupo vazio — não é zero. */
-export function mediaDePontos(valores: number[]): number | null {
+export function averagePoints(valores: number[]): number | null {
   if (valores.length === 0) return null;
   return Math.round(valores.reduce((soma, valor) => soma + valor, 0) / valores.length);
 }
 
 export function createScoreService(repo: ScoreRepository) {
-  function comRotulo(eventos: Awaited<ReturnType<ScoreRepository["listEvents"]>>) {
-    return eventos.map((evento) => ({
+  function comRotulo(events: Awaited<ReturnType<ScoreRepository["listEvents"]>>) {
+    return events.map((evento) => ({
       ...evento,
       // Regra removida do catálogo continua tendo eventos gravados: o fato
       // aconteceu. Mostrar a chave crua é feio, mas é honesto — melhor que
       // sumir com pontos que a pessoa já viu somados no total.
-      label: regraDe(evento.ruleKey)?.label ?? evento.ruleKey,
+      label: ruleFor(evento.ruleKey)?.label ?? evento.ruleKey,
     }));
   }
 
@@ -74,18 +74,18 @@ export function createScoreService(repo: ScoreRepository) {
     subjectKind: SubjectKind,
     subjectId: string,
     academicYear: number,
-  ): Promise<PainelDePontos> {
-    const [saldo, eventos] = await Promise.all([
+  ): Promise<ScorePanel> {
+    const [saldo, events] = await Promise.all([
       repo.balance({ subjectKind, subjectId, academicYear }),
       repo.listEvents({ subjectKind, subjectId, academicYear, limit: TAMANHO_DO_EXTRATO }),
     ]);
 
-    const pontos = saldo?.points ?? 0;
+    const points = saldo?.points ?? 0;
     return {
-      pontos,
-      nivel: nivelDe(pontos),
-      proximo: proximoNivel(pontos),
-      extrato: comRotulo(eventos),
+      points,
+      level: levelOf(points),
+      proximo: nextLevel(points),
+      extrato: comRotulo(events),
     };
   }
 
@@ -98,27 +98,27 @@ export function createScoreService(repo: ScoreRepository) {
      * único de origem garante que clicar duas vezes não dobra pontuação.
      */
     async apurar(academicYear: number) {
-      const [presencas, aulas, avaliacoes, lancamentos] = await Promise.all([
-        repo.presencasDoAno(academicYear),
-        repo.aulasDoAno(academicYear),
-        repo.avaliacoesDoAno(academicYear),
-        repo.lancamentosPublicadosDoAno(academicYear),
+      const [attendanceEntries, lessons, assessments, lancamentos] = await Promise.all([
+        repo.yearAttendance(academicYear),
+        repo.yearLessons(academicYear),
+        repo.yearAssessments(academicYear),
+        repo.yearPublishedGrades(academicYear),
       ]);
 
-      const medias = mediasPorBimestre(lancamentos);
+      const averages = averagesByTerm(lancamentos);
 
-      const eventos: NovoEvento[] = [
-        ...apurarPresencas(presencas),
-        ...apurarFrequenciaDoAno(presencas, academicYear),
-        ...apurarEvolucao(medias, academicYear),
-        ...apurarAulas(aulas),
-        ...apurarAvaliacoes(avaliacoes),
+      const events: NewEvent[] = [
+        ...tallyAttendance(attendanceEntries),
+        ...tallyYearAttendance(attendanceEntries, academicYear),
+        ...tallyImprovement(averages, academicYear),
+        ...tallyLessons(lessons),
+        ...tallyAssessments(assessments),
       ];
 
-      const novos = await repo.appendEvents(eventos);
+      const novos = await repo.appendEvents(events);
       await repo.rebuildBalances(academicYear);
 
-      return { apurados: eventos.length, novos, academicYear };
+      return { tallied: events.length, novos, academicYear };
     },
 
     /**
@@ -128,11 +128,15 @@ export function createScoreService(repo: ScoreRepository) {
      * ranking nominal entre alunos, e a garantia está na forma do retorno, não
      * numa checagem de tela que a próxima pessoa pode esquecer.
      */
-    async doAluno(input: { studentId: string; classroomId: string | null; academicYear: number }) {
+    async ofStudent(input: {
+      studentId: string;
+      classroomId: string | null;
+      academicYear: number;
+    }) {
       const base = await painel("aluno", input.studentId, input.academicYear);
 
       if (!input.classroomId) {
-        return { ...base, posicao: null, totalNaTurma: 0, mediaDaTurma: null };
+        return { ...base, posicao: null, classroomTotal: 0, classroomAverage: null };
       }
 
       const [placar, colegas] = await Promise.all([
@@ -149,15 +153,15 @@ export function createScoreService(repo: ScoreRepository) {
         posicao,
         // O denominador é a turma inteira, não só quem pontuou: "3º de 12"
         // numa turma de 28 faria o aluno achar que metade sumiu.
-        totalNaTurma: colegas.length,
-        mediaDaTurma: mediaDePontos(
+        classroomTotal: colegas.length,
+        classroomAverage: averagePoints(
           colegas.map((id) => placarDaTurma.find((linha) => linha.subjectId === id)?.points ?? 0),
         ),
       };
     },
 
     /** O painel do professor. Posição entre docentes — decisão de produto, §10.6. */
-    async doProfessor(teacherId: string, academicYear: number) {
+    async ofTeacher(teacherId: string, academicYear: number) {
       const [base, placar] = await Promise.all([
         painel("professor", teacherId, academicYear),
         repo.scoreboard({ subjectKind: "professor", academicYear }),
@@ -172,7 +176,7 @@ export function createScoreService(repo: ScoreRepository) {
      * Existe porque a coordenação precisa enxergar quem está descolando e quem
      * sumiu. Não é a tela do aluno, e o router é quem segura isso.
      */
-    async rankingDeAlunos(academicYear: number) {
+    async studentRanking(academicYear: number) {
       const placar = await repo.scoreboard({ subjectKind: "aluno", academicYear });
       const alunos = await repo.studentsByIds(placar.map((linha) => linha.subjectId));
       const porId = new Map(alunos.map((aluno) => [aluno.id, aluno]));
@@ -180,27 +184,27 @@ export function createScoreService(repo: ScoreRepository) {
       return placar.map((linha, indice) => ({
         posicao: indice + 1,
         subjectId: linha.subjectId,
-        nome: porId.get(linha.subjectId)?.name ?? "Aluno removido",
+        name: porId.get(linha.subjectId)?.name ?? "Aluno removido",
         classroomId: porId.get(linha.subjectId)?.classroomId ?? null,
-        pontos: linha.points,
-        nivel: nivelDe(linha.points),
+        points: linha.points,
+        level: levelOf(linha.points),
       }));
     },
 
     /** O placar de professores. Mesma ressalva do §10.6 registrada no requisito. */
-    async rankingDeProfessores(academicYear: number) {
+    async teacherRanking(academicYear: number) {
       const placar = await repo.scoreboard({ subjectKind: "professor", academicYear });
-      const docentes = await repo.teachersByIds(placar.map((linha) => linha.subjectId));
-      const porId = new Map(docentes.map((docente) => [docente.id, docente.name]));
+      const teachers = await repo.teachersByIds(placar.map((linha) => linha.subjectId));
+      const porId = new Map(teachers.map((teacher) => [teacher.id, teacher.name]));
 
       return placar.map((linha, indice) => ({
         posicao: indice + 1,
         subjectId: linha.subjectId,
         // Quem perdeu o vínculo com a escola mantém os pontos do que fez, e a
         // tela precisa de um rótulo para a linha em vez de um id cru.
-        nome: porId.get(linha.subjectId) ?? "Sem vínculo atual",
-        pontos: linha.points,
-        nivel: nivelDe(linha.points),
+        name: porId.get(linha.subjectId) ?? "Sem vínculo atual",
+        points: linha.points,
+        level: levelOf(linha.points),
       }));
     },
   };
@@ -213,21 +217,21 @@ export function createScoreService(repo: ScoreRepository) {
  * divergissem, o ponto de evolução e o boletim contariam histórias diferentes
  * sobre o mesmo aluno.
  */
-export function mediasPorBimestre(
+export function averagesByTerm(
   lancamentos: { studentId: string; term: number; score: number; weight: number }[],
-): MediaDoBimestre[] {
+): TermAverage[] {
   const agrupado = new Map<string, { score: number; weight: number }[]>();
 
   for (const linha of lancamentos) {
-    const chave = `${linha.studentId}|${linha.term}`;
-    const lista = agrupado.get(chave) ?? [];
-    lista.push({ score: linha.score, weight: linha.weight });
-    agrupado.set(chave, lista);
+    const key = `${linha.studentId}|${linha.term}`;
+    const list = agrupado.get(key) ?? [];
+    list.push({ score: linha.score, weight: linha.weight });
+    agrupado.set(key, list);
   }
 
-  return [...agrupado].map(([chave, notas]) => {
-    const [studentId = "", term = "0"] = chave.split("|");
-    return { studentId, term: Number(term), media: weightedAverage(notas) };
+  return [...agrupado].map(([key, grades]) => {
+    const [studentId = "", term = "0"] = key.split("|");
+    return { studentId, term: Number(term), average: weightedAverage(grades) };
   });
 }
 

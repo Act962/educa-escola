@@ -28,8 +28,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, ScanFace, Search } from "lucide-react";
 import { useState } from "react";
 
-import { IdentificacaoFacial } from "@/components/identificacao-facial";
-import { inteiro, percentualCurto, situacaoMatricula, turno } from "@/lib/format";
+import { FaceIdentification } from "@/components/face-identification";
+import { integerText, shiftText, shortPercentText, studentStatusBadge } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_app/alunos")({
@@ -80,7 +80,7 @@ function Alunos() {
   const [atRisk, setAtRisk] = useState(false);
   const [page, setPage] = useState(0);
   /** O aluno cujo painel de identificação está aberto. */
-  const [rosto, setRosto] = useState<{ id: string; nome: string } | null>(null);
+  const [rosto, setRosto] = useState<{ id: string; name: string } | null>(null);
 
   /**
    * Todo filtro volta para a primeira página.
@@ -136,7 +136,7 @@ function Alunos() {
         <CardEyebrow>Alunos</CardEyebrow>
         <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Alunos</h1>
         <p className="text-corpo text-muted-foreground">
-          {alunos.data ? `${inteiro(alunos.data.total)} matriculados` : "Carregando…"}
+          {alunos.data ? `${integerText(alunos.data.total)} matriculados` : "Carregando…"}
         </p>
       </div>
 
@@ -228,7 +228,7 @@ function Alunos() {
             </TableHeader>
             <TableBody>
               {itens.map((aluno) => {
-                const situacao = situacaoMatricula(aluno.status);
+                const situation = studentStatusBadge(aluno.status);
                 const alerta = aluno.belowMinimumAttendance;
 
                 return (
@@ -249,7 +249,9 @@ function Alunos() {
                       </span>
                     </TableCell>
                     <TableCell className="font-bold">{aluno.classroomName ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{turno(aluno.shift)}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {shiftText(aluno.shift)}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {aluno.guardianName ?? "—"}
                     </TableCell>
@@ -259,13 +261,13 @@ function Alunos() {
                         alerta && "text-danger",
                       )}
                     >
-                      {percentualCurto(aluno.attendanceRate)}
+                      {shortPercentText(aluno.attendanceRate)}
                     </TableCell>
                     <TableCell className="text-right">
                       {alerta ? (
                         <Badge variant="danger">Alerta de frequência</Badge>
                       ) : (
-                        <Badge variant={situacao.tone}>{situacao.label}</Badge>
+                        <Badge variant={situation.tone}>{situation.label}</Badge>
                       )}
                     </TableCell>
                     {/*
@@ -279,7 +281,7 @@ function Alunos() {
                         variant="secondary"
                         size="sm"
                         className="min-h-8 px-3 text-meta"
-                        onClick={() => setRosto({ id: aluno.id, nome: aluno.name })}
+                        onClick={() => setRosto({ id: aluno.id, name: aluno.name })}
                       >
                         <ScanFace size={16} strokeWidth={1.7} aria-hidden />
                         Rosto
@@ -298,7 +300,7 @@ function Alunos() {
         {total > 0 ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-corpo text-muted-foreground tabular-nums">
-              {primeiro}–{ultimo} de {inteiro(total)} alunos
+              {primeiro}–{ultimo} de {integerText(total)} alunos
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -328,7 +330,7 @@ function Alunos() {
       </Card>
 
       {/*
-        `IdentificacaoFacial` é o mesmo painel da matrícula — consentimento,
+        `FaceIdentification` é o mesmo painel da matrícula — consentimento,
         captura, cadastro do molde e revogação. Ele já é o CRUD do rosto; o que
         faltava era a secretaria alcançá-lo sem passar pela ficha de matrícula,
         que é onde ele nasceu.
@@ -336,9 +338,9 @@ function Alunos() {
       <Sheet open={!!rosto} onOpenChange={(aberto) => !aberto && setRosto(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>{rosto?.nome}</SheetTitle>
+            <SheetTitle>{rosto?.name}</SheetTitle>
           </SheetHeader>
-          {rosto ? <IdentificacaoFacial studentId={rosto.id} /> : null}
+          {rosto ? <FaceIdentification studentId={rosto.id} /> : null}
         </SheetContent>
       </Sheet>
     </>

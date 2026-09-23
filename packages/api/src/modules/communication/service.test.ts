@@ -189,7 +189,7 @@ describe("list", () => {
     const [linha] = await createCommunicationService(repo).list(2026);
 
     expect(linha?.publico).toBeNull();
-    expect(linha?.taxaDeLeitura).toBeNull();
+    expect(linha?.readRate).toBeNull();
   });
 
   it("publicado traz público, leituras e taxa", async () => {
@@ -202,6 +202,6 @@ describe("list", () => {
     const [linha] = await createCommunicationService(repo).list(2026);
 
     expect(linha).toMatchObject({ publico: 200, leram: 50, confirmaram: 20 });
-    expect(linha?.taxaDeLeitura).toBeCloseTo(0.25);
+    expect(linha?.readRate).toBeCloseTo(0.25);
   });
 });

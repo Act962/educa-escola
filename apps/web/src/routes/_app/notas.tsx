@@ -37,7 +37,7 @@ import { AlertTriangle, Upload } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { nota, situacaoNota } from "@/lib/format";
+import { gradeSituationBadge, gradeText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -61,12 +61,12 @@ function Notas() {
   const { term } = useSchoolContext();
   const { turma: turmaDaUrl } = Route.useSearch();
 
-  const turmas = useQuery(trpc.lesson.myClassrooms.queryOptions());
+  const classrooms = useQuery(trpc.lesson.myClassrooms.queryOptions());
   const [selecionada, setSelecionada] = useState<string | undefined>(turmaDaUrl);
 
   const atual =
-    turmas.data?.find((item) => item.classroomId === (selecionada ?? turmaDaUrl)) ??
-    turmas.data?.[0];
+    classrooms.data?.find((item) => item.classroomId === (selecionada ?? turmaDaUrl)) ??
+    classrooms.data?.[0];
 
   const grade = useQuery({
     ...trpc.assessment.grid.queryOptions({
@@ -87,7 +87,7 @@ function Notas() {
         setRascunho({});
         queryClient.invalidateQueries();
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -97,21 +97,21 @@ function Notas() {
         toast.success("Notas publicadas. Já aparecem no boletim do aluno.");
         queryClient.invalidateQueries();
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
-  if (turmas.error || grade.error) {
-    const erro = turmas.error ?? grade.error;
+  if (classrooms.error || grade.error) {
+    const error = classrooms.error ?? grade.error;
     return (
       <Card>
-        {erro?.data?.code === "FORBIDDEN" ? (
+        {error?.data?.code === "FORBIDDEN" ? (
           <PermissionState
             title="Seu perfil não lança notas"
             description="O lançamento é do professor da turma. Peça acesso à coordenação se precisar dele."
           />
         ) : (
-          <EmptyState title="Não foi possível carregar" description={erro?.message ?? ""} />
+          <EmptyState title="Não foi possível carregar" description={error?.message ?? ""} />
         )}
       </Card>
     );
@@ -119,8 +119,8 @@ function Notas() {
 
   const emRascunho = grade.data?.assessments.find((item) => item.status === "rascunho");
   const linhas = grade.data?.rows ?? [];
-  const linhasPendentes = linhas.filter((linha) => linha.missing > 0);
-  const visiveis = filtro === "pendentes" ? linhasPendentes : linhas;
+  const pendingRows = linhas.filter((linha) => linha.missing > 0);
+  const visiveis = filtro === "pendentes" ? pendingRows : linhas;
 
   const guardar = (assessmentId: string, studentId: string, valor: number | null) =>
     setRascunho((atualState) => ({ ...atualState, [`${assessmentId}:${studentId}`]: valor }));
@@ -128,8 +128,8 @@ function Notas() {
   const salvarRascunho = () => {
     if (!emRascunho) return;
     const entradas = Object.entries(rascunho)
-      .filter(([chave]) => chave.startsWith(`${emRascunho.id}:`))
-      .map(([chave, score]) => ({ studentId: chave.split(":")[1] as string, score }));
+      .filter(([key]) => key.startsWith(`${emRascunho.id}:`))
+      .map(([key, score]) => ({ studentId: key.split(":")[1] as string, score }));
 
     if (entradas.length === 0) {
       toast.info("Nenhuma alteração para salvar.");
@@ -155,7 +155,7 @@ function Notas() {
 
         <div className="flex flex-wrap items-center gap-2">
           <Select
-            items={(turmas.data ?? []).map((item) => ({
+            items={(classrooms.data ?? []).map((item) => ({
               value: item.classroomId,
               label: `${item.classroomName} · ${item.subjectName}`,
             }))}
@@ -166,7 +166,7 @@ function Notas() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(turmas.data ?? []).map((item) => (
+              {(classrooms.data ?? []).map((item) => (
                 <SelectItem key={item.classroomId} value={item.classroomId}>
                   {item.classroomName} · {item.subjectName}
                 </SelectItem>
@@ -199,7 +199,7 @@ function Notas() {
             {grade.data.pendingCount} lançamento(s) pendente(s) neste bimestre
           </AlertTitle>
           <AlertDescription>
-            O bimestre não pode ser fechado, e a avaliação não pode ser publicada, com nota
+            O bimestre não pode ser fechado, e a avaliação não pode ser publicada, com gradeText
             faltando.
           </AlertDescription>
         </Alert>
@@ -224,7 +224,7 @@ function Notas() {
           <Card size="sm" className="gap-1">
             <CardEyebrow>Média da turma</CardEyebrow>
             <span className="font-extrabold text-2xl tracking-[-0.6px]">
-              {nota(grade.data.classAverage)}
+              {gradeText(grade.data.classAverage)}
             </span>
           </Card>
         </div>
@@ -247,8 +247,8 @@ function Notas() {
               <TabsList>
                 <TabsTrigger value="todos">Todos os alunos</TabsTrigger>
                 <TabsTrigger value="pendentes">
-                  Somente sem nota
-                  {grade.data?.pendingCount ? ` (${linhasPendentes.length})` : ""}
+                  Somente sem gradeText
+                  {grade.data?.pendingCount ? ` (${pendingRows.length})` : ""}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -282,7 +282,7 @@ function Notas() {
             </TableHeader>
             <TableBody>
               {visiveis.map((linha) => {
-                const situacao = situacaoNota(linha.situation);
+                const situation = gradeSituationBadge(linha.situation);
                 const faltando = linha.missing > 0;
 
                 return (
@@ -306,9 +306,9 @@ function Notas() {
                     </TableCell>
 
                     {(grade.data?.assessments ?? []).map((avaliacao, coluna) => {
-                      const chave = `${avaliacao.id}:${linha.studentId}`;
+                      const key = `${avaliacao.id}:${linha.studentId}`;
                       const valor =
-                        chave in rascunho ? rascunho[chave] : (linha.scores[coluna] ?? null);
+                        key in rascunho ? rascunho[key] : (linha.scores[coluna] ?? null);
                       const travada = avaliacao.status === "publicada";
 
                       return (
@@ -329,10 +329,10 @@ function Notas() {
                     })}
 
                     <TableCell className="text-center font-extrabold text-sm tabular-nums">
-                      {nota(linha.average)}
+                      {gradeText(linha.average)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={situacao.tone}>{situacao.label}</Badge>
+                      <Badge variant={situation.tone}>{situation.label}</Badge>
                     </TableCell>
                   </TableRow>
                 );

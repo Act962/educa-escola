@@ -3,8 +3,8 @@ import { NotFoundError } from "../../errors";
 import { CURRENT_TERM_VERSION } from "../enrollment/schema";
 import { ENROLLED_STATUSES } from "../student/schema";
 import { MINIMUM_ATTENDANCE_RATE } from "../student/service";
-import { PENDENCIAS_PARA_ATRASO } from "../teacher/service";
-import { PAPEIS_DE_GESTAO, type SettingsRepository } from "./repository";
+import { PENDING_FOR_OVERDUE } from "../teacher/service";
+import { MANAGEMENT_ROLES, type SettingsRepository } from "./repository";
 import type { UpdateSchoolInput } from "./schema";
 
 /**
@@ -28,14 +28,14 @@ import type { UpdateSchoolInput } from "./schema";
  *   de data do servidor.
  */
 export interface RegraEmVigor {
-  chave: string;
-  titulo: string;
+  key: string;
+  title: string;
   valor: string;
   porque: string;
   onde: string;
 }
 
-const ROTULO_DA_SITUACAO: Record<(typeof ENROLLED_STATUSES)[number], string> = {
+const SITUATION_LABEL: Record<(typeof ENROLLED_STATUSES)[number], string> = {
   ativo: "Ativo",
   documentacao_pendente: "Documentação pendente",
 };
@@ -43,56 +43,56 @@ const ROTULO_DA_SITUACAO: Record<(typeof ENROLLED_STATUSES)[number], string> = {
 export function regrasEmVigor(): RegraEmVigor[] {
   return [
     {
-      chave: "frequencia_minima",
-      titulo: "Frequência mínima para aprovação",
+      key: "frequencia_minima",
+      title: "Frequência mínima para aprovação",
       valor: `${Math.round(MINIMUM_ATTENDANCE_RATE * 100)}% das aulas dadas`,
       porque: "Piso legal da LDB, art. 24, VI. Atraso conta como presença.",
       onde: "student/service.ts",
     },
     {
-      chave: "prazo_da_chamada",
-      titulo: "Prazo para registrar a chamada",
+      key: "prazo_da_chamada",
+      title: "Prazo para registrar a chamada",
       valor: "até o fim do dia da aula",
       porque:
         "Depois disso o registro vira correção de histórico, e passa a exigir justificativa escrita.",
       onde: "lesson/service.ts",
     },
     {
-      chave: "nota_publicada",
-      titulo: "Nota visível ao aluno",
+      key: "nota_publicada",
+      title: "Nota visível ao aluno",
       valor: "só depois de publicada",
       porque:
         "Rascunho é do professor. E avaliação sem lançamento não vale zero: fica de fora da média.",
       onde: "assessment/service.ts",
     },
     {
-      chave: "quem_esta_na_sala",
-      titulo: "Quem entra na chamada e na grade de notas",
+      key: "quem_esta_na_sala",
+      title: "Quem entra na chamada e na grade de notas",
       // Rótulo legível, e não o valor cru do enum: "documentacao_pendente"
       // numa tela da direção parece vazamento de banco.
-      valor: ENROLLED_STATUSES.map((e) => ROTULO_DA_SITUACAO[e]).join(" · "),
+      valor: ENROLLED_STATUSES.map((e) => SITUATION_LABEL[e]).join(" · "),
       porque:
         "Documentação pendente não tira o aluno da turma: ele assiste à aula, recebe nota e conta como pendência.",
       onde: "student/schema.ts",
     },
     {
-      chave: "pendencias_para_atraso",
-      titulo: "Pendências que marcam um professor como atrasado",
-      valor: `${PENDENCIAS_PARA_ATRASO} ou mais`,
+      key: "pendencias_para_atraso",
+      title: "Pendências que marcam um professor como atrasado",
+      valor: `${PENDING_FOR_OVERDUE} ou mais`,
       porque: "É limiar de acompanhamento da coordenação, não avaliação de desempenho (§10.6).",
       onde: "teacher/service.ts",
     },
     {
-      chave: "fuso",
-      titulo: "Fuso horário do dia letivo",
+      key: "fuso",
+      title: "Fuso horário do dia letivo",
       valor: DEFAULT_TIMEZONE,
       porque:
         "O dia letivo é civil e local. Hoje é fixo no servidor — a coluna da escola ainda não é lida.",
       onde: "dates.ts",
     },
     {
-      chave: "versao_dos_termos",
-      titulo: "Versão dos termos de matrícula",
+      key: "versao_dos_termos",
+      title: "Versão dos termos de matrícula",
       valor: CURRENT_TERM_VERSION,
       porque: "É o que fica gravado no consentimento do responsável, para o aceite ser auditável.",
       onde: "enrollment/schema.ts",
@@ -100,7 +100,7 @@ export function regrasEmVigor(): RegraEmVigor[] {
   ];
 }
 
-export interface VisaoDasConfiguracoes {
+export interface SettingsView {
   escola: NonNullable<Awaited<ReturnType<SettingsRepository["find"]>>>;
   acessos: { role: string; total: number }[];
   administradores: Awaited<ReturnType<SettingsRepository["administrators"]>>;
@@ -109,7 +109,7 @@ export interface VisaoDasConfiguracoes {
 
 export function createSettingsService(repo: SettingsRepository) {
   return {
-    async overview(): Promise<VisaoDasConfiguracoes> {
+    async overview(): Promise<SettingsView> {
       const [escola, porPapel, administradores] = await Promise.all([
         repo.find(),
         repo.countByRole(),
@@ -140,4 +140,4 @@ export function createSettingsService(repo: SettingsRepository) {
 }
 
 export type SettingsService = ReturnType<typeof createSettingsService>;
-export { PAPEIS_DE_GESTAO };
+export { MANAGEMENT_ROLES };

@@ -15,8 +15,8 @@ afterAll(async () => {
   await closeTestDb();
 });
 
-async function cenario(tx: Parameters<Parameters<typeof withRollback>[0]>[0], nome = "Escola") {
-  const escola = await createTestSchool(tx, nome);
+async function cenario(tx: Parameters<Parameters<typeof withRollback>[0]>[0], name = "Escola") {
+  const escola = await createTestSchool(tx, name);
   const turma = await createTestClassroom(tx, escola.id);
   const professor = await createTestUser(tx);
   const disciplina = await createTestSubject(tx, escola.id);
@@ -115,9 +115,9 @@ describe("createLessonRepository", () => {
         date: "2026-09-30",
       });
 
-      const pendentes = await repo.listPendingForTeacher(professor.id, "2026-09-10");
-      expect(pendentes).toHaveLength(1);
-      expect(pendentes[0]?.date).toBe("2026-09-09");
+      const pending = await repo.listPendingForTeacher(professor.id, "2026-09-10");
+      expect(pending).toHaveLength(1);
+      expect(pending[0]?.date).toBe("2026-09-09");
     });
   });
 });

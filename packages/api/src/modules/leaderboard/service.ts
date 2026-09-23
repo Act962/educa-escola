@@ -1,5 +1,5 @@
 import { ValidationError } from "../../errors";
-import { indicadoresDe } from "./indicadores";
+import { indicatorsFor } from "./indicators";
 import type { LeaderboardLookup, LeaderboardRepository } from "./repository";
 
 /**
@@ -24,7 +24,7 @@ export function createLeaderboardService(deps: {
         displayName: adesao?.displayName ?? null,
         // Os indicadores aparecem mesmo sem adesão: a direção precisa ver o
         // que seria publicado **antes** de decidir publicar.
-        indicadores: indicadoresDe(contagens),
+        indicators: indicatorsFor(contagens),
       };
     },
 
@@ -49,11 +49,11 @@ export function createLeaderboardService(deps: {
         throw new ValidationError("A escola não aderiu ao placar entre escolas.");
       }
 
-      const indicadores = indicadoresDe(await deps.repo.contagens(academicYear));
+      const indicators = indicatorsFor(await deps.repo.contagens(academicYear));
       return deps.repo.publish({
         displayName: adesao.displayName,
         academicYear,
-        ...indicadores,
+        ...indicators,
       });
     },
 
@@ -69,9 +69,9 @@ export function createLeaderboardService(deps: {
         posicao: indice + 1,
         displayName: linha.displayName,
         points: linha.points,
-        chamadaNoPrazo: linha.chamadaNoPrazo,
-        notasSemPendencia: linha.notasSemPendencia,
-        frequenciaMedia: linha.frequenciaMedia,
+        attendanceOnTime: linha.attendanceOnTime,
+        gradesWithoutPending: linha.gradesWithoutPending,
+        averageAttendance: linha.averageAttendance,
         // O id da escola não vai para a tela: quem precisa dele é esta linha,
         // para dizer "esta é a sua". Mandar o id de todas seria devolver uma
         // chave de outro tenant sem necessidade nenhuma.

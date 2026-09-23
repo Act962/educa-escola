@@ -23,18 +23,18 @@ interface MarcaProps {
   /** Desenha a silhueta clara atrás do traço. Para fundo colorido. */
   comHalo?: boolean;
   /** Nome acessível. Sem ele a marca é decorativa e some do leitor de tela. */
-  titulo?: string;
+  title?: string;
 }
 
 function Svg({
   viewBox,
   className,
-  titulo,
+  title,
   children,
 }: {
   viewBox: string;
   className?: string;
-  titulo?: string;
+  title?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -43,9 +43,9 @@ function Svg({
       xmlns="http://www.w3.org/2000/svg"
       fillRule="evenodd"
       clipRule="evenodd"
-      role={titulo ? "img" : "presentation"}
-      aria-label={titulo}
-      aria-hidden={titulo ? undefined : true}
+      role={title ? "img" : "presentation"}
+      aria-label={title}
+      aria-hidden={title ? undefined : true}
       className={cn("h-auto", className)}
     >
       {children}
@@ -54,9 +54,9 @@ function Svg({
 }
 
 /** Símbolo do Órbita Edu, sem olhos. É a marca do ecossistema. */
-export function OrbitaIcone({ className, comHalo, titulo }: MarcaProps) {
+export function OrbitaIcon({ className, comHalo, title }: MarcaProps) {
   return (
-    <Svg viewBox="0 0 30441.09 30288.51" className={className} titulo={titulo}>
+    <Svg viewBox="0 0 30441.09 30288.51" className={className} title={title}>
       {comHalo ? (
         <path
           className="fill-card"
@@ -77,9 +77,9 @@ export function OrbitaIcone({ className, comHalo, titulo }: MarcaProps) {
 
 /** O mesmo símbolo com olhos: é o rosto do Astro, o assistente. Os olhos são o que
  * transforma a marca em personagem, então este é o único lugar onde eles aparecem. */
-export function OrbitaAstro({ className, comHalo, titulo }: MarcaProps) {
+export function OrbitaAstro({ className, comHalo, title }: MarcaProps) {
   return (
-    <Svg viewBox="0 0 30441.09 30288.51" className={className} titulo={titulo}>
+    <Svg viewBox="0 0 30441.09 30288.51" className={className} title={title}>
       {comHalo ? (
         <path
           className="fill-card"
@@ -117,9 +117,9 @@ export function OrbitaAstro({ className, comHalo, titulo }: MarcaProps) {
 }
 
 /** Assinatura completa, com o nome ao lado do símbolo. */
-export function OrbitaMarca({ className, comHalo, titulo }: MarcaProps) {
+export function OrbitaBrand({ className, comHalo, title }: MarcaProps) {
   return (
-    <Svg viewBox="0 0 64683.48 30161.34" className={className} titulo={titulo}>
+    <Svg viewBox="0 0 64683.48 30161.34" className={className} title={title}>
       {comHalo ? (
         <path
           className="fill-card"

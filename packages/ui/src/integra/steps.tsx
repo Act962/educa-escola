@@ -5,7 +5,7 @@ interface PassosProps {
   atual: number;
   total: number;
   /** Nome da etapa atual, lido junto com o número. */
-  rotulo: string;
+  label: string;
   className?: string;
 }
 
@@ -20,7 +20,7 @@ interface PassosProps {
  * O `role="progressbar"` é o que faz o leitor de tela anunciar "2 de 3" — sem
  * ele a informação existiria só como cor, que o brief §8 proíbe.
  */
-export function Passos({ atual, total, rotulo, className }: PassosProps) {
+export function Passos({ atual, total, label, className }: PassosProps) {
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <div
@@ -29,7 +29,7 @@ export function Passos({ atual, total, rotulo, className }: PassosProps) {
         aria-valuemin={1}
         aria-valuemax={total}
         aria-valuenow={atual}
-        aria-valuetext={`Etapa ${atual} de ${total}: ${rotulo}`}
+        aria-valuetext={`Etapa ${atual} de ${total}: ${label}`}
       >
         {Array.from({ length: total }, (_, indice) => indice + 1).map((passo) => (
           <span
@@ -48,7 +48,7 @@ export function Passos({ atual, total, rotulo, className }: PassosProps) {
         <span>
           Etapa {atual} de {total}
         </span>
-        <span className="font-bold text-info">{rotulo}</span>
+        <span className="font-bold text-info">{label}</span>
       </div>
     </div>
   );

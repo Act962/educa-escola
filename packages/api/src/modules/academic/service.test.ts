@@ -8,32 +8,32 @@ type Disciplina = Awaited<ReturnType<AcademicRepository["listSubjects"]>>[number
 type NaGrade = Awaited<ReturnType<AcademicRepository["listCurriculum"]>>[number];
 
 interface Estado {
-  disciplinas?: Partial<Disciplina>[];
+  subjects?: Partial<Disciplina>[];
   grade?: Partial<NaGrade>[];
-  series?: { stage: string | null; gradeLevel: number | null; turmas: number }[];
-  aulasPorDisciplina?: Record<string, number>;
+  series?: { stage: string | null; gradeLevel: number | null; classrooms: number }[];
+  lessonsBySubject?: Record<string, number>;
 }
 
 /** Dublê tipado como o repositório real, sem cast. */
 function fakeRepository(estado: Estado = {}): AcademicRepository {
-  const disciplinas = (estado.disciplinas ?? []) as Disciplina[];
+  const subjects = (estado.subjects ?? []) as Disciplina[];
 
   return {
-    listSubjects: async () => disciplinas,
-    findSubjectByName: async (name) => disciplinas.find((d) => d.name === name) ?? null,
-    findSubject: async (id) => disciplinas.find((d) => d.id === id) ?? null,
+    listSubjects: async () => subjects,
+    findSubjectByName: async (name) => subjects.find((d) => d.name === name) ?? null,
+    findSubject: async (id) => subjects.find((d) => d.id === id) ?? null,
     createSubject: async (data) => ({ ...data, id: "nova", schoolId: "e1" }) as Disciplina,
     updateSubject: async (id, data) => {
-      const atual = disciplinas.find((d) => d.id === id);
+      const atual = subjects.find((d) => d.id === id);
       return atual ? ({ ...atual, ...data } as Disciplina) : null;
     },
-    removeSubject: async (id) => (disciplinas.some((d) => d.id === id) ? { id } : null),
-    lessonCountBySubject: async (id) => estado.aulasPorDisciplina?.[id] ?? 0,
+    removeSubject: async (id) => (subjects.some((d) => d.id === id) ? { id } : null),
+    lessonCountBySubject: async (id) => estado.lessonsBySubject?.[id] ?? 0,
     listCurriculum: async () => (estado.grade ?? []) as NaGrade[],
     setCurriculum: async (data) => ({ ...data, id: "linha" }) as never,
     removeFromCurriculum: async (id) =>
       (estado.grade ?? []).some((l) => l.id === id) ? { id } : null,
-    seriesEmUso: async () => (estado.series ?? []) as never,
+    gradeLevelsInUse: async () => (estado.series ?? []) as never,
   };
 }
 
@@ -53,14 +53,14 @@ describe("createSubject", () => {
 
   it("recusa nome repetido", async () => {
     const servico = createAcademicService(
-      fakeRepository({ disciplinas: [{ id: "s1", name: "Matemática" }] }),
+      fakeRepository({ subjects: [{ id: "s1", name: "Matemática" }] }),
     );
     await expect(servico.createSubject(entrada)).rejects.toThrow(ConflictError);
   });
 
   it("compara o nome já normalizado", async () => {
     const servico = createAcademicService(
-      fakeRepository({ disciplinas: [{ id: "s1", name: "Educação Física" }] }),
+      fakeRepository({ subjects: [{ id: "s1", name: "Educação Física" }] }),
     );
     await expect(
       servico.createSubject({ ...entrada, name: "  Educação   Física  " }),
@@ -77,8 +77,8 @@ describe("removeSubject", () => {
   it("recusa apagar disciplina com aula dada, e diz o que fazer", async () => {
     const servico = createAcademicService(
       fakeRepository({
-        disciplinas: [{ id: "s1", name: "Matemática" }],
-        aulasPorDisciplina: { s1: 42 },
+        subjects: [{ id: "s1", name: "Matemática" }],
+        lessonsBySubject: { s1: 42 },
       }),
     );
 
@@ -89,7 +89,7 @@ describe("removeSubject", () => {
 
   it("apaga disciplina que nunca teve aula", async () => {
     const servico = createAcademicService(
-      fakeRepository({ disciplinas: [{ id: "s1", name: "Xadrez" }] }),
+      fakeRepository({ subjects: [{ id: "s1", name: "Xadrez" }] }),
     );
     await expect(servico.removeSubject("s1")).resolves.toEqual({ id: "s1" });
   });
@@ -104,8 +104,8 @@ describe("removeSubject", () => {
 describe("curriculum", () => {
   const estado: Estado = {
     series: [
-      { stage: "fundamental_ii", gradeLevel: 6, turmas: 3 },
-      { stage: "fundamental_ii", gradeLevel: 7, turmas: 2 },
+      { stage: "fundamental_ii", gradeLevel: 6, classrooms: 3 },
+      { stage: "fundamental_ii", gradeLevel: 7, classrooms: 2 },
     ],
     grade: [
       {
@@ -139,8 +139,8 @@ describe("curriculum", () => {
     });
 
     expect(sexto?.gradeLevel).toBe(6);
-    expect(sexto?.disciplinas).toHaveLength(2);
-    expect(sexto?.aulasPorSemana).toBe(8);
+    expect(sexto?.subjects).toHaveLength(2);
+    expect(sexto?.lessonsPerWeek).toBe(8);
   });
 
   /**
@@ -154,22 +154,22 @@ describe("curriculum", () => {
 
     const setimo = grade.find((s) => s.gradeLevel === 7);
     expect(setimo).toBeDefined();
-    expect(setimo?.disciplinas).toEqual([]);
-    expect(setimo?.aulasPorSemana).toBe(0);
+    expect(setimo?.subjects).toEqual([]);
+    expect(setimo?.lessonsPerWeek).toBe(0);
   });
 
   it("não mistura a grade de séries diferentes", async () => {
     const grade = await createAcademicService(fakeRepository(estado)).curriculum({
       academicYear: 2026,
     });
-    expect(grade.find((s) => s.gradeLevel === 7)?.disciplinas).toHaveLength(0);
+    expect(grade.find((s) => s.gradeLevel === 7)?.subjects).toHaveLength(0);
   });
 
   it("filtra por segmento", async () => {
     const grade = await createAcademicService(
       fakeRepository({
         ...estado,
-        series: [...(estado.series ?? []), { stage: "medio", gradeLevel: 1, turmas: 1 }],
+        series: [...(estado.series ?? []), { stage: "medio", gradeLevel: 1, classrooms: 1 }],
       }),
     ).curriculum({ academicYear: 2026, stage: "medio" });
 
@@ -183,7 +183,7 @@ describe("setCurriculum", () => {
   /** "9º ano do médio" não existe: a série sozinha é ambígua. */
   it("recusa série que não existe no segmento", async () => {
     const servico = createAcademicService(
-      fakeRepository({ disciplinas: [{ id: "s1", name: "Matemática" }] }),
+      fakeRepository({ subjects: [{ id: "s1", name: "Matemática" }] }),
     );
 
     await expect(servico.setCurriculum({ ...base, stage: "medio", gradeLevel: 9 })).rejects.toThrow(

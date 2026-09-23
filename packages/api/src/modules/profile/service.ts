@@ -10,18 +10,18 @@ import type { ProfileRepository } from "./repository";
  * decidir *o que desenhar* e não *o que esconder*: "turmas: 0" no perfil de um
  * aluno é um campo que nunca deveria existir ali.
  */
-export type Vinculo =
+export type Affiliation =
   | {
       tipo: "aluno";
       matricula: string | null;
       turma: string | null;
       turno: string | null;
-      situacao: string | null;
+      situation: string | null;
     }
-  | { tipo: "professor"; turmas: number; disciplinas: number; aulas: number }
+  | { tipo: "professor"; classrooms: number; subjects: number; lessons: number }
   | { tipo: "gestao" };
 
-export interface Perfil {
+export interface Profile {
   userId: string;
   name: string;
   email: string;
@@ -29,9 +29,9 @@ export interface Perfil {
   role: AppRole;
   schoolId: string;
   schoolName: string;
-  naEscolaDesde: Date;
+  atSchoolSince: Date;
   contaCriadaEm: Date;
-  vinculo: Vinculo;
+  affiliation: Affiliation;
 }
 
 export function createProfileService(repo: ProfileRepository) {
@@ -44,7 +44,7 @@ export function createProfileService(repo: ProfileRepository) {
      * "perfil de qualquer um" aqui seria abrir a mesma porta sem a mesma
      * fechadura.
      */
-    async me(userId: string, role: AppRole, academicYear: number): Promise<Perfil> {
+    async me(userId: string, role: AppRole, academicYear: number): Promise<Profile> {
       const identidade = await repo.identity(userId);
       if (!identidade) {
         throw new NotFoundError("Sua conta não tem vínculo ativo nesta escola.");
@@ -58,9 +58,9 @@ export function createProfileService(repo: ProfileRepository) {
         role,
         schoolId: identidade.schoolId,
         schoolName: identidade.schoolName,
-        naEscolaDesde: identidade.naEscolaDesde,
+        atSchoolSince: identidade.atSchoolSince,
         contaCriadaEm: identidade.contaCriadaEm,
-        vinculo: await vinculoDe(repo, userId, role, academicYear),
+        affiliation: await vinculoDe(repo, userId, role, academicYear),
       };
     },
   };
@@ -71,7 +71,7 @@ async function vinculoDe(
   userId: string,
   role: AppRole,
   academicYear: number,
-): Promise<Vinculo> {
+): Promise<Affiliation> {
   if (role === "student") {
     const ficha = await repo.studentBond(userId);
     return {
@@ -79,7 +79,7 @@ async function vinculoDe(
       matricula: ficha?.registration ?? null,
       turma: ficha?.classroomName ?? null,
       turno: ficha?.shift ?? null,
-      situacao: ficha?.status ?? null,
+      situation: ficha?.status ?? null,
     };
   }
 
@@ -87,9 +87,9 @@ async function vinculoDe(
     const carga = await repo.teacherBond(userId, academicYear);
     return {
       tipo: "professor",
-      turmas: carga.turmas,
-      disciplinas: carga.disciplinas,
-      aulas: carga.aulas,
+      classrooms: carga.classrooms,
+      subjects: carga.subjects,
+      lessons: carga.lessons,
     };
   }
 

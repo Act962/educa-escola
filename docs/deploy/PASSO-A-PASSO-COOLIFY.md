@@ -1,5 +1,9 @@
 # Passo a passo — subir o Integra Edu no Coolify
 
+> **A produção já existe** em <https://orbitaedu.nasaex.com>, montada com este
+> roteiro em 22/09/2026. Ele continua aqui para remontar o ambiente, criar um
+> staging ou refazer o servidor — e as etapas 12 e 13 ainda não foram feitas.
+>
 > Roteiro de execução do [plano de deploy](PLANO-DEPLOY-COOLIFY.md). Siga na
 > ordem: cada etapa depende da anterior. Os nomes de tela seguem a
 > documentação do Coolify v4 — se algum rótulo tiver mudado, o conceito é o
@@ -17,8 +21,8 @@ que baixar.
 | Item | Exemplo | Onde guardar |
 | --- | --- | --- |
 | VPS com Ubuntu 24.04 LTS, acesso SSH como root | 4 vCPU · 8 GB · 80 GB | — |
-| Domínio do app | `app.integraedu.com.br` | — |
-| Domínio do painel do Coolify (diferente do app) | `painel.integraedu.com.br` | — |
+| Domínio do app | `orbitaedu.nasaex.com` | — |
+| Domínio do painel do Coolify (diferente do app) | `painel.nasaex.com` | — |
 | Bucket S3-compatível para backup + chaves de acesso | Backblaze B2, Cloudflare R2 | Cofre |
 | Cofre de senhas da equipe | 1Password, Bitwarden | — |
 
@@ -27,8 +31,8 @@ que baixar.
 No provedor do domínio, crie dois registros **A** apontando para o IP da VPS:
 
 ```
-app.integraedu.com.br     A   <IP da VPS>
-painel.integraedu.com.br  A   <IP da VPS>
+orbitaedu.nasaex.com  A   <IP da VPS>
+painel.nasaex.com     A   <IP da VPS>
 ```
 
 Faça isso primeiro: o certificado HTTPS só é emitido depois que o DNS
@@ -50,7 +54,7 @@ Na conta criada, ative **2FA** (perfil do usuário).
 
 ## Etapa 3 — Painel com HTTPS e firewall
 
-1. **Settings → Configuration → URL:** `https://painel.integraedu.com.br` →
+1. **Settings → Configuration → URL:** `https://painel.nasaex.com` →
    **Save**. Confirme que o painel abre por esse endereço com cadeado.
 2. Firewall da VPS (no painel do provedor ou `ufw`): libere só **22, 80 e
    443**. As portas **8000, 6001 e 6002** só eram necessárias para o acesso
@@ -105,7 +109,7 @@ mídia é backup inútil para as fotos.
 2. **Image:** `ghcr.io/act962/integra-web` · **Tag:** `main`.
 3. **Configuration → General:**
    - **Name:** `integra-web`
-   - **Domains:** `https://app.integraedu.com.br`
+   - **Domains:** `https://orbitaedu.nasaex.com`
    - **Ports Exposes:** `3001` (o padrão é 80 — **troque**, senão o proxy não
      acha o app)
 4. **Configuration → Environment Variables** — todas como variável de
@@ -113,7 +117,7 @@ mídia é backup inútil para as fotos.
 
    ```
    DATABASE_URL=<Postgres URL (internal) da etapa 5>
-   BETTER_AUTH_URL=https://app.integraedu.com.br
+   BETTER_AUTH_URL=https://orbitaedu.nasaex.com
    BETTER_AUTH_SECRET=<etapa 7>
    MEDIA_ENCRYPTION_KEY=<etapa 7>
    ASSISTANT_ENCRYPTION_KEY=<etapa 7>
@@ -158,7 +162,7 @@ mídia é backup inútil para as fotos.
    Se aparecer `[migrate] Falhou.`, o erro do Postgres vem logo abaixo; o
    servidor não sobe até isso ser resolvido. O motivo mais comum no primeiro
    deploy é `DATABASE_URL` errado.
-3. Abra `https://app.integraedu.com.br/api/health`. Esperado:
+3. Abra `https://orbitaedu.nasaex.com/api/health`. Esperado:
 
    ```json
    {"status":"ok","checks":{"database":"ok"}}
@@ -170,21 +174,51 @@ Não existe auto-cadastro: a escola é provisionada por comando. No app →
 **Terminal** (abre um shell dentro do container):
 
 ```bash
-cd /app/packages/auth && node_modules/.bin/jiti src/provision-cli.ts \
-  --name "Escola Municipal X" --slug escola-x \
-  --owner-name "Maria Diretora" \
-  --owner-email diretoria@escola-x.br --owner-password "uma-senha-forte"
+cd /app/packages/auth && node_modules/.bin/jiti src/seed-producao-cli.ts \
+  --name "Escola Municipal X" --slug escola-x --dominio escola-x.br \
+  --turma "6º A" --segmento fundamental_ii --serie 6
 ```
 
-Passe a senha para a direção por canal seguro, e peça que ela troque no
-primeiro acesso.
+Isso deixa a escola pronta para o primeiro dia: a `organization`, a `school`,
+**um acesso por papel** (direção `owner`, secretaria `admin`, professor
+`teacher`, aluno `student`), as oito disciplinas da base comum e a turma, com o
+aluno matriculado nela. Os e-mails saem do `--dominio` (`direcao@escola-x.br`,
+`secretaria@…`, `professor@…`, `aluno@…`); para endereços reais, passe
+`--email-direcao`, `--email-secretaria`, `--email-professor` e `--email-aluno`,
+e os nomes em `--nome-*`.
+
+**As senhas são geradas pelo comando e aparecem uma única vez**, ao final. Copie
+da tela do Terminal antes de fechá-la, entregue por canal seguro, e peça a troca
+no primeiro acesso. Não há como recuperá-las depois — quem perder usa "esqueci
+minha senha".
+
+O comando **nunca apaga**, e é idempotente pelo `--slug`: rodar de novo apenas
+acrescenta o que faltava, e conta que já existe tem a senha mantida. Se a escola
+foi criada antes com `provision-cli.ts`, rodar este comando acrescenta os três
+acessos restantes, as disciplinas e a turma, sem tocar na direção.
+
+Só a escola e a direção, sem o resto, continua sendo
+`node_modules/.bin/jiti src/provision-cli.ts` — com `--owner-password` escolhida
+por você, em vez de gerada.
+
+Para **apresentar o produto a partir daqui**, com os painéis mostrando números
+em vez dos estados vazios, acrescente `--com-demonstracao --sala "Sala 12"`. Ele
+põe 31 colegas na turma, seis semanas de aula, chamadas e notas, com uma chamada
+em atraso e uma Prova 2 em rascunho faltando duas notas — o roteiro montado.
+
+É **dado fictício em banco de produção**, e por isso é opt-in: use só para a
+apresentação, e conte que alguém vai ter de distinguir esses alunos dos
+verdadeiros depois. O relatório final imprime o id da turma e como remover.
+Turma noturna não é aceita com a flag: a grade de demonstração não tem horário
+da noite.
 
 **Nunca rode `seed:demo` aqui.** Ele apaga e regrava a escola de demonstração;
-é para um ambiente de staging.
+é para um ambiente de staging. O `--com-demonstracao` é o contrário: nunca
+apaga, e se a turma já tem aula não escreve.
 
 ## Etapa 11 — Smoke test
 
-- [ ] Login da direção em `https://app.integraedu.com.br` funciona.
+- [ ] Login da direção em `https://orbitaedu.nasaex.com` funciona.
 - [ ] Criar uma turma e um aluno; conferir que aparecem.
 - [ ] Abrir `/portaria` num tablet **pelo domínio com HTTPS** e confirmar que
       a câmera liga (sem HTTPS o navegador bloqueia a câmera).
@@ -235,7 +269,7 @@ Backup que nunca foi restaurado é hipótese. Repita a cada trimestre.
 | Deploy novo | Automático a cada merge na `main` com CI verde |
 | Voltar uma versão | App → **Configuration → General → Tag**: troque `main` por `sha-<commit>` anterior (as tags estão em *Act962 → Packages → integra-web*) → **Deploy**. Depois, volte para `main` |
 | Deploy não terminou | Logs do deploy e do container. `[migrate] Falhou.` = problema de migration; container reiniciando sem esse log = variável de ambiente faltando |
-| App fora do ar | `https://app.integraedu.com.br/api/health`: 503 é o banco; sem resposta é o container ou o proxy |
+| App fora do ar | `https://orbitaedu.nasaex.com/api/health`: 503 é o banco; sem resposta é o container ou o proxy |
 | Nova escola | Etapa 10 |
 
 **Rollback não desfaz migration.** Voltar a imagem para uma versão anterior

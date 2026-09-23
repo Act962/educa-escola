@@ -24,7 +24,7 @@ export function createProfileRepository(db: DbHandle, tenant: TenantContext) {
           emailVerified: user.emailVerified,
           contaCriadaEm: user.createdAt,
           role: member.role,
-          naEscolaDesde: member.createdAt,
+          atSchoolSince: member.createdAt,
           schoolId: member.organizationId,
           schoolName: organization.name,
         })
@@ -72,9 +72,9 @@ export function createProfileRepository(db: DbHandle, tenant: TenantContext) {
     async teacherBond(userId: string, academicYear: number) {
       const [row] = await db
         .select({
-          turmas: countDistinct(lesson.classroomId),
-          disciplinas: countDistinct(lesson.subjectId),
-          aulas: count(),
+          classrooms: countDistinct(lesson.classroomId),
+          subjects: countDistinct(lesson.subjectId),
+          lessons: count(),
         })
         .from(lesson)
         .where(
@@ -85,7 +85,7 @@ export function createProfileRepository(db: DbHandle, tenant: TenantContext) {
           ),
         );
 
-      return row ?? { turmas: 0, disciplinas: 0, aulas: 0 };
+      return row ?? { classrooms: 0, subjects: 0, lessons: 0 };
     },
   };
 }

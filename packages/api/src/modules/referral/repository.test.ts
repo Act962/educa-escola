@@ -1,6 +1,6 @@
 import { closeTestDb, withRollback } from "@educa-escola/db/testing";
 import { afterAll, describe, expect, it } from "vitest";
-import { violaUnico } from "../../errors";
+import { violatesUnique } from "../../errors";
 import {
   createTestEnrollment,
   createTestSchool,
@@ -8,7 +8,7 @@ import {
   createTestUser,
 } from "../../testing/fixtures";
 import { createReferralRepository } from "./repository";
-import { PROGRAMA_PADRAO } from "./service";
+import { DEFAULT_PROGRAM } from "./service";
 
 afterAll(async () => {
   await closeTestDb();
@@ -22,11 +22,11 @@ describe("createReferralRepository", () => {
 
       expect(await repo.findProgram()).toBeNull();
 
-      await repo.saveProgram({ ...PROGRAMA_PADRAO, enabled: true, rewardValue: 15 });
+      await repo.saveProgram({ ...DEFAULT_PROGRAM, enabled: true, rewardValue: 15 });
       expect(await repo.findProgram()).toMatchObject({ enabled: true, rewardValue: 15 });
 
       // A segunda gravação atualiza a mesma linha — não estoura a chave.
-      await repo.saveProgram({ ...PROGRAMA_PADRAO, enabled: true, rewardValue: 20 });
+      await repo.saveProgram({ ...DEFAULT_PROGRAM, enabled: true, rewardValue: 20 });
       expect(await repo.findProgram()).toMatchObject({ rewardValue: 20 });
     });
   });
@@ -37,7 +37,7 @@ describe("createReferralRepository", () => {
       const b = await createTestSchool(tx, "B");
 
       await createReferralRepository(tx, { schoolId: a.id }).saveProgram({
-        ...PROGRAMA_PADRAO,
+        ...DEFAULT_PROGRAM,
         enabled: true,
       });
 
@@ -90,8 +90,8 @@ describe("createReferralRepository", () => {
       });
 
       // O nome da constraint mora no `cause`, não na mensagem que o Drizzle
-      // devolve — conferir por `violaUnico` é o que o service faz.
-      const erro = await repo
+      // devolve — conferir por `violatesUnique` é o que o service faz.
+      const error = await repo
         .createLink({
           studentId: aluno.id,
           code: "OUTRO1",
@@ -100,7 +100,7 @@ describe("createReferralRepository", () => {
         })
         .catch((e) => e);
 
-      expect(violaUnico(erro, "referral_link_student_uidx")).toBe(true);
+      expect(violatesUnique(error, "referral_link_student_uidx")).toBe(true);
     });
   });
 
@@ -166,8 +166,8 @@ describe("createReferralRepository", () => {
 
       await premiar(linkDaMaria.id);
 
-      const erro = await premiar(linkDaAna.id).catch((e) => e);
-      expect(violaUnico(erro, "referral_conversion_enrollment_uidx")).toBe(true);
+      const error = await premiar(linkDaAna.id).catch((e) => e);
+      expect(violatesUnique(error, "referral_conversion_enrollment_uidx")).toBe(true);
     });
   });
 
@@ -185,7 +185,7 @@ describe("createReferralRepository", () => {
         createdByUserId: conta.id,
       });
 
-      for (const [ano, status] of [
+      for (const [year, status] of [
         [2026, "ativa"],
         [2026, "cancelada"],
         [2025, "ativa"],
@@ -194,7 +194,7 @@ describe("createReferralRepository", () => {
         const matricula = await createTestEnrollment(tx, {
           schoolId: escola.id,
           studentId: novato.id,
-          academicYear: ano,
+          academicYear: year,
           status,
         });
         await repo.createConversion({
@@ -210,7 +210,7 @@ describe("createReferralRepository", () => {
 
       expect(de2026).toHaveLength(2);
       expect(de2026.map((c) => c.enrollmentStatus).sort()).toEqual(["ativa", "cancelada"]);
-      expect(de2026[0]?.indicanteNome).toBe("Maria Clara");
+      expect(de2026[0]?.referrerName).toBe("Maria Clara");
       expect(await repo.listConversions(2025)).toHaveLength(1);
     });
   });

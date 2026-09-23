@@ -20,18 +20,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, ChevronLeft, Copy, Pencil, RefreshCw, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { IdentificacaoFacial } from "@/components/identificacao-facial";
+import { FaceIdentification } from "@/components/face-identification";
 import {
-  dataCivil,
-  dataHora,
-  motivoCancelamento,
-  parentesco,
-  situacaoEnrollment,
-  situacaoLink,
-  telefone,
-  turno,
+  cancelReasonText,
+  civilDateText,
+  dateTimeText,
+  enrollmentStatusBadge,
+  linkStatusBadge,
+  phoneText,
+  relationshipText,
+  shiftText,
 } from "@/lib/format";
-import { dataParaISO, idadeEm, isoParaData, mascararCelular, mascararData } from "@/lib/masks";
+import { dateToISO, idadeEm, isoToDate, maskDate, maskPhone } from "@/lib/masks";
 import type { RouterOutputs } from "@/utils/trpc";
 import { useTRPC } from "@/utils/trpc";
 
@@ -72,7 +72,7 @@ const MOTIVOS = [
 ] as const;
 
 /** Texto de cada evento da trilha, em português de escola. */
-const EVENTOS: Record<string, string> = {
+const EVENTS: Record<string, string> = {
   criada: "Matrícula criada",
   editada: "Matrícula editada",
   link_gerado: "Link gerado",
@@ -100,14 +100,14 @@ function DetalheMatricula() {
   const [linkNovo, setLinkNovo] = useState<string | null>(null);
 
   const matricula = useQuery(trpc.enrollment.byId.queryOptions({ id: enrollmentId }));
-  const turmas = useQuery(trpc.classroom.list.queryOptions());
+  const classrooms = useQuery(trpc.classroom.list.queryOptions());
 
-  const aoMudar = (mensagem: string) => () => {
-    toast.success(mensagem);
+  const aoMudar = (message: string) => () => {
+    toast.success(message);
     setPainel("nenhum");
     queryClient.invalidateQueries();
   };
-  const aoFalhar = (erro: { message: string }) => toast.error(erro.message);
+  const aoFalhar = (error: { message: string }) => toast.error(error.message);
 
   const editar = useMutation(
     trpc.enrollment.edit.mutationOptions({
@@ -180,12 +180,12 @@ function DetalheMatricula() {
     );
   }
 
-  const dados = matricula.data;
-  const situacao = situacaoEnrollment(dados.enrollment.status);
-  const pendente = dados.enrollment.status === "pendente";
-  const fichaEntregue = dados.invite?.status === "ficha_entregue";
-  const turmasDoAno = (turmas.data ?? []).filter(
-    (turma) => turma.academicYear === dados.enrollment.academicYear,
+  const data = matricula.data;
+  const situation = enrollmentStatusBadge(data.enrollment.status);
+  const pendente = data.enrollment.status === "pendente";
+  const fichaEntregue = data.invite?.status === "ficha_entregue";
+  const yearClassrooms = (classrooms.data ?? []).filter(
+    (turma) => turma.academicYear === data.enrollment.academicYear,
   );
 
   return (
@@ -202,25 +202,25 @@ function DetalheMatricula() {
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Avatar className="size-12">
-                <AvatarFallback>{initialsOf(dados.studentName)}</AvatarFallback>
+                <AvatarFallback>{initialsOf(data.studentName)}</AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="font-extrabold text-xl tracking-[-0.4px]">{dados.studentName}</h1>
+                <h1 className="font-extrabold text-xl tracking-[-0.4px]">{data.studentName}</h1>
                 <p className="flex flex-wrap items-center gap-2 text-corpo text-muted-foreground">
-                  <span className="tabular-nums">{dados.registration}</span>
+                  <span className="tabular-nums">{data.registration}</span>
                   <span aria-hidden>·</span>
-                  <span>{dados.classroomName ?? "Turma a definir"}</span>
+                  <span>{data.classroomName ?? "Turma a definir"}</span>
                   <span aria-hidden>·</span>
-                  <span>{turno(dados.enrollment.shift)}</span>
-                  {dados.classCode ? (
-                    <Badge variant="neutral" title={dados.classLabel}>
-                      {dados.classCode}
+                  <span>{shiftText(data.enrollment.shift)}</span>
+                  {data.classCode ? (
+                    <Badge variant="neutral" title={data.classLabel}>
+                      {data.classCode}
                     </Badge>
                   ) : null}
                 </p>
               </div>
             </div>
-            <Badge variant={situacao.tone}>{situacao.label}</Badge>
+            <Badge variant={situation.tone}>{situation.label}</Badge>
           </div>
         </div>
 
@@ -228,7 +228,7 @@ function DetalheMatricula() {
           <Alert variant="success">
             <Check size={18} strokeWidth={1.7} aria-hidden />
             <AlertTitle>
-              A família enviou a ficha em {dataHora(dados.invite?.consumedAt)}
+              A família enviou a ficha em {dateTimeText(data.invite?.consumedAt)}
             </AlertTitle>
             <AlertDescription>
               Falta a confirmação da secretaria para o aluno entrar na turma.
@@ -236,18 +236,18 @@ function DetalheMatricula() {
           </Alert>
         ) : null}
 
-        {dados.enrollment.status === "cancelada" ? (
+        {data.enrollment.status === "cancelada" ? (
           <Alert variant="destructive">
             <X size={18} strokeWidth={1.7} aria-hidden />
             <AlertTitle>
               Cancelada
-              {dados.enrollment.cancelReason
-                ? ` · ${motivoCancelamento(dados.enrollment.cancelReason)}`
+              {data.enrollment.cancelReason
+                ? ` · ${cancelReasonText(data.enrollment.cancelReason)}`
                 : ""}
             </AlertTitle>
             <AlertDescription>
-              {dados.enrollment.cancelledOn
-                ? `Efeito a partir de ${dataCivil(dados.enrollment.cancelledOn)}.`
+              {data.enrollment.cancelledOn
+                ? `Efeito a partir de ${civilDateText(data.enrollment.cancelledOn)}.`
                 : "Sem data de efeito registrada."}
             </AlertDescription>
           </Alert>
@@ -258,26 +258,26 @@ function DetalheMatricula() {
         <section className="flex flex-col gap-3">
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Ficha</h2>
           <dl className="grid gap-4 sm:grid-cols-3">
-            <Dado rotulo="Nascimento" valor={dataCivil(dados.birthDate)} />
-            <Dado rotulo="Ano letivo" valor={String(dados.enrollment.academicYear)} />
+            <Dado label="Nascimento" valor={civilDateText(data.birthDate)} />
+            <Dado label="Ano letivo" valor={String(data.enrollment.academicYear)} />
             <Dado
-              rotulo="Tipo"
-              valor={dados.enrollment.kind === "rematricula" ? "Rematrícula" : "Matrícula"}
+              label="Tipo"
+              valor={data.enrollment.kind === "rematricula" ? "Rematrícula" : "Matrícula"}
             />
           </dl>
         </section>
 
         <section className="flex flex-col gap-3 border-border border-t pt-5">
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Responsáveis</h2>
-          {dados.guardians.length === 0 ? (
+          {data.guardians.length === 0 ? (
             <p className="text-corpo text-muted-foreground">Nenhum responsável vinculado.</p>
           ) : (
-            dados.guardians.map((guardian) => (
+            data.guardians.map((guardian) => (
               <div key={guardian.id} className="flex flex-wrap items-center justify-between gap-3">
                 <dl className="grid flex-1 gap-4 sm:grid-cols-3">
-                  <Dado rotulo="Nome" valor={guardian.name} />
-                  <Dado rotulo="Parentesco" valor={parentesco(guardian.relationship)} />
-                  <Dado rotulo="Celular" valor={telefone(guardian.phoneE164)} />
+                  <Dado label="Nome" valor={guardian.name} />
+                  <Dado label="Parentesco" valor={relationshipText(guardian.relationship)} />
+                  <Dado label="Celular" valor={phoneText(guardian.phoneE164)} />
                 </dl>
                 {guardian.isLegal ? <Badge variant="info">Responsável legal</Badge> : null}
               </div>
@@ -287,13 +287,13 @@ function DetalheMatricula() {
 
         <section className="flex flex-col gap-3 border-border border-t pt-5">
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Consentimentos</h2>
-          {dados.consents.length === 0 ? (
+          {data.consents.length === 0 ? (
             <p className="text-corpo text-muted-foreground">
               Nada registrado ainda — o aceite acontece quando a família envia a ficha.
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {dados.consents.map((consent) => (
+              {data.consents.map((consent) => (
                 <li
                   key={consent.id}
                   className="flex items-center justify-between gap-3 rounded-field bg-muted px-4 py-3"
@@ -303,7 +303,7 @@ function DetalheMatricula() {
                       {FINALIDADES[consent.purpose] ?? consent.purpose}
                     </div>
                     <div className="text-meta text-muted-foreground">
-                      versão {consent.termVersion} · {dataHora(consent.grantedAt)} ·{" "}
+                      versão {consent.termVersion} · {dateTimeText(consent.grantedAt)} ·{" "}
                       {consent.actorName}
                     </div>
                   </div>
@@ -322,19 +322,19 @@ function DetalheMatricula() {
               {pendente ? (
                 <Button onClick={() => setPainel("confirmar")}>Confirmar matrícula</Button>
               ) : null}
-              {dados.enrollment.status !== "cancelada" ? (
+              {data.enrollment.status !== "cancelada" ? (
                 <Button variant="secondary" onClick={() => setPainel("editar")}>
                   <Pencil size={18} strokeWidth={1.7} aria-hidden />
                   Editar
                 </Button>
               ) : null}
-              {dados.enrollment.status === "ativa" ? (
+              {data.enrollment.status === "ativa" ? (
                 <Button variant="secondary" onClick={() => setPainel("renovar")}>
                   <RefreshCw size={18} strokeWidth={1.7} aria-hidden />
-                  Renovar para {dados.enrollment.academicYear + 1}
+                  Renovar para {data.enrollment.academicYear + 1}
                 </Button>
               ) : null}
-              {dados.enrollment.status !== "cancelada" ? (
+              {data.enrollment.status !== "cancelada" ? (
                 <Button variant="warning" onClick={() => setPainel("cancelar")}>
                   Cancelar matrícula
                 </Button>
@@ -344,8 +344,8 @@ function DetalheMatricula() {
 
           {painel === "editar" ? (
             <PainelEditar
-              dados={dados}
-              turmas={turmasDoAno}
+              data={data}
+              classrooms={yearClassrooms}
               enviando={editar.isPending}
               onFechar={() => setPainel("nenhum")}
               onSalvar={(valores) => editar.mutate({ id: enrollmentId, ...valores })}
@@ -354,8 +354,8 @@ function DetalheMatricula() {
 
           {painel === "confirmar" ? (
             <PainelConfirmar
-              turmas={turmasDoAno}
-              turmaAtual={dados.enrollment.classroomId}
+              classrooms={yearClassrooms}
+              currentClassroom={data.enrollment.classroomId}
               enviando={confirmar.isPending}
               onFechar={() => setPainel("nenhum")}
               onConfirmar={(classroomId) => confirmar.mutate({ id: enrollmentId, classroomId })}
@@ -365,7 +365,7 @@ function DetalheMatricula() {
           {painel === "cancelar" ? (
             <PainelCancelar
               enviando={cancelar.isPending}
-              ativa={dados.enrollment.status === "ativa"}
+              ativa={data.enrollment.status === "ativa"}
               onFechar={() => setPainel("nenhum")}
               onCancelar={(valores) => cancelar.mutate({ id: enrollmentId, ...valores })}
             />
@@ -373,7 +373,7 @@ function DetalheMatricula() {
 
           {painel === "renovar" ? (
             <PainelRenovar
-              proximoAno={dados.enrollment.academicYear + 1}
+              nextYear={data.enrollment.academicYear + 1}
               enviando={renovar.isPending}
               onFechar={() => setPainel("nenhum")}
               onRenovar={(valores) => renovar.mutate({ id: enrollmentId, ...valores })}
@@ -383,20 +383,20 @@ function DetalheMatricula() {
       </Card>
 
       <div className="flex flex-col gap-4">
-        <IdentificacaoFacial studentId={dados.enrollment.studentId} />
+        <FaceIdentification studentId={data.enrollment.studentId} />
 
         <Card className="flex flex-col gap-4">
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Link de confirmação</h2>
-          {dados.invite ? (
+          {data.invite ? (
             <dl className="flex flex-col gap-2.5">
-              <Linha rotulo="Situação">
-                <Badge variant={situacaoLink(dados.invite.status).tone}>
-                  {situacaoLink(dados.invite.status).label}
+              <Linha label="Situação">
+                <Badge variant={linkStatusBadge(data.invite.status).tone}>
+                  {linkStatusBadge(data.invite.status).label}
                 </Badge>
               </Linha>
-              <Linha rotulo="Emitido">{dataHora(dados.invite.createdAt)}</Linha>
-              <Linha rotulo="Vence">{dataHora(dados.invite.expiresAt)}</Linha>
-              <Linha rotulo="Tentativas">{String(dados.invite.attempts)}</Linha>
+              <Linha label="Emitido">{dateTimeText(data.invite.createdAt)}</Linha>
+              <Linha label="Vence">{dateTimeText(data.invite.expiresAt)}</Linha>
+              <Linha label="Tentativas">{String(data.invite.attempts)}</Linha>
             </dl>
           ) : (
             <p className="text-corpo text-muted-foreground">Nenhum link emitido.</p>
@@ -421,7 +421,7 @@ function DetalheMatricula() {
         <Card className="flex flex-col gap-4">
           <h2 className="font-extrabold text-base tracking-[-0.2px]">Linha do tempo</h2>
           <ol className="flex flex-col">
-            {dados.events.map((evento, indice) => (
+            {data.events.map((evento, indice) => (
               <li key={evento.id} className="grid grid-cols-[20px_1fr] gap-3">
                 <div className="flex flex-col items-center">
                   <span
@@ -432,14 +432,14 @@ function DetalheMatricula() {
                     }
                     aria-hidden
                   />
-                  {indice < dados.events.length - 1 ? (
+                  {indice < data.events.length - 1 ? (
                     <span className="min-h-4 w-0.5 flex-1 bg-border" aria-hidden />
                   ) : null}
                 </div>
                 <div className="pb-4">
-                  <div className="font-bold text-corpo">{EVENTOS[evento.type] ?? evento.type}</div>
+                  <div className="font-bold text-corpo">{EVENTS[evento.type] ?? evento.type}</div>
                   <div className="text-meta text-muted-foreground">
-                    {dataHora(evento.occurredAt)}
+                    {dateTimeText(evento.occurredAt)}
                     {evento.actor === "responsavel" ? " · responsável" : ""}
                   </div>
                   <Alteracoes payload={evento.payload} />
@@ -453,21 +453,21 @@ function DetalheMatricula() {
   );
 }
 
-function Dado({ rotulo, valor }: { rotulo: string; valor: string }) {
+function Dado({ label, valor }: { label: string; valor: string }) {
   return (
     <div className="flex flex-col gap-0.5">
       <dt className="font-bold text-muted-foreground text-rotulo uppercase tracking-[0.7px]">
-        {rotulo}
+        {label}
       </dt>
       <dd className="font-bold text-corpo">{valor}</dd>
     </div>
   );
 }
 
-function Linha({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+function Linha({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <dt className="text-meta text-muted-foreground">{rotulo}</dt>
+      <dt className="text-meta text-muted-foreground">{label}</dt>
       <dd className="font-bold text-apoio">{children}</dd>
     </div>
   );
@@ -507,19 +507,19 @@ function LinkEmitido({ url, onFechar }: { url: string; onFechar: () => void }) {
  * novo para uma ação que cabe dentro do próprio card.
  */
 function PainelConfirmar({
-  turmas,
-  turmaAtual,
+  classrooms,
+  currentClassroom,
   enviando,
   onFechar,
   onConfirmar,
 }: {
-  turmas: { id: string; name: string }[];
-  turmaAtual: string | null;
+  classrooms: { id: string; name: string }[];
+  currentClassroom: string | null;
   enviando: boolean;
   onFechar: () => void;
   onConfirmar: (classroomId: string | null) => void;
 }) {
-  const [turmaId, setTurmaId] = useState(turmaAtual ?? SEM_TURMA);
+  const [classroomId, setTurmaId] = useState(currentClassroom ?? SEM_TURMA);
 
   return (
     <div className="flex flex-col gap-4 rounded-card bg-muted p-5">
@@ -529,9 +529,9 @@ function PainelConfirmar({
         <Select
           items={[
             { value: SEM_TURMA, label: "Escolha a turma" },
-            ...turmas.map((turma) => ({ value: turma.id, label: turma.name })),
+            ...classrooms.map((turma) => ({ value: turma.id, label: turma.name })),
           ]}
-          value={turmaId}
+          value={classroomId}
           onValueChange={(valor) => setTurmaId(valor ?? SEM_TURMA)}
         >
           <SelectTrigger id="turma-confirmacao">
@@ -539,7 +539,7 @@ function PainelConfirmar({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={SEM_TURMA}>Escolha a turma</SelectItem>
-            {turmas.map((turma) => (
+            {classrooms.map((turma) => (
               <SelectItem key={turma.id} value={turma.id}>
                 {turma.name}
               </SelectItem>
@@ -555,8 +555,8 @@ function PainelConfirmar({
           Voltar
         </Button>
         <Button
-          disabled={enviando || turmaId === SEM_TURMA}
-          onClick={() => onConfirmar(turmaId === SEM_TURMA ? null : turmaId)}
+          disabled={enviando || classroomId === SEM_TURMA}
+          onClick={() => onConfirmar(classroomId === SEM_TURMA ? null : classroomId)}
         >
           {enviando ? "Confirmando…" : "Confirmar matrícula"}
         </Button>
@@ -651,12 +651,12 @@ function PainelCancelar({
 }
 
 function PainelRenovar({
-  proximoAno,
+  nextYear,
   enviando,
   onFechar,
   onRenovar,
 }: {
-  proximoAno: number;
+  nextYear: number;
   enviando: boolean;
   onFechar: () => void;
   onRenovar: (valores: { academicYear: number; expiryDays: number }) => void;
@@ -665,7 +665,7 @@ function PainelRenovar({
 
   return (
     <div className="flex flex-col gap-4 rounded-card bg-muted p-5">
-      <h3 className="font-extrabold text-base tracking-[-0.2px]">Renovar para {proximoAno}</h3>
+      <h3 className="font-extrabold text-base tracking-[-0.2px]">Renovar para {nextYear}</h3>
       <p className="text-corpo text-muted-foreground">
         A ficha vem preenchida com os dados deste ano. A família só confere o que mudou.
       </p>
@@ -688,7 +688,7 @@ function PainelRenovar({
         </Button>
         <Button
           disabled={enviando}
-          onClick={() => onRenovar({ academicYear: proximoAno, expiryDays: Number(prazo) })}
+          onClick={() => onRenovar({ academicYear: nextYear, expiryDays: Number(prazo) })}
         >
           {enviando ? "Criando…" : "Criar e emitir link"}
         </Button>
@@ -705,14 +705,14 @@ function PainelRenovar({
  * não enche de "editada" sem alteração nenhuma.
  */
 function PainelEditar({
-  dados,
-  turmas,
+  data,
+  classrooms,
   enviando,
   onFechar,
   onSalvar,
 }: {
-  dados: RouterOutputs["enrollment"]["byId"];
-  turmas: { id: string; name: string }[];
+  data: RouterOutputs["enrollment"]["byId"];
+  classrooms: { id: string; name: string }[];
   enviando: boolean;
   onFechar: () => void;
   onSalvar: (valores: {
@@ -728,22 +728,24 @@ function PainelEditar({
     };
   }) => void;
 }) {
-  const legal = dados.guardians.find((item) => item.isLegal) ?? dados.guardians[0];
+  const legal = data.guardians.find((item) => item.isLegal) ?? data.guardians[0];
 
-  const [nome, setNome] = useState(dados.studentName);
-  const [nascimento, setNascimento] = useState(isoParaData(dados.birthDate));
-  const [turmaId, setTurmaId] = useState(dados.enrollment.classroomId ?? "");
-  const [turnoAtual, setTurnoAtual] = useState(dados.enrollment.shift);
+  const [name, setNome] = useState(data.studentName);
+  const [nascimento, setNascimento] = useState(isoToDate(data.birthDate));
+  const [classroomId, setTurmaId] = useState(data.enrollment.classroomId ?? "");
+  const [turnoAtual, setTurnoAtual] = useState(data.enrollment.shift);
   const [respNome, setRespNome] = useState(legal?.name ?? "");
-  const [respParentesco, setRespParentesco] = useState(legal?.relationship ?? "responsavel_legal");
-  const [celular, setCelular] = useState(telefone(legal?.phoneE164));
+  const [respRelationship, setRespParentesco] = useState(
+    legal?.relationship ?? "responsavel_legal",
+  );
+  const [celular, setCelular] = useState(phoneText(legal?.phoneE164));
   const [email, setEmail] = useState(legal?.email ?? "");
 
-  const nascimentoISO = dataParaISO(nascimento);
+  const nascimentoISO = dateToISO(nascimento);
   const idade = idadeEm(nascimentoISO);
   const dataInvalida = nascimento.replace(/\D/g, "").length === 8 && !nascimentoISO;
 
-  const trocouTurma = turmaId && turmaId !== dados.enrollment.classroomId;
+  const trocouTurma = classroomId && classroomId !== data.enrollment.classroomId;
 
   return (
     <div className="flex flex-col gap-4 rounded-card bg-muted p-5">
@@ -752,7 +754,7 @@ function PainelEditar({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="ed-nome">Nome do aluno</Label>
-          <Input id="ed-nome" value={nome} onChange={(e) => setNome(e.target.value)} />
+          <Input id="ed-nome" value={name} onChange={(e) => setNome(e.target.value)} />
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -765,7 +767,7 @@ function PainelEditar({
               placeholder="dd/mm/aaaa"
               className="pr-20 tabular-nums"
               value={nascimento}
-              onChange={(e) => setNascimento(mascararData(e.target.value))}
+              onChange={(e) => setNascimento(maskDate(e.target.value))}
             />
             {idade !== null ? (
               <span className="absolute top-1/2 right-3 -translate-y-1/2 font-bold text-meta text-muted-foreground">
@@ -781,15 +783,15 @@ function PainelEditar({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="ed-turma">Turma</Label>
           <Select
-            items={turmas.map((turma) => ({ value: turma.id, label: turma.name }))}
-            value={turmaId}
+            items={classrooms.map((turma) => ({ value: turma.id, label: turma.name }))}
+            value={classroomId}
             onValueChange={(valor) => setTurmaId(valor ?? "")}
           >
             <SelectTrigger id="ed-turma">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {turmas.map((turma) => (
+              {classrooms.map((turma) => (
                 <SelectItem key={turma.id} value={turma.id}>
                   {turma.name}
                 </SelectItem>
@@ -831,9 +833,9 @@ function PainelEditar({
               <Label htmlFor="ed-par">Parentesco</Label>
               <Select
                 items={PARENTESCOS.map((o) => ({ value: o.value, label: o.label }))}
-                value={respParentesco}
+                value={respRelationship}
                 onValueChange={(valor) =>
-                  setRespParentesco((valor ?? "responsavel_legal") as typeof respParentesco)
+                  setRespParentesco((valor ?? "responsavel_legal") as typeof respRelationship)
                 }
               >
                 <SelectTrigger id="ed-par">
@@ -854,7 +856,7 @@ function PainelEditar({
                 id="ed-cel"
                 inputMode="numeric"
                 value={celular}
-                onChange={(e) => setCelular(mascararCelular(e.target.value))}
+                onChange={(e) => setCelular(maskPhone(e.target.value))}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -870,7 +872,7 @@ function PainelEditar({
         </>
       ) : null}
 
-      {trocouTurma && dados.enrollment.status === "ativa" ? (
+      {trocouTurma && data.enrollment.status === "ativa" ? (
         <Alert variant="warning">
           <AlertTitle>Trocar a turma move o aluno de sala</AlertTitle>
           <AlertDescription>
@@ -889,13 +891,13 @@ function PainelEditar({
           onClick={() =>
             onSalvar({
               student: {
-                name: nome !== dados.studentName ? nome : undefined,
+                name: name !== data.studentName ? name : undefined,
                 birthDate:
-                  nascimentoISO && nascimentoISO !== dados.birthDate ? nascimentoISO : undefined,
+                  nascimentoISO && nascimentoISO !== data.birthDate ? nascimentoISO : undefined,
               },
-              classroomId: trocouTurma ? turmaId : undefined,
+              classroomId: trocouTurma ? classroomId : undefined,
               shift:
-                turnoAtual !== dados.enrollment.shift
+                turnoAtual !== data.enrollment.shift
                   ? (turnoAtual as "manha" | "tarde" | "noite")
                   : undefined,
               guardian: legal
@@ -903,8 +905,8 @@ function PainelEditar({
                     id: legal.id,
                     name: respNome !== legal.name ? respNome : undefined,
                     relationship:
-                      respParentesco !== legal.relationship ? respParentesco : undefined,
-                    phoneE164: celular !== telefone(legal.phoneE164) ? celular : undefined,
+                      respRelationship !== legal.relationship ? respRelationship : undefined,
+                    phoneE164: celular !== phoneText(legal.phoneE164) ? celular : undefined,
                     email: email !== (legal.email ?? "") ? email || null : undefined,
                   }
                 : undefined,
@@ -919,13 +921,13 @@ function PainelEditar({
 }
 
 /** Rótulo legível de cada campo na trilha. Evita "guardianPhoneE164" na tela. */
-const CAMPOS: Record<string, string> = {
-  alunoNome: "Nome do aluno",
+const FIELDS: Record<string, string> = {
+  studentName: "Nome do aluno",
   nascimento: "Data de nascimento",
   turma: "Turma",
-  turno: "Turno",
-  responsavelNome: "Nome do responsável",
-  parentesco: "Parentesco",
+  shiftText: "Turno",
+  guardianName: "Nome do responsável",
+  relationshipText: "Parentesco",
   celular: "Celular",
   email: "E-mail",
   responsavelCelular: "Celular do responsável",
@@ -948,9 +950,9 @@ function Alteracoes({ payload }: { payload: unknown }) {
 
   return (
     <ul className="mt-1.5 flex flex-col gap-0.5">
-      {linhas.map(([campo, valores]) => (
-        <li key={campo} className="text-meta text-muted-foreground leading-relaxed">
-          <span className="font-bold">{CAMPOS[campo] ?? campo}:</span>{" "}
+      {linhas.map(([field, valores]) => (
+        <li key={field} className="text-meta text-muted-foreground leading-relaxed">
+          <span className="font-bold">{FIELDS[field] ?? field}:</span>{" "}
           <span className="line-through">{String(valores?.de ?? "—")}</span>{" "}
           <span aria-hidden>→</span>{" "}
           <span className="font-bold text-foreground">{String(valores?.para ?? "—")}</span>

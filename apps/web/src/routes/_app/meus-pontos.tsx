@@ -5,8 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Medal } from "lucide-react";
 
-import { EsqueletoDePontos, ExtratoDePontos, ResumoDePontos } from "@/components/painel-de-pontos";
-import { inteiro } from "@/lib/format";
+import { PointsSkeleton, PointsStatement, PointsSummary } from "@/components/points-panel";
+import { integerText } from "@/lib/format";
 import { useSchoolContext } from "@/lib/school-context";
 import { useTRPC } from "@/utils/trpc";
 
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_app/meus-pontos")({
 function PontosDoProfessor() {
   const trpc = useTRPC();
   const { year } = useSchoolContext();
-  const painel = useQuery(trpc.score.meuPainelDeProfessor.queryOptions({ academicYear: year }));
+  const painel = useQuery(trpc.score.myTeacherPanel.queryOptions({ academicYear: year }));
 
   return (
     <>
@@ -37,7 +37,7 @@ function PontosDoProfessor() {
       </div>
 
       {painel.isLoading ? (
-        <EsqueletoDePontos />
+        <PointsSkeleton />
       ) : painel.isError || !painel.data ? (
         <Card>
           <ErrorState
@@ -47,17 +47,19 @@ function PontosDoProfessor() {
         </Card>
       ) : (
         <>
-          <ResumoDePontos dados={painel.data} ano={year} />
+          <PointsSummary data={painel.data} year={year} />
 
           <StatCard
             icon={Medal}
             label="Entre os docentes"
             hint={painel.data.posicao ? "posição pelos pontos do ano" : "aparece ao pontuar"}
           >
-            {painel.data.posicao ? `${painel.data.posicao}º de ${inteiro(painel.data.total)}` : "—"}
+            {painel.data.posicao
+              ? `${painel.data.posicao}º de ${integerText(painel.data.total)}`
+              : "—"}
           </StatCard>
 
-          <ExtratoDePontos dados={painel.data} />
+          <PointsStatement data={painel.data} />
 
           <p className="text-meta text-muted-foreground">
             Todos os pontos aqui são por <strong className="font-bold">registrar</strong>, nunca

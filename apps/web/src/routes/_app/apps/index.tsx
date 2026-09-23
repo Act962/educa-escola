@@ -10,9 +10,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plug, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-
-import { APPS_ORBITA, type AppOrbita } from "@/lib/apps-orbita";
-import { inteiro } from "@/lib/format";
+import { integerText } from "@/lib/format";
+import { ORBITA_APPS, type OrbitaApp } from "@/lib/orbita-apps";
 import type { RouterOutputs } from "@/utils/trpc";
 import { useTRPC } from "@/utils/trpc";
 
@@ -52,7 +51,7 @@ function Apps() {
         toast.success("App desinstalado. O que ele produziu continua no Órbita.");
         queryClient.invalidateQueries();
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -64,8 +63,8 @@ function Apps() {
         queryClient.invalidateQueries();
         return resultado;
       },
-      onError: (erro) => {
-        toast.error(erro.message);
+      onError: (error) => {
+        toast.error(error.message);
         setConfirmando(null);
       },
     }),
@@ -102,8 +101,8 @@ function Apps() {
     );
   }
 
-  const dados = panorama.data;
-  const estadoDe = new Map(dados.apps.map((app) => [app.appKey, app]));
+  const data = panorama.data;
+  const estadoDe = new Map(data.apps.map((app) => [app.appKey, app]));
 
   return (
     <>
@@ -116,20 +115,20 @@ function Apps() {
           <CardEyebrow>Ecossistema Órbita</CardEyebrow>
           <h1 className="font-extrabold text-2xl tracking-[-0.6px]">Apps</h1>
           <p className="text-corpo text-muted-foreground">
-            {dados.installedCount === 0
-              ? `${APPS_ORBITA.length} apps disponíveis para a escola`
-              : `${inteiro(dados.installedCount)} instalados · ${inteiro(APPS_ORBITA.length - dados.installedCount)} disponíveis`}
+            {data.installedCount === 0
+              ? `${ORBITA_APPS.length} apps disponíveis para a escola`
+              : `${integerText(data.installedCount)} instalados · ${integerText(ORBITA_APPS.length - data.installedCount)} disponíveis`}
           </p>
         </div>
-        <Saldo balance={dados.balance} />
+        <Saldo balance={data.balance} />
       </div>
 
-      {!dados.connected ? <Conectar /> : null}
+      {!data.connected ? <Conectar /> : null}
 
       {confirmando ? (
         <Confirmacao
           estado={confirmando}
-          saldo={dados.balance}
+          saldo={data.balance}
           enviando={instalar.isPending}
           onFechar={() => setConfirmando(null)}
           onInstalar={() =>
@@ -142,12 +141,12 @@ function Apps() {
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {APPS_ORBITA.map((app) => (
+        {ORBITA_APPS.map((app) => (
           <CardApp
             key={app.key}
             app={app}
             estado={estadoDe.get(app.key)}
-            conectada={dados.connected}
+            conectada={data.connected}
             onInstalar={setConfirmando}
             aoRemover={(appKey) => remover.mutate({ appKey })}
             removendo={remover.isPending}
@@ -182,7 +181,7 @@ function Saldo({ balance }: { balance: Panorama["balance"] }) {
       <div>
         <CardEyebrow>Saldo da escola</CardEyebrow>
         <p className="mt-1 font-extrabold text-2xl tabular-nums tracking-[-0.6px]">
-          {inteiro(balance.balance)} <span className="text-warning">★</span>
+          {integerText(balance.balance)} <span className="text-warning">★</span>
         </p>
       </div>
       {/* Bônus separado: há ação no Órbita que não aceita saldo de bônus, e um
@@ -190,7 +189,7 @@ function Saldo({ balance }: { balance: Panorama["balance"] }) {
       <div className="border-border border-l pl-5">
         <CardEyebrow>Bônus</CardEyebrow>
         <p className="mt-1 font-extrabold text-base text-muted-foreground tabular-nums">
-          {inteiro(balance.bonusBalance)} ★
+          {integerText(balance.bonusBalance)} ★
         </p>
       </div>
     </div>
@@ -209,7 +208,7 @@ function Conectar() {
         toast.success("Escola conectada ao Órbita.");
         queryClient.invalidateQueries();
       },
-      onError: (erro) => toast.error(erro.message),
+      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -272,11 +271,11 @@ function CardApp({
   aoRemover,
   removendo,
 }: {
-  app: AppOrbita;
+  app: OrbitaApp;
   estado: AppState | undefined;
   conectada: boolean;
   onInstalar: (estado: AppState) => void;
-  aoRemover?: (appKey: AppOrbita["key"]) => void;
+  aoRemover?: (appKey: OrbitaApp["key"]) => void;
   removendo?: boolean;
 }) {
   const Icone = app.icon;
@@ -304,8 +303,8 @@ function CardApp({
           <Icone size={19} strokeWidth={1.7} aria-hidden />
         </span>
         <div className="min-w-0">
-          <h3 className="font-extrabold text-sm leading-tight">{app.nome}</h3>
-          <p className="text-meta text-muted-foreground">{app.resumo}</p>
+          <h3 className="font-extrabold text-sm leading-tight">{app.name}</h3>
+          <p className="text-meta text-muted-foreground">{app.summary}</p>
         </div>
       </div>
 
@@ -346,7 +345,7 @@ function CardApp({
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={`Desinstalar ${app.nome}`}
+              aria-label={`Desinstalar ${app.name}`}
               onClick={() => aoRemover(app.key)}
               disabled={removendo}
             >
@@ -413,7 +412,7 @@ function Confirmacao({
   onFechar: () => void;
   onInstalar: () => void;
 }) {
-  const app = APPS_ORBITA.find((item) => item.key === estado.appKey);
+  const app = ORBITA_APPS.find((item) => item.key === estado.appKey);
   const setupCost = estado.cost?.setupCost ?? 0;
 
   /*
@@ -431,27 +430,27 @@ function Confirmacao({
     <Card className="flex flex-col gap-4">
       <div>
         <CardEyebrow>Instalar</CardEyebrow>
-        <h2 className="font-extrabold text-base tracking-[-0.2px]">{app?.nome ?? estado.appKey}</h2>
+        <h2 className="font-extrabold text-base tracking-[-0.2px]">{app?.name ?? estado.appKey}</h2>
         <p className="text-corpo text-muted-foreground">{app?.descricao}</p>
       </div>
 
       <dl className="flex flex-col gap-0 rounded-card bg-muted px-4">
-        <Linha rotulo="Ativação, agora">{setupCost} ★</Linha>
-        <Linha rotulo="A partir do próximo ciclo">
+        <Linha label="Ativação, agora">{setupCost} ★</Linha>
+        <Linha label="A partir do próximo ciclo">
           {estado.cost?.unitLabel
             ? `${estado.cost.monthlyCost} ★ ${estado.cost.unitLabel}`
             : `${estado.cost?.monthlyCost ?? 0} ★ por mês`}
         </Linha>
         {saldoDepois !== null ? (
-          <Linha rotulo="Saldo depois da ativação">
+          <Linha label="Saldo depois da ativação">
             <span className={saldoDepois < 0 ? "text-danger" : "text-success"}>
-              {inteiro(saldoDepois)} ★
+              {integerText(saldoDepois)} ★
             </span>
           </Linha>
         ) : null}
         {gastoDoBonus > 0 && bonusDepois !== null ? (
-          <Linha rotulo="Sai do bônus">
-            {inteiro(gastoDoBonus)} ★ · restam {inteiro(bonusDepois)} ★
+          <Linha label="Sai do bônus">
+            {integerText(gastoDoBonus)} ★ · restam {integerText(bonusDepois)} ★
           </Linha>
         ) : null}
       </dl>
@@ -476,10 +475,10 @@ function Confirmacao({
   );
 }
 
-function Linha({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+function Linha({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 border-border border-b py-3 last:border-b-0">
-      <dt className="text-meta text-muted-foreground">{rotulo}</dt>
+      <dt className="text-meta text-muted-foreground">{label}</dt>
       <dd className="font-extrabold text-sm tabular-nums">{children}</dd>
     </div>
   );

@@ -6,7 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { SendHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { COR_DA_FAIXA, faixaDeUso, porcentagemDoTeto } from "@/lib/medidor-de-uso";
+import { BAND_COLOR, percentOfCap, usageBand } from "@/lib/usage-meter";
 import { useTRPC } from "@/utils/trpc";
 
 interface Fala {
@@ -36,7 +36,7 @@ export function Astro() {
   const trpc = useTRPC();
   const [aberto, setAberto] = useState(false);
 
-  const situacao = useQuery({ ...trpc.assistant.situacao.queryOptions(), retry: false });
+  const situation = useQuery({ ...trpc.assistant.situation.queryOptions(), retry: false });
 
   /**
    * O consumo, para o anel e para o rodapé.
@@ -45,13 +45,13 @@ export function Astro() {
    * isso é resposta esperada, não falha: professor e aluno continuam com o
    * botão limpo. Gasto da escola é número de quem assina.
    */
-  const uso = useQuery({
-    ...trpc.assistant.uso.queryOptions(),
+  const usage = useQuery({
+    ...trpc.assistant.usage.queryOptions(),
     retry: false,
     staleTime: 60_000,
   });
 
-  const porcentagem = porcentagemDoTeto(uso.data?.tokens.usados ?? 0, uso.data?.tokens.teto);
+  const porcentagem = percentOfCap(usage.data?.tokens.usados ?? 0, usage.data?.tokens.teto);
 
   useEffect(() => {
     if (!aberto) return;
@@ -62,15 +62,15 @@ export function Astro() {
     return () => window.removeEventListener("keydown", aoTeclar);
   }, [aberto]);
 
-  if (situacao.isError) return null;
+  if (situation.isError) return null;
 
   return (
     <div className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-3">
       {aberto ? (
         <Painel
-          disponivel={situacao.data?.disponivel ?? false}
-          ligado={situacao.data?.ligado ?? false}
-          uso={uso.data ?? null}
+          available={situation.data?.available ?? false}
+          ligado={situation.data?.ligado ?? false}
+          usage={usage.data ?? null}
         />
       ) : null}
 
@@ -134,7 +134,7 @@ function Anel({ porcentagem }: { porcentagem: number }) {
         strokeWidth="3"
         strokeLinecap="round"
         strokeDasharray={`${(volta * porcentagem) / 100} ${volta}`}
-        className={`transition-all ${COR_DA_FAIXA[faixaDeUso(porcentagem)]}`}
+        className={`transition-all ${BAND_COLOR[usageBand(porcentagem)]}`}
       />
     </svg>
   );
@@ -146,21 +146,21 @@ interface UsoDoAstro {
 }
 
 function Painel({
-  disponivel,
+  available,
   ligado,
-  uso,
+  usage,
 }: {
-  disponivel: boolean;
+  available: boolean;
   ligado: boolean;
-  uso: UsoDoAstro | null;
+  usage: UsoDoAstro | null;
 }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [falas, setFalas] = useState<Fala[]>([]);
   const [pergunta, setPergunta] = useState("");
   const [restantes, setRestantes] = useState<number | null>(null);
-  const fim = useRef<HTMLDivElement>(null);
-  const campo = useRef<HTMLInputElement>(null);
+  const end = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLInputElement>(null);
 
   const perguntar = useMutation(
     trpc.assistant.perguntar.mutationOptions({
@@ -170,21 +170,21 @@ function Painel({
         // A pergunta acabou de mexer no contador da escola. Quem vê o painel
         // da barra lateral é a direção — para os demais a invalidação não
         // dispara nada, porque a query nem está montada.
-        queryClient.invalidateQueries({ queryKey: trpc.assistant.uso.queryKey() });
+        queryClient.invalidateQueries({ queryKey: trpc.assistant.usage.queryKey() });
       },
       // O erro entra na conversa em vez de virar um aviso solto: é resposta a
       // uma pergunta, e some do contexto se aparecer noutro canto da tela.
-      onError: (erro) => setFalas((atuais) => [...atuais, { de: "astro", texto: erro.message }]),
+      onError: (error) => setFalas((atuais) => [...atuais, { de: "astro", texto: error.message }]),
     }),
   );
 
   useEffect(() => {
-    fim.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    end.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, []);
 
   useEffect(() => {
-    if (disponivel) campo.current?.focus();
-  }, [disponivel]);
+    if (available) field.current?.focus();
+  }, [available]);
 
   const enviar = () => {
     const texto = pergunta.trim();
@@ -213,7 +213,7 @@ function Painel({
 
       {!ligado ? (
         <Aviso
-          titulo="O Astro ainda não foi ligado"
+          title="O Astro ainda não foi ligado"
           texto="A direção configura o modelo em Configurações. Sem isso ele não tem com quem conversar."
           acao={
             <Button
@@ -226,9 +226,9 @@ function Painel({
             </Button>
           }
         />
-      ) : !disponivel ? (
+      ) : !available ? (
         <Aviso
-          titulo="Seu perfil não tem acesso"
+          title="Seu perfil não tem acesso"
           texto="A escola escolhe quais perfis podem perguntar ao Astro. Fale com a secretaria."
         />
       ) : (
@@ -269,7 +269,7 @@ function Painel({
             {perguntar.isPending ? (
               <p className="self-start px-3 text-meta text-muted-foreground">O Astro está lendo…</p>
             ) : null}
-            <div ref={fim} />
+            <div ref={end} />
           </div>
 
           <form
@@ -280,7 +280,7 @@ function Painel({
             className="flex items-center gap-2"
           >
             <Input
-              ref={campo}
+              ref={field}
               value={pergunta}
               onChange={(evento) => setPergunta(evento.target.value)}
               placeholder="Quantos alunos estão em risco?"
@@ -304,20 +304,20 @@ function Painel({
             caixa, e a informação a um clique de distância do gasto é a que
             alguém de fato olha.
           */}
-          {uso ? (
+          {usage ? (
             <div className="grid grid-cols-2 gap-2 border-border border-t pt-3">
               <Medida
-                rotulo="Perguntas hoje"
-                valor={`${inteiro(uso.perguntas.usadas)}/${inteiro(uso.perguntas.teto)}`}
+                label="Perguntas hoje"
+                valor={`${inteiro(usage.perguntas.usadas)}/${inteiro(usage.perguntas.teto)}`}
               />
               <Medida
-                rotulo="Tokens no mês"
+                label="Tokens no mês"
                 valor={
-                  uso.tokens.teto === null
-                    ? inteiro(uso.tokens.usados)
-                    : `${inteiro(uso.tokens.usados)}/${inteiro(uso.tokens.teto)}`
+                  usage.tokens.teto === null
+                    ? inteiro(usage.tokens.usados)
+                    : `${inteiro(usage.tokens.usados)}/${inteiro(usage.tokens.teto)}`
                 }
-                hint={uso.tokens.teto === null ? "sem teto" : undefined}
+                hint={usage.tokens.teto === null ? "sem teto" : undefined}
               />
             </div>
           ) : null}
@@ -334,10 +334,10 @@ function Painel({
 const inteiro = (n: number) => n.toLocaleString("pt-BR");
 
 /** Um número do rodapé: rótulo em cima, valor embaixo. */
-function Medida({ rotulo, valor, hint }: { rotulo: string; valor: string; hint?: string }) {
+function Medida({ label, valor, hint }: { label: string; valor: string; hint?: string }) {
   return (
     <div className="min-w-0">
-      <p className="truncate font-bold text-meta text-muted-foreground">{rotulo}</p>
+      <p className="truncate font-bold text-meta text-muted-foreground">{label}</p>
       <p className="font-extrabold text-apoio tabular-nums">
         {valor}
         {hint ? (
@@ -348,10 +348,10 @@ function Medida({ rotulo, valor, hint }: { rotulo: string; valor: string; hint?:
   );
 }
 
-function Aviso({ titulo, texto, acao }: { titulo: string; texto: string; acao?: React.ReactNode }) {
+function Aviso({ title, texto, acao }: { title: string; texto: string; acao?: React.ReactNode }) {
   return (
     <div className="flex flex-1 flex-col justify-center gap-2">
-      <p className="font-bold text-corpo">{titulo}</p>
+      <p className="font-bold text-corpo">{title}</p>
       <p className="text-corpo text-muted-foreground">{texto}</p>
       {acao}
     </div>

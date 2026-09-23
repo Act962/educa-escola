@@ -68,10 +68,10 @@ const UNIQUE_VIOLATION = "23505";
  * casa — foi exatamente o que um teste contra o Postgres real pegou aqui.
  * Por isso a busca percorre a cadeia de causas em vez de olhar um nível só.
  */
-export function violaUnico(erro: unknown, constraint: string): boolean {
-  let atual: unknown = erro;
+export function violatesUnique(error: unknown, constraint: string): boolean {
+  let atual: unknown = error;
 
-  for (let nivel = 0; nivel < 5 && atual; nivel += 1) {
+  for (let level = 0; level < 5 && atual; level += 1) {
     const candidato = atual as { code?: string; constraint?: string; cause?: unknown };
     if (candidato.code === UNIQUE_VIOLATION && candidato.constraint === constraint) return true;
     atual = candidato.cause;
