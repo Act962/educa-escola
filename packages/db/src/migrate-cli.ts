@@ -6,7 +6,7 @@ import { runMigrations } from "./migrate";
  * Uso:
  *   pnpm --filter @educa-escola/db run db:migrate:deploy
  *
- * No container de produção roda antes do servidor (ver `apps/web/Dockerfile`).
+ * No container de produção roda antes do servidor (ver `Dockerfile`, na raiz).
  * Saída diferente de zero impede o servidor de subir — e o Coolify mantém o
  * container anterior no ar, em vez de promover um app com schema pela metade.
  */
