@@ -708,8 +708,8 @@ serviço Postgres 18. Quatro portões, nesta ordem:
    arquivo novo, ou seja, se o schema mudou sem migration commitada
 
 Mexeu em `packages/db/src/schema/`? Rode `pnpm run db:generate` e commite a
-migration junto, senão o portão 4 reprova. Há um quinto passo que roda **só na
-`main`**, o `publish` — ver "Do branch à produção".
+migration junto, senão o portão 4 reprova. Há um quinto job, `imagem`, que
+constrói o `Dockerfile` e exige 200 em `/api/health` — ver "Do branch à produção".
 
 Reproduzir o ambiente do CI localmente (sem arquivo `.env`, variáveis só no
 ambiente) é a forma de pegar dependência acidental do `apps/web/.env`:
@@ -726,18 +726,24 @@ O produto está no ar em <https://orbitaedu.nasaex.com>, numa VPS gerenciada
 com **Coolify**. Do merge ao container novo não há clique nenhum:
 
 ```
-branch → PR (base: main) → CI verde → merge
-                             → CI da main → imagem no GHCR → Coolify
+branch → PR (base: main) → CI verde → merge → Coolify clona a main e constrói
 ```
 
-O job `publish` do `ci.yml` roda **só em push para `main`**, nunca em PR. Antes
-de publicar, ele **sobe a imagem contra um Postgres descartável e exige 200 em
-`/api/health`** — prova que ela migra e atende, não só que compila. Só então
-publica `ghcr.io/act962/integra-web` com duas etiquetas: `main`, que o Coolify
-acompanha, e `sha-<commit>`, que existe para rollback.
+**Não há registry.** O Coolify tem o repositório ligado por GitHub App (build
+pack **Dockerfile**, base directory `/`), clona a `main` a cada push e constrói
+o `Dockerfile` da raiz na própria VPS — o mesmo modelo do `portal-app`. O CI
+não publica imagem nem dispara webhook. O job `imagem` do `ci.yml` só **constrói
+o mesmo `Dockerfile`, sobe contra um Postgres descartável e exige 200 em
+`/api/health`**: prova que ela migra e atende, para o defeito aparecer no PR e
+não no deploy.
 
-**As migrations rodam na subida do container**, no `CMD` do
-`apps/web/Dockerfile`, e só depois o servidor sobe (`exec`, para o node ser o
+Dois cuidados que vêm de construir na VPS: o build do Vite gasta memória, e
+build estourando RAM derruba o app no meio do deploy — dimensione a VPS para
+isso (ver `docs/deploy/`); e o deploy sai do push, **não espera o CI**, então
+não mescle com o CI vermelho.
+
+**As migrations rodam na subida do container**, no `CMD` do `Dockerfile`, e só
+depois o servidor sobe (`exec`, para o node ser o
 PID 1). Não é o *pre-deployment* do Coolify: aquele roda no container
 **antigo**, com as migrations da versão anterior, e é pulado no primeiro
 deploy. Migração que falha impede o servidor de subir, o healthcheck não
@@ -748,9 +754,9 @@ migrate` engole a mensagem do Postgres e sai só com exit 1 — num deploy isso 
 um log que não diz nada. Ele aplica o lote numa transação, sob lock advisory
 (réplicas que sobem juntas), e devolve o erro inteiro.
 
-**Rollback é trocar a etiqueta**, não reverter commit: no Coolify, app →
-*Configuration → General → Tag*, troque `main` por um `sha-<commit>` anterior e
-faça deploy; depois volte para `main`.
+**Rollback:** no Coolify, app → *Deployments → Rollback* volta para uma imagem
+construída antes (só existe enquanto a limpeza de Docker da VPS não a apagou);
+sem ela, reverta o commit na `main` e deixe o deploy rodar.
 
 > **Armadilha, e a mais cara delas:** o rollback **não desfaz migration**. O
 > banco fica no schema novo servindo código antigo. Pela mesma razão, durante o

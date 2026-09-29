@@ -64,21 +64,17 @@ jobs:
             exit 1
           fi
 
-  # Publica a imagem de produção no GHCR e dispara o deploy no Coolify.
+  # Prova que a imagem de produção constrói, migra o banco e responde.
   #
-  # Só depois do `verify` e só na `main`: pull request nunca publica. A VPS não
-  # compila nada — ela baixa exatamente a imagem que passou por aqui.
-  publish:
-    name: Publica a imagem
+  # Nada é publicado: quem constrói a imagem que vai ao ar é o Coolify, na VPS,
+  # a partir do `Dockerfile` da raiz (build pack Dockerfile). Este job existe
+  # para o defeito de imagem aparecer no pull request, e não no deploy.
+  imagem:
+    name: Imagem migra e responde
     needs: verify
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-      packages: write
-
-    # Banco descartável para provar que a imagem migra e sobe antes de publicar.
+    # Banco descartável para provar que a imagem migra e sobe.
     services:
       postgres:
         image: postgres:18
@@ -94,42 +90,20 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    env:
-      IMAGE: ghcr.io/act962/integra-web
-
     steps:
       - uses: actions/checkout@v7
 
       - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # `main` é a etiqueta que o Coolify acompanha; `sha-<commit>` é a que
-      # fica para rollback — voltar é apontar o Coolify para uma delas.
-      - id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.IMAGE }}
-          tags: |
-            type=sha,format=short
-            type=raw,value=main
-
       - name: Constrói a imagem
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: apps/web/Dockerfile
+          file: Dockerfile
           platforms: linux/amd64
-          # Carrega localmente em vez de publicar: o teste abaixo precisa
-          # rodar a imagem, e só a imagem testada é que sobe.
           load: true
           push: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: integra-web:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -139,7 +113,7 @@ jobs:
             -e DATABASE_URL=postgresql://postgres:password@localhost:5432/educa-escola \
             -e BETTER_AUTH_SECRET=ci-placeholder-secret-nao-use-em-producao \
             -e BETTER_AUTH_URL=http://localhost:3001 \
-            "$IMAGE:main"
+            integra-web:ci
 
           for _ in $(seq 1 60); do
             if curl -fsS http://localhost:3001/api/health; then
@@ -154,23 +128,6 @@ jobs:
             sleep 1
           done
 
-          echo "::error::A imagem não ficou saudável. Ela não será publicada."
+          echo "::error::A imagem não ficou saudável."
           docker logs integra
           exit 1
-
-      - name: Publica no GHCR
-        run: docker push --all-tags "$IMAGE"
-
-      # Sem os segredos o passo avisa e passa: a imagem já está publicada, e o
-      # CI não deve ficar vermelho enquanto o Coolify ainda não existe.
-      - name: Dispara o deploy no Coolify
-        env:
-          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-        run: |
-          if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
-            echo "::notice::COOLIFY_WEBHOOK/COOLIFY_TOKEN não configurados: imagem publicada, deploy não disparado."
-            exit 0
-          fi
-          curl --fail --silent --show-error --request GET "$COOLIFY_WEBHOOK" \
-            --header "Authorization: Bearer $COOLIFY_TOKEN"

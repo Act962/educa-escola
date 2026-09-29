@@ -9,11 +9,10 @@
 > documentação do Coolify v4 — se algum rótulo tiver mudado, o conceito é o
 > mesmo.
 
-**Pré-requisito no código:** o commit do job `publish` precisa estar na `main`
-e o CI precisa ter rodado verde uma vez. É isso que publica
-`ghcr.io/act962/integra-web:main` — sem imagem publicada, o Coolify não tem o
-que baixar.
+**Pré-requisito no código:** o `Dockerfile` da raiz precisa estar na `main`. O
+Coolify clona o repositório e constrói na própria VPS — não há registry nem
 
+imagem publicada.
 ---
 
 ## Etapa 0 — O que ter em mãos antes de começar
@@ -105,15 +104,23 @@ mídia é backup inútil para as fotos.
 
 ## Etapa 8 — Aplicação
 
-1. No ambiente `production`: **+ New → Docker Image**.
-2. **Image:** `ghcr.io/act962/integra-web` · **Tag:** `main`.
+1. No ambiente `production`: **+ New → Private Repository (with GitHub App)**,
+   e escolha o repositório `Act962/educa-escola`.
+2. **Branch:** `main` · **Build Pack:** `Dockerfile` · **Base Directory:** `/`
+   (a raiz do repositório, não `apps/web`).
 3. **Configuration → General:**
    - **Name:** `integra-web`
    - **Domains:** `https://orbitaedu.nasaex.com`
    - **Ports Exposes:** `3001` (o padrão é 80 — **troque**, senão o proxy não
      acha o app)
+
+   **Configuration → Advanced:** deixe **Include Source Commit in Build**
+   *desmarcado* (marcado, o hash do commit invalida o cache de dependências a
+   todo deploy) e **Disable Build Cache** também desmarcado.
+
 4. **Configuration → Environment Variables** — todas como variável de
-   *runtime*:
+   *runtime* (desmarque *Available at Buildtime*: o `Dockerfile` já fixa o que o
+   build precisa, e segredo como argumento de build é vazamento à toa):
 
    ```
    DATABASE_URL=<Postgres URL (internal) da etapa 5>
@@ -140,15 +147,6 @@ mídia é backup inútil para as fotos.
    o container ficaria sempre "unhealthy" e o deploy nunca terminaria. A
    imagem também traz um `HEALTHCHECK` próprio com esse mesmo comando, que
    vale fora do Coolify (Docker Compose, `docker run`).
-
-6. **Imagem privada?** Só se o pacote no GHCR estiver privado (etapa 12):
-   por SSH na VPS, faça login com um token do GitHub que tenha
-   `read:packages`:
-
-   ```bash
-   echo "<token>" | docker login ghcr.io --username <usuario-github> --password-stdin
-   ```
-
 ## Etapa 9 — Primeiro deploy
 
 1. **Deploy**. Acompanhe em **Deployments → (o mais recente) → logs**.
@@ -230,24 +228,16 @@ apaga, e se a turma já tem aula não escreve.
 
 ## Etapa 12 — Deploy automático a cada merge na `main`
 
-1. No Coolify: **Settings → Advanced → API Access** — habilite. Se houver
-   lista de IPs permitidos, ela precisa aceitar os runners do GitHub
-   (lista vazia = todos).
-2. **Keys & Tokens → API tokens → + Create**, permissão **`deploy`** apenas
-   (não use `root`). Copie o token — ele só aparece uma vez.
-3. No app `integra-web` → **Configuration → Webhooks** → copie
-   **Deploy Webhook (auth required)**.
-4. No GitHub: **Act962/educa-escola → Settings → Secrets and variables →
-   Actions → New repository secret**:
-   - `COOLIFY_WEBHOOK` = a URL do passo 3
-   - `COOLIFY_TOKEN` = o token do passo 2
-5. No GitHub: **Act962 → Packages → integra-web → Package settings** —
-   confira a visibilidade. O repositório é público, então a imagem pode ser
-   pública e o Coolify baixa sem credencial. Se decidir deixá-la privada, faça
-   o login do passo 8.6.
-6. Teste: faça um merge qualquer na `main`. O job **Publica a imagem** do CI
-   deve terminar com o passo *Dispara o deploy no Coolify* verde, e um
-   deploy novo deve aparecer no Coolify.
+Não há webhook, token de API nem segredo no GitHub: o Coolify recebe o push
+pelo GitHub App da etapa 8 e constrói sozinho.
+
+1. No app `integra-web` → **Configuration → Advanced**, confira
+   **Auto Deploy** ligado (é o que reage ao push na `main`).
+2. Teste: faça um merge qualquer na `main`. Um deploy novo deve aparecer em
+   **Deployments**, com o build nos logs.
+3. **O deploy não espera o CI.** Mescle só com o CI verde — o job **Imagem
+   migra e responde** é quem prova, antes do merge, que o `Dockerfile` constrói
+   e o container atende.
 
 ## Etapa 13 — Provar que o backup presta
 
@@ -266,8 +256,8 @@ Backup que nunca foi restaurado é hipótese. Repita a cada trimestre.
 
 | Situação | O que fazer |
 | --- | --- |
-| Deploy novo | Automático a cada merge na `main` com CI verde |
-| Voltar uma versão | App → **Configuration → General → Tag**: troque `main` por `sha-<commit>` anterior (as tags estão em *Act962 → Packages → integra-web*) → **Deploy**. Depois, volte para `main` |
+| Deploy novo | Automático a cada push na `main`, construído pelo Coolify. Não espera o CI: mescle com ele verde |
+| Voltar uma versão | App → **Deployments → Rollback**, na imagem anterior (só existe enquanto a limpeza de Docker da VPS não a apagou). Sem ela, reverta o commit na `main` e deixe o deploy rodar |
 | Deploy não terminou | Logs do deploy e do container. `[migrate] Falhou.` = problema de migration; container reiniciando sem esse log = variável de ambiente faltando |
 | App fora do ar | `https://orbitaedu.nasaex.com/api/health`: 503 é o banco; sem resposta é o container ou o proxy |
 | Nova escola | Etapa 10 |

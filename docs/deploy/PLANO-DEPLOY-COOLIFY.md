@@ -22,36 +22,41 @@ Internet ──HTTPS──▶ Traefik (Coolify) ──▶ web :3001 ──▶ Po
 | Recurso Coolify | Tipo | Por quê |
 | --- | --- | --- |
 | `integra-db` | **Database → PostgreSQL 18** gerenciado pelo Coolify | Backup agendado para S3 vem pronto; sem porta pública |
-| `integra-web` | **Application → Docker Image** (imagem do GHCR) | Ver §3: build fora da VPS |
-| (futuro) `integra-web-staging` | Mesma imagem, outro banco | Onde roda `seed:demo` — nunca em produção |
+| `integra-web` | **Application → Private Repository (GitHub App)**, build pack Dockerfile | Ver §3: o Coolify constrói |
+| (futuro) `integra-web-staging` | Mesmo repositório, outro banco | Onde roda `seed:demo` — nunca em produção |
 
 **Não usar o `docker-compose.yml` do repositório em produção**: ele publica o
 Postgres na porta 5432 do host, com senha padrão `password`, e fixa
 `BETTER_AUTH_URL=http://localhost:3001`. Ele continua sendo o ambiente local.
 
-## 3. Onde a imagem é construída — **decidido: GitHub Actions**
+## 3. Onde a imagem é construída — **decidido: Coolify, pelo Dockerfile**
+
+Decisão de 2026-09-29, no mesmo modelo do `portal-app`. Antes (2026-09-22) o
+build ficava no GitHub Actions, com a imagem publicada no GHCR e o Coolify só
+puxando. Saiu: era um registry, um token e um webhook a mais para manter, e a
+imagem que rodava em produção não era a que o Coolify construía.
 
 | Opção | Prós | Contras |
 | --- | --- | --- |
-| **A. GitHub Actions → GHCR, Coolify puxa a imagem** (escolhida em 2026-09-22) | Build não disputa CPU/RAM com a produção; imagem testada é a que sobe; rollback = trocar a tag | Um workflow a mais; token de leitura do GHCR no Coolify |
-| B. Coolify builda o `apps/web/Dockerfile` a partir do Git | Zero configuração extra | Build do Vite + TensorFlow.js em VPS pequena corre risco de OOM e derruba o app no meio do deploy |
+| **A. Coolify builda o `Dockerfile` da raiz a partir do Git** (atual) | Zero peça extra: sem registry, sem token, sem webhook; deploy a cada push pelo GitHub App | Build usa CPU/RAM da VPS; deploy não espera o CI |
+| B. GitHub Actions → GHCR, Coolify puxa a imagem (até 2026-09-29) | Build fora da VPS; rollback por etiqueta | Um workflow a mais; token de leitura do GHCR no Coolify |
 
-Com A, o fluxo fica: CI verde na `main` → job `publish` (em
-`.github/workflows/ci.yml`) constrói a imagem, **sobe ela contra um Postgres
-descartável e exige 200 em `/api/health`**, e só então publica
-`ghcr.io/act962/integra-web:sha-<commit>` e `:main` → webhook de deploy do
-Coolify.
+Com A, o fluxo é: merge na `main` → o Coolify recebe o push, clona e constrói o
+`Dockerfile` → sobe o container → healthcheck → troca o tráfego.
 
-- O Coolify acompanha a etiqueta `:main`. Rollback = apontar para uma
-  `:sha-<commit>` anterior.
-- O login no GHCR usa o `GITHUB_TOKEN` do próprio Actions: nenhum segredo a
-  cadastrar para publicar.
-- O deploy só é disparado se existirem os segredos `COOLIFY_WEBHOOK` e
-  `COOLIFY_TOKEN` no repositório. Sem eles, o job publica a imagem e avisa.
-- Depois da primeira publicação, conferir a visibilidade do pacote em
-  *github.com/Act962 → Packages → integra-web*. O repositório é público, então
-  a imagem pode ser pública (o Coolify baixa sem credencial). Se ficar
-  privada, cadastrar no Coolify um token do GitHub com `read:packages`.
+- O app é **Application → Private Repository (with GitHub App)**, build pack
+  **Dockerfile**, *Base Directory* `/` (raiz do repositório, não `apps/web`).
+- O CI **não publica nada**. O job `imagem` do `ci.yml` constrói o mesmo
+  `Dockerfile`, sobe contra um Postgres descartável e exige 200 em
+  `/api/health`, para o defeito de imagem aparecer no PR.
+- **O deploy não espera o CI.** O Coolify reage ao push; não mescle com o CI
+  vermelho. Migração que falha no container novo mantém o anterior no ar.
+- **Risco de OOM no build** (Vite + TensorFlow.js): a VPS precisa de folga de
+  memória para construir sem derrubar o app que está servindo. Se acontecer,
+  adicione swap ou suba a VPS antes de voltar ao modelo B.
+- *Advanced*: deixe **Include Source Commit in Build** desmarcado (marcado, o
+  hash do commit invalida o cache de dependências a todo deploy) e o cache de
+  build ligado.
 
 ## 4. Ajustes no código antes do primeiro deploy
 
@@ -93,7 +98,7 @@ Em ordem de prioridade. Cada um vira um PR pequeno.
    um balde único para todos. O sintoma é o aviso "Rate limiting could not
    determine a client IP" no log — se aparecer, configurar
    `advanced.ipAddress.trustedProxies`.
-6. ✅ **Workflow de publicação da imagem** no GitHub Actions (opção 3A) — ver §3.
+6. ✅ **Build pelo Coolify a partir do `Dockerfile` da raiz** — ver §3.
 
 ## 5. Variáveis de ambiente de produção
 
@@ -146,13 +151,12 @@ empresa) antes do primeiro cadastro de foto.
    atrás de IP permitido ou do próprio domínio com TLS.
 3. Criar `integra-db`, configurar backup S3 e rodar um backup manual.
 4. Gerar os três segredos e guardar no cofre.
-5. Criar `integra-web` do tipo *Docker Image* com
-   `ghcr.io/act962/integra-web:main`, variáveis, domínio e healthcheck
-   `/api/health` na porta 3001 (as migrations rodam sozinhas na subida do
-   container).
-6. Copiar o *Deploy Webhook* e criar um token de API no Coolify; cadastrar os
-   dois como segredos `COOLIFY_WEBHOOK` e `COOLIFY_TOKEN` no GitHub
-   (*Settings → Secrets and variables → Actions*).
+5. Criar `integra-web` como *Private Repository (with GitHub App)*, branch
+   `main`, build pack **Dockerfile**, base directory `/`, porta 3001, com
+   variáveis, domínio e healthcheck `/api/health` (as migrations rodam sozinhas
+   na subida do container).
+6. Conferir que o Coolify recebe o push da `main` (deploy automático ligado):
+   não há webhook nem segredo no GitHub para cadastrar.
 7. Deploy. Conferir logs e `/api/health`.
 8. Preparar a primeira escola pelo terminal do container no Coolify — um acesso
    por papel, disciplinas da base e uma turma, com as senhas geradas e exibidas
@@ -174,7 +178,7 @@ empresa) antes do primeiro cadastro de foto.
 | Tema | Proposta |
 | --- | --- |
 | Deploy | Automático a cada merge na `main` com CI verde |
-| Rollback | Redeploy da tag anterior no Coolify. Migrations são só para frente — migration destrutiva exige plano próprio |
+| Rollback | *Deployments → Rollback* no Coolify (imagem anterior ainda na VPS) ou revert do commit na `main`. Migrations são só para frente — migration destrutiva exige plano próprio |
 | Logs | Os do Coolify no início; `[DECIDIR]` Better Stack / Grafana Loki depois |
 | Uptime | Monitor externo em `/api/health` (UptimeRobot / Better Stack) |
 | Erros | `[DECIDIR]` Sentry (ou GlitchTip auto-hospedado no próprio Coolify) |
@@ -196,7 +200,7 @@ material da portaria por rosto (`packages/db/src/schema/gate.ts`) — biometria
 
 ## 11. Decisões pendentes (resumo)
 
-1. ~~Build no GitHub Actions ou na VPS?~~ GitHub Actions — §3
+1. ~~Build no GitHub Actions ou na VPS?~~ Na VPS, pelo Coolify — §3
 2. ~~Domínio de produção.~~ `orbitaedu.nasaex.com` — §6
 3. Provedor e região da VPS e do bucket de backup. — §7, §10
 4. Observabilidade: Sentry/GlitchTip e agregador de logs agora ou depois? — §9
@@ -206,7 +210,7 @@ material da portaria por rosto (`packages/db/src/schema/gate.ts`) — biometria
 ## 12. Riscos conhecidos
 
 - **Migration incompatível com a versão anterior** quebra o container antigo durante o rolling update; ver §4.2.
-- **OOM no build** se a imagem for construída na própria VPS.
+- **OOM no build**: a imagem é construída na própria VPS (§3).
 - **`nitro@3.x` beta** como runtime de produção.
 - **Chaves de cifragem sem cópia fora do Coolify** = perda irreversível de
   fotos e credenciais.
